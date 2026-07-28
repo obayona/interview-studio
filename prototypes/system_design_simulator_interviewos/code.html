@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>InterviewOS - System Design Simulator</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Geist:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-fixed": "#d8e2ff",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-fixed": "#001a41",
+                        "secondary-fixed-dim": "#c2c1ff",
+                        "tertiary-container": "#c64f00",
+                        "surface-tint": "#005bc1",
+                        "on-background": "#1a1b1f",
+                        "tertiary-fixed-dim": "#ffb595",
+                        "on-secondary-fixed": "#0c006a",
+                        "surface-bright": "#faf9fe",
+                        "on-tertiary-container": "#fffbff",
+                        "surface": "#faf9fe",
+                        "primary-fixed-dim": "#adc6ff",
+                        "outline-variant": "#c1c6d7",
+                        "surface-dim": "#dad9df",
+                        "secondary": "#4c4aca",
+                        "inverse-primary": "#adc6ff",
+                        "on-primary-fixed-variant": "#004493",
+                        "secondary-container": "#6664e4",
+                        "primary-container": "#0070eb",
+                        "inverse-surface": "#2f3034",
+                        "on-tertiary-fixed": "#351000",
+                        "background": "#faf9fe",
+                        "on-surface-variant": "#414755",
+                        "inverse-on-surface": "#f1f0f5",
+                        "primary": "#0058bc",
+                        "surface-container": "#eeedf3",
+                        "on-tertiary-fixed-variant": "#7c2e00",
+                        "on-secondary-fixed-variant": "#3631b4",
+                        "surface-container-low": "#f4f3f8",
+                        "tertiary-fixed": "#ffdbcc",
+                        "on-surface": "#1a1b1f",
+                        "on-primary": "#ffffff",
+                        "surface-container-highest": "#e3e2e7",
+                        "secondary-fixed": "#e2dfff",
+                        "outline": "#717786",
+                        "error-container": "#ffdad6",
+                        "surface-container-high": "#e9e7ed",
+                        "on-secondary": "#ffffff",
+                        "tertiary": "#9e3d00",
+                        "surface-variant": "#e3e2e7",
+                        "on-secondary-container": "#fffbff",
+                        "on-error": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-container": "#fefcff",
+                        "error": "#ba1a1a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "16px",
+                        "margin-page": "40px",
+                        "stack-lg": "24px",
+                        "sidebar-width": "260px",
+                        "stack-sm": "8px",
+                        "stack-md": "16px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Inter"],
+                        "headline-sm": ["Inter"],
+                        "body-md": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "mono-sm": ["Geist"],
+                        "label-md": ["Geist"],
+                        "headline-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["17px", {"lineHeight": "22px", "letterSpacing": "-0.015em", "fontWeight": "400"}],
+                        "headline-sm": ["20px", {"lineHeight": "25px", "letterSpacing": "-0.017em", "fontWeight": "600"}],
+                        "body-md": ["15px", {"lineHeight": "20px", "letterSpacing": "-0.012em", "fontWeight": "400"}],
+                        "display-lg": ["34px", {"lineHeight": "41px", "letterSpacing": "-0.022em", "fontWeight": "700"}],
+                        "mono-sm": ["12px", {"lineHeight": "18px", "letterSpacing": "0em", "fontWeight": "400"}],
+                        "label-md": ["13px", {"lineHeight": "16px", "letterSpacing": "-0.01em", "fontWeight": "500"}],
+                        "headline-md": ["24px", {"lineHeight": "30px", "letterSpacing": "-0.019em", "fontWeight": "600"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #faf9fe; }
+        .glass { backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); }
+        .whiteboard-grid {
+            background-image: 
+                radial-gradient(circle, #00000010 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+        .mac-traffic-lights span { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+        .active-tool { background-color: #007AFF; color: white !important; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
+        .chat-bubble-ai { border-bottom-left-radius: 2px; }
+        .chat-bubble-user { border-bottom-right-radius: 2px; }
+    </style>
+</head>
+<body class="overflow-hidden">
+<!-- Sidebar Navigation (Immutable Content from JSON) -->
+<aside class="fixed left-0 top-0 h-full w-sidebar-width bg-surface/80 backdrop-blur-xl border-r border-black/10 flex flex-col p-stack-md space-y-stack-sm z-50">
+<div class="mb-stack-lg px-2">
+<h1 class="font-display-lg text-display-lg font-bold text-on-surface">InterviewOS</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Technical Simulator</p>
+</div>
+<nav class="flex-1 space-y-1">
+<!-- Active State determined: Simulator is under Processes/Interviews -->
+<a class="flex items-center space-x-3 px-3 py-2 text-on-surface-variant hover:bg-on-surface-variant/10 rounded-lg transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-body-md text-body-md">Home</span>
+</a>
+<a class="flex items-center space-x-3 px-3 py-2 bg-primary text-on-primary rounded-lg transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">terminal</span>
+<span class="font-body-md text-body-md">Processes</span>
+</a>
+<a class="flex items-center space-x-3 px-3 py-2 text-on-surface-variant hover:bg-on-surface-variant/10 rounded-lg transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-body-md text-body-md">Profile</span>
+</a>
+<a class="flex items-center space-x-3 px-3 py-2 text-on-surface-variant hover:bg-on-surface-variant/10 rounded-lg transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-body-md text-body-md">Settings</span>
+</a>
+</nav>
+<div class="pt-4 border-t border-black/5 space-y-1">
+<a class="flex items-center space-x-3 px-3 py-2 text-on-surface-variant hover:bg-on-surface-variant/10 rounded-lg" href="#">
+<span class="material-symbols-outlined">help</span>
+<span class="font-body-md text-body-md">Help</span>
+</a>
+<a class="flex items-center space-x-3 px-3 py-2 text-on-surface-variant hover:bg-on-surface-variant/10 rounded-lg" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-body-md text-body-md">Sign Out</span>
+</a>
+</div>
+</aside>
+<!-- Main Simulator Stage -->
+<main class="fixed inset-0 left-sidebar-width flex flex-col overflow-hidden bg-background">
+<!-- Top Bar / Traffic Lights Header -->
+<header class="h-14 bg-surface/80 backdrop-blur-xl border-b border-black/5 flex justify-between items-center px-gutter w-full z-40">
+<div class="flex items-center space-x-4">
+<div class="mac-traffic-lights flex space-x-2 mr-4">
+<span class="bg-[#FF5F56]"></span>
+<span class="bg-[#FFBD2E]"></span>
+<span class="bg-[#27C93F]"></span>
+</div>
+<div class="flex items-center space-x-2">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">architecture</span>
+<span class="font-headline-sm text-headline-sm font-semibold text-on-surface">System Design Session</span>
+<span class="px-2 py-0.5 bg-primary-fixed text-on-primary-fixed text-[10px] uppercase font-bold rounded">Live</span>
+</div>
+</div>
+<div class="flex items-center space-x-stack-md">
+<div class="flex -space-x-2">
+<img class="w-8 h-8 rounded-full border-2 border-white object-cover" data-alt="A professional headshot of a technical interviewer, soft lighting, minimalist office background, high-end photography style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAJNOFIZV1foePOocbK8z2k1iReCVKckZyWXMoomQKBlSCcW8t4rujgfOvdxE0AOkwRgDgLJQkRkAUoWUKl4c_BN1ZqSe6XTgx6eFTIqlbW-SrkSopsmLnzDTIZ1vkk_dvuAZ5cjGveXau8l44Y6kJ34riRAyQOvc1hsEhJq8ZeCTeHNXZrSxP7W082qQ7oQJkPQJ8_2WThwh7j8lsq55fCWwHLC0up6aawdjrPmLj0NkgKUiOrjkCo"/>
+<div class="w-8 h-8 rounded-full bg-secondary-fixed flex items-center justify-center border-2 border-white text-[10px] font-bold">AI</div>
+</div>
+<button class="bg-primary hover:bg-primary-container text-on-primary px-4 py-1.5 rounded-lg font-label-md text-label-md transition-all active:scale-[0.98]">
+                    Submit Solution
+                </button>
+</div>
+</header>
+<!-- Split Pane Layout -->
+<div class="flex-1 flex overflow-hidden">
+<!-- Whiteboard Area (Left) -->
+<section class="flex-1 relative overflow-hidden bg-white whiteboard-grid cursor-crosshair">
+<!-- Floating Toolbar -->
+<div class="absolute left-6 top-1/2 -translate-y-1/2 flex flex-col space-y-2 p-2 bg-white/90 backdrop-blur-md rounded-2xl shadow-xl border border-black/10 z-30">
+<button class="p-2.5 rounded-xl hover:bg-surface-container active-tool transition-all" title="Select">
+<span class="material-symbols-outlined">near_me</span>
+</button>
+<div class="w-full h-px bg-black/5 my-1"></div>
+<button class="p-2.5 rounded-xl hover:bg-surface-container text-on-surface-variant transition-all" title="Rectangle">
+<span class="material-symbols-outlined">rectangle</span>
+</button>
+<button class="p-2.5 rounded-xl hover:bg-surface-container text-on-surface-variant transition-all" title="Circle">
+<span class="material-symbols-outlined">circle</span>
+</button>
+<button class="p-2.5 rounded-xl hover:bg-surface-container text-on-surface-variant transition-all" title="Arrow">
+<span class="material-symbols-outlined">arrow_outward</span>
+</button>
+<button class="p-2.5 rounded-xl hover:bg-surface-container text-on-surface-variant transition-all" title="Text">
+<span class="material-symbols-outlined">title</span>
+</button>
+<div class="w-full h-px bg-black/5 my-1"></div>
+<button class="p-2.5 rounded-xl hover:bg-surface-container text-on-surface-variant transition-all" title="Database">
+<span class="material-symbols-outlined">database</span>
+</button>
+<button class="p-2.5 rounded-xl hover:bg-surface-container text-on-surface-variant transition-all" title="Server">
+<span class="material-symbols-outlined">dns</span>
+</button>
+<button class="p-2.5 rounded-xl hover:bg-surface-container text-on-surface-variant transition-all" title="Queue">
+<span class="material-symbols-outlined">queue</span>
+</button>
+<div class="w-full h-px bg-black/5 my-1"></div>
+<button class="p-2.5 rounded-xl hover:bg-surface-container text-error transition-all" title="Clear">
+<span class="material-symbols-outlined">delete</span>
+</button>
+</div>
+<!-- Canvas Content (Mockup) -->
+<div class="absolute inset-0 p-20 pointer-events-none">
+<div class="relative w-full h-full opacity-60">
+<!-- Initial placeholder component drawings could be here -->
+</div>
+</div>
+<!-- Whiteboard Bottom Controls -->
+<div class="absolute bottom-6 right-6 flex space-x-3 z-30">
+<div class="flex items-center space-x-1 bg-white/90 backdrop-blur-md px-3 py-2 rounded-xl shadow-lg border border-black/5">
+<button class="p-1 hover:bg-surface-container rounded"><span class="material-symbols-outlined text-[18px]">remove</span></button>
+<span class="font-label-md text-label-md px-2">100%</span>
+<button class="p-1 hover:bg-surface-container rounded"><span class="material-symbols-outlined text-[18px]">add</span></button>
+</div>
+</div>
+</section>
+<!-- Resizer Handle (Aesthetic Only) -->
+<div class="w-[1px] bg-black/5 hover:bg-primary transition-colors cursor-col-resize relative group z-30">
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-12 bg-surface-container rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
+</div>
+<!-- Chat & Insights Panel (Right) -->
+<section class="w-[420px] bg-surface flex flex-col border-l border-black/5">
+<!-- Chat Feed -->
+<div class="flex-1 flex flex-col overflow-hidden">
+<div class="p-4 border-b border-black/5 bg-white/50">
+<h3 class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Interview Assistant</h3>
+</div>
+<div class="flex-1 overflow-y-auto p-4 space-y-6">
+<!-- Message AI -->
+<div class="flex space-x-3">
+<div class="w-8 h-8 rounded-full bg-secondary-container flex-shrink-0 flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined text-[18px]">smart_toy</span>
+</div>
+<div class="space-y-1 max-w-[85%]">
+<div class="bg-surface-container-high p-3 rounded-2xl chat-bubble-ai text-on-surface">
+<p class="font-body-md text-body-md">Hello! I'm your technical interviewer for today. Let's start with a classic architectural challenge.</p>
+</div>
+<span class="text-[10px] text-on-surface-variant font-medium ml-1">10:02 AM</span>
+</div>
+</div>
+<!-- Main Question AI -->
+<div class="flex space-x-3">
+<div class="w-8 h-8 rounded-full bg-secondary-container flex-shrink-0 flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined text-[18px]">smart_toy</span>
+</div>
+<div class="space-y-1 max-w-[85%]">
+<div class="bg-primary-container p-4 rounded-2xl chat-bubble-ai text-on-primary-container shadow-sm border border-primary/20">
+<p class="font-body-md text-body-md leading-relaxed">How would you design a <b>scalable notification system</b> that supports multiple channels (Email, SMS, Push) and handles billions of daily events with low latency?</p>
+</div>
+<span class="text-[10px] text-on-surface-variant font-medium ml-1">10:03 AM</span>
+</div>
+</div>
+<!-- User Response -->
+<div class="flex flex-row-reverse space-x-3 space-x-reverse">
+<div class="w-8 h-8 rounded-full bg-primary flex-shrink-0 flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined text-[18px]">person</span>
+</div>
+<div class="space-y-1 max-w-[85%]">
+<div class="bg-white border border-black/10 p-3 rounded-2xl chat-bubble-user text-on-surface shadow-sm">
+<p class="font-body-md text-body-md">I'll start by defining the high-level components: Producers, a Message Queue, and specialized Workers for each channel.</p>
+</div>
+<span class="text-[10px] text-on-surface-variant font-medium mr-1 text-right block">10:05 AM</span>
+</div>
+</div>
+</div>
+<!-- Chat Input -->
+<div class="p-4 bg-white border-t border-black/5">
+<div class="relative flex items-center">
+<input class="w-full bg-surface-container-low border border-black/5 rounded-xl py-3 pl-4 pr-12 text-body-md font-body-md focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" placeholder="Explain your thought process..." type="text"/>
+<button class="absolute right-2 p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors">
+<span class="material-symbols-outlined">send</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Key Points Panel (Bento Style) -->
+<div class="h-64 bg-surface-container border-t border-black/5 p-4 overflow-y-auto">
+<div class="flex items-center justify-between mb-4">
+<h3 class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Detected Architecture</h3>
+<span class="flex h-2 w-2 rounded-full bg-primary animate-pulse"></span>
+</div>
+<div class="grid grid-cols-2 gap-3">
+<div class="bg-white p-3 rounded-xl border border-black/5 shadow-sm space-y-2">
+<div class="flex items-center space-x-2 text-primary">
+<span class="material-symbols-outlined text-[16px]">dynamic_form</span>
+<span class="font-label-md text-[11px] font-bold">PATTERN</span>
+</div>
+<p class="font-body-md text-[13px] text-on-surface leading-snug">Pub/Sub via Message Queue</p>
+</div>
+<div class="bg-white p-3 rounded-xl border border-black/5 shadow-sm space-y-2">
+<div class="flex items-center space-x-2 text-secondary">
+<span class="material-symbols-outlined text-[16px]">speed</span>
+<span class="font-label-md text-[11px] font-bold">LATENCY</span>
+</div>
+<p class="font-body-md text-[13px] text-on-surface leading-snug">Asynchronous Processing</p>
+</div>
+<div class="bg-white p-3 rounded-xl border border-black/5 shadow-sm space-y-2 opacity-50">
+<div class="flex items-center space-x-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]">pending</span>
+<span class="font-label-md text-[11px] font-bold">PERSISTENCE</span>
+</div>
+<p class="font-body-md text-[13px] text-on-surface-variant leading-snug italic">Waiting for input...</p>
+</div>
+<div class="bg-white p-3 rounded-xl border border-black/5 shadow-sm space-y-2 opacity-50">
+<div class="flex items-center space-x-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]">pending</span>
+<span class="font-label-md text-[11px] font-bold">SCALING</span>
+</div>
+<p class="font-body-md text-[13px] text-on-surface-variant leading-snug italic">Waiting for input...</p>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Micro-interaction Scripts -->
+<script>
+        // Simple visual feedback for whiteboard tools
+        const buttons = document.querySelectorAll('.absolute.left-6 button');
+        buttons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                buttons.forEach(b => b.classList.remove('active-tool', 'text-white'));
+                btn.classList.add('active-tool');
+            });
+        });
+
+        // Add a pulsing glow to the AI avatar occasionally to simulate thinking
+        const aiAvatars = document.querySelectorAll('.bg-secondary-container');
+        setInterval(() => {
+            aiAvatars.forEach(avatar => {
+                avatar.classList.add('ring-2', 'ring-primary/30');
+                setTimeout(() => {
+                    avatar.classList.remove('ring-2', 'ring-primary/30');
+                }, 1000);
+            });
+        }, 5000);
+    </script>
+</body></html>

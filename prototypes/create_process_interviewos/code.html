@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>InterviewOS - Create Process</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Geist:wght@400;500&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&amp;family=Inter:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-fixed": "#351000",
+                        "on-surface-variant": "#414755",
+                        "on-primary": "#ffffff",
+                        "secondary-fixed-dim": "#c2c1ff",
+                        "on-tertiary-fixed-variant": "#7c2e00",
+                        "surface-container": "#eeedf3",
+                        "on-error": "#ffffff",
+                        "tertiary": "#9e3d00",
+                        "secondary-fixed": "#e2dfff",
+                        "on-primary-fixed-variant": "#004493",
+                        "surface-bright": "#faf9fe",
+                        "secondary": "#4c4aca",
+                        "inverse-primary": "#adc6ff",
+                        "primary-fixed-dim": "#adc6ff",
+                        "surface-container-high": "#e9e7ed",
+                        "on-secondary-container": "#fffbff",
+                        "on-error-container": "#93000a",
+                        "inverse-surface": "#2f3034",
+                        "on-secondary-fixed": "#0c006a",
+                        "primary": "#0058bc",
+                        "surface-container-lowest": "#ffffff",
+                        "error": "#ba1a1a",
+                        "surface": "#faf9fe",
+                        "on-background": "#1a1b1f",
+                        "on-secondary": "#ffffff",
+                        "surface-container-highest": "#e3e2e7",
+                        "outline-variant": "#c1c6d7",
+                        "surface-variant": "#e3e2e7",
+                        "primary-container": "#0070eb",
+                        "on-primary-fixed": "#001a41",
+                        "on-surface": "#1a1b1f",
+                        "tertiary-fixed-dim": "#ffb595",
+                        "surface-container-low": "#f4f3f8",
+                        "primary-fixed": "#d8e2ff",
+                        "surface-tint": "#005bc1",
+                        "tertiary-container": "#c64f00",
+                        "on-primary-container": "#fefcff",
+                        "secondary-container": "#6664e4",
+                        "on-tertiary-container": "#fffbff",
+                        "inverse-on-surface": "#f1f0f5",
+                        "tertiary-fixed": "#ffdbcc",
+                        "on-secondary-fixed-variant": "#3631b4",
+                        "background": "#faf9fe",
+                        "surface-dim": "#dad9df",
+                        "on-tertiary": "#ffffff",
+                        "outline": "#717786",
+                        "error-container": "#ffdad6"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-lg": "24px",
+                        "gutter": "16px",
+                        "stack-md": "16px",
+                        "stack-sm": "8px",
+                        "sidebar-width": "260px",
+                        "margin-page": "40px"
+                    },
+                    "fontFamily": {
+                        "display-lg": ["Inter"],
+                        "label-md": ["Geist"],
+                        "headline-md": ["Inter"],
+                        "headline-sm": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "mono-sm": ["Geist"]
+                    },
+                    "fontSize": {
+                        "display-lg": ["34px", {"lineHeight": "41px", "letterSpacing": "-0.022em", "fontWeight": "700"}],
+                        "label-md": ["13px", {"lineHeight": "16px", "letterSpacing": "-0.01em", "fontWeight": "500"}],
+                        "headline-md": ["24px", {"lineHeight": "30px", "letterSpacing": "-0.019em", "fontWeight": "600"}],
+                        "headline-sm": ["20px", {"lineHeight": "25px", "letterSpacing": "-0.017em", "fontWeight": "600"}],
+                        "body-lg": ["17px", {"lineHeight": "22px", "letterSpacing": "-0.015em", "fontWeight": "400"}],
+                        "body-md": ["15px", {"lineHeight": "20px", "letterSpacing": "-0.012em", "fontWeight": "400"}],
+                        "mono-sm": ["12px", {"lineHeight": "18px", "letterSpacing": "0em", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .glass-effect {
+            backdrop-filter: blur(20px) saturate(180%);
+        }
+        .mac-shadow {
+            box-shadow: 0px 10px 30px rgba(0,0,0,0.08);
+        }
+        .inner-glow-btn {
+            box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.2);
+        }
+        body {
+            background-color: #faf9fe;
+            color: #1a1b1f;
+            -webkit-font-smoothing: antialiased;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+<!-- macOS Window Decorations (Mock) -->
+<div class="fixed top-0 left-0 right-0 h-10 flex items-center px-4 z-50 pointer-events-none">
+<div class="flex space-x-2 pointer-events-auto">
+<div class="w-3.5 h-3.5 rounded-full bg-[#FF5F56] border border-black/10"></div>
+<div class="w-3.5 h-3.5 rounded-full bg-[#FFBD2E] border border-black/10"></div>
+<div class="w-3.5 h-3.5 rounded-full bg-[#27C93F] border border-black/10"></div>
+</div>
+</div>
+<!-- SideNavBar Anchor -->
+<aside class="fixed left-0 top-0 h-full w-sidebar-width bg-surface/80 glass-effect border-r border-black/10 flex flex-col p-stack-md space-y-stack-sm z-40">
+<div class="pt-8 pb-4">
+<h1 class="font-display-lg text-display-lg font-bold text-on-surface">InterviewOS</h1>
+<p class="font-body-md text-on-surface-variant/70 text-xs">Technical Simulator</p>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center space-x-3 px-3 py-2 text-on-surface-variant hover:bg-on-surface-variant/10 rounded-lg transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-body-md">Home</span>
+</a>
+<a class="flex items-center space-x-3 px-3 py-2 bg-primary text-on-primary rounded-lg transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">terminal</span>
+<span class="font-body-md">Processes</span>
+</a>
+<a class="flex items-center space-x-3 px-3 py-2 text-on-surface-variant hover:bg-on-surface-variant/10 rounded-lg transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-body-md">Profile</span>
+</a>
+<a class="flex items-center space-x-3 px-3 py-2 text-on-surface-variant hover:bg-on-surface-variant/10 rounded-lg transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-body-md">Settings</span>
+</a>
+</nav>
+<div class="border-t border-black/5 pt-4 space-y-1">
+<a class="flex items-center space-x-3 px-3 py-2 text-on-surface-variant hover:bg-on-surface-variant/10 rounded-lg transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">help</span>
+<span class="font-body-md">Help</span>
+</a>
+<a class="flex items-center space-x-3 px-3 py-2 text-on-surface-variant hover:bg-on-surface-variant/10 rounded-lg transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-body-md">Sign Out</span>
+</a>
+</div>
+</aside>
+<!-- TopNavBar Anchor -->
+<header class="fixed top-0 right-0 left-sidebar-width h-14 bg-surface/80 glass-effect border-b border-black/5 flex justify-between items-center px-gutter z-30">
+<div class="flex items-center space-x-4">
+<div class="relative w-64">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg">search</span>
+<input class="w-full bg-surface-container-low border border-black/10 rounded-lg py-1.5 pl-10 pr-3 font-label-md text-label-md focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all" placeholder="Search templates..." type="text"/>
+</div>
+</div>
+<div class="flex items-center space-x-4">
+<div class="flex items-center space-x-2">
+<button class="p-2 text-on-surface-variant hover:bg-on-surface-variant/10 rounded-full transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:bg-on-surface-variant/10 rounded-full transition-colors">
+<span class="material-symbols-outlined">history</span>
+</button>
+</div>
+<button class="bg-primary hover:bg-primary/90 text-on-primary font-label-md text-label-md px-4 py-1.5 rounded-lg transition-all active:scale-[0.98] inner-glow-btn">
+                Start Session
+            </button>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-black/10">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of a software engineer in a bright, modern office setting with soft sunlight streaming in. The image is crisp and minimalist, fitting a macOS aesthetic with high clarity and a neutral color palette of whites and grays." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCwhjPvtHreRCSSjFjIHI4FV962W-LrdP9L77Uu_cUgxu5vbJ7zh6ktkYcGeCv7A6FCqPjGRBzdZk4lCCSpqR7oB6ORGKrcLlEWoVPSyFB2W5ndD9rPHvIro8RWVYlCCi4yqrGHdcMdMi4BAtzEhf8m7e47gsQwMLfSnq4BBtNtUZsIs8xR_jneAFeC3EckU-rJFw8no4hKCzZYteN23LSm2UKNJFDuEMGWa8rTn3mWPVdcsy7BCtWz"/>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="pl-sidebar-width pt-14 min-h-screen">
+<div class="max-w-[1200px] mx-auto px-margin-page py-12">
+<!-- Page Header -->
+<div class="mb-10 animate-fade-in-up">
+<h2 class="font-display-lg text-display-lg mb-2">Create Interview Process</h2>
+<p class="font-body-lg text-on-surface-variant">Design a specialized interview pipeline tailored to your job requirements.</p>
+</div>
+<!-- Form Container -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<!-- Main Form Details -->
+<div class="lg:col-span-2 space-y-6">
+<!-- Job Essentials Card -->
+<div class="bg-surface-container-lowest border border-black/10 rounded-xl p-8 mac-shadow">
+<h3 class="font-headline-sm text-headline-sm mb-6 flex items-center">
+<span class="material-symbols-outlined mr-2 text-primary">work</span>
+                            Job Essentials
+                        </h3>
+<div class="space-y-5">
+<div>
+<label class="block font-label-md text-label-md text-on-surface-variant mb-2">Job Listing Title</label>
+<input class="w-full bg-surface border border-black/10 rounded-lg px-4 py-2.5 font-body-md focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all" placeholder="e.g. Senior Backend Engineer" type="text"/>
+</div>
+<div>
+<label class="block font-label-md text-label-md text-on-surface-variant mb-2">Job Description</label>
+<textarea class="w-full bg-surface border border-black/10 rounded-lg px-4 py-2.5 font-body-md focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none" placeholder="Paste the full job description here..." rows="8"></textarea>
+</div>
+</div>
+</div>
+<!-- Company Context Card -->
+<div class="bg-surface-container-lowest border border-black/10 rounded-xl p-8 mac-shadow">
+<h3 class="font-headline-sm text-headline-sm mb-6 flex items-center">
+<span class="material-symbols-outlined mr-2 text-primary">corporate_fare</span>
+                            Company Context <span class="ml-2 font-label-md text-on-surface-variant/50">(Optional)</span>
+</h3>
+<div class="space-y-5">
+<div>
+<label class="block font-label-md text-label-md text-on-surface-variant mb-2">Company Name</label>
+<input class="w-full bg-surface border border-black/10 rounded-lg px-4 py-2.5 font-body-md focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all" placeholder="e.g. Acme Tech" type="text"/>
+</div>
+<div>
+<label class="block font-label-md text-label-md text-on-surface-variant mb-2">Company Info &amp; Values</label>
+<textarea class="w-full bg-surface border border-black/10 rounded-lg px-4 py-2.5 font-body-md focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none" placeholder="Describe the culture, mission, and core values..." rows="3"></textarea>
+</div>
+</div>
+</div>
+</div>
+<!-- Sidebar Selection / Config -->
+<div class="lg:col-span-1">
+<div class="sticky top-24 space-y-6">
+<!-- Interview Stages Card -->
+<div class="bg-surface-container-lowest border border-black/10 rounded-xl p-6 mac-shadow">
+<h3 class="font-headline-sm text-headline-sm mb-4">Interview Stages</h3>
+<p class="font-body-md text-on-surface-variant text-sm mb-6">Select the types of sessions you want to generate.</p>
+<div class="space-y-3">
+<!-- Stage Option -->
+<label class="flex items-center p-3 rounded-lg border border-black/5 hover:bg-surface-container transition-colors cursor-pointer group">
+<input checked="" class="w-5 h-5 rounded border-black/10 text-primary focus:ring-primary/20" type="checkbox"/>
+<div class="ml-4">
+<div class="font-label-md text-on-surface">Behavioral</div>
+<div class="text-xs text-on-surface-variant">Soft skills &amp; cultural fit</div>
+</div>
+</label>
+<label class="flex items-center p-3 rounded-lg border border-black/5 hover:bg-surface-container transition-colors cursor-pointer group">
+<input checked="" class="w-5 h-5 rounded border-black/10 text-primary focus:ring-primary/20" type="checkbox"/>
+<div class="ml-4">
+<div class="font-label-md text-on-surface">Technical (Coding)</div>
+<div class="text-xs text-on-surface-variant">Algorithms &amp; Data Structures</div>
+</div>
+</label>
+<label class="flex items-center p-3 rounded-lg border border-black/5 hover:bg-surface-container transition-colors cursor-pointer group">
+<input class="w-5 h-5 rounded border-black/10 text-primary focus:ring-primary/20" type="checkbox"/>
+<div class="ml-4">
+<div class="font-label-md text-on-surface">System Design</div>
+<div class="text-xs text-on-surface-variant">Large scale architecture</div>
+</div>
+</label>
+</div>
+</div>
+<!-- Generation Controls -->
+<div class="bg-primary/5 border border-primary/20 rounded-xl p-6">
+<div class="flex items-center mb-4 text-primary">
+<span class="material-symbols-outlined mr-2">auto_awesome</span>
+<span class="font-label-md">AI-Powered Generation</span>
+</div>
+<p class="text-xs text-on-surface-variant mb-6 leading-relaxed">
+                                Our AI will analyze the job description to create specific questions and technical tasks tailored to this role.
+                            </p>
+<button class="w-full bg-primary hover:bg-primary/90 text-on-primary py-3 rounded-lg font-headline-sm transition-all active:scale-[0.98] mac-shadow inner-glow-btn flex items-center justify-center space-x-2">
+<span>Generate Process</span>
+<span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</div>
+<!-- Help Widget -->
+<div class="flex items-center space-x-4 p-4 rounded-xl bg-surface-container-high border border-black/5">
+<div class="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-primary">tips_and_updates</span>
+</div>
+<div class="flex-1">
+<p class="text-xs font-semibold">Pro Tip</p>
+<p class="text-[11px] text-on-surface-variant">Provide the "Company Values" for better behavioral questions.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Subtle Background Ambient Shader -->
+<div class="fixed inset-0 -z-10 opacity-30 pointer-events-none">
+
+</div>
+<script>
+        // Simple Interaction logic
+        document.querySelectorAll('input, textarea').forEach(el => {
+            el.addEventListener('focus', () => {
+                el.parentElement.classList.add('focused');
+            });
+            el.addEventListener('blur', () => {
+                el.parentElement.classList.remove('focused');
+            });
+        });
+
+        // Button hover animation logic
+        const btn = document.querySelector('button.bg-primary');
+        if(btn) {
+            btn.addEventListener('mouseenter', () => {
+                btn.classList.add('shadow-lg');
+            });
+            btn.addEventListener('mouseleave', () => {
+                btn.classList.remove('shadow-lg');
+            });
+        }
+    </script>
+</body></html>

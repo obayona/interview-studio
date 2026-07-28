@@ -1,0 +1,1 @@
+Create a detailed implementation plan so that an AI agent (codex with GTP 5) is able to develop the project and all the functionalities described in the file @AGENT.md For now, do not create code, just create the complete implementation plan.

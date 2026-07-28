@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>InterviewOS - AI Configuration</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Geist:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary-fixed": "#351000",
+                    "on-surface-variant": "#414755",
+                    "on-primary": "#ffffff",
+                    "secondary-fixed-dim": "#c2c1ff",
+                    "on-tertiary-fixed-variant": "#7c2e00",
+                    "surface-container": "#eeedf3",
+                    "on-error": "#ffffff",
+                    "tertiary": "#9e3d00",
+                    "secondary-fixed": "#e2dfff",
+                    "on-primary-fixed-variant": "#004493",
+                    "surface-bright": "#faf9fe",
+                    "secondary": "#4c4aca",
+                    "inverse-primary": "#adc6ff",
+                    "primary-fixed-dim": "#adc6ff",
+                    "surface-container-high": "#e9e7ed",
+                    "on-secondary-container": "#fffbff",
+                    "on-error-container": "#93000a",
+                    "inverse-surface": "#2f3034",
+                    "on-secondary-fixed": "#0c006a",
+                    "primary": "#0058bc",
+                    "surface-container-lowest": "#ffffff",
+                    "error": "#ba1a1a",
+                    "surface": "#faf9fe",
+                    "on-background": "#1a1b1f",
+                    "on-secondary": "#ffffff",
+                    "surface-container-highest": "#e3e2e7",
+                    "outline-variant": "#c1c6d7",
+                    "surface-variant": "#e3e2e7",
+                    "primary-container": "#0070eb",
+                    "on-primary-fixed": "#001a41",
+                    "on-surface": "#1a1b1f",
+                    "tertiary-fixed-dim": "#ffb595",
+                    "surface-container-low": "#f4f3f8",
+                    "primary-fixed": "#d8e2ff",
+                    "surface-tint": "#005bc1",
+                    "tertiary-container": "#c64f00",
+                    "on-primary-container": "#fefcff",
+                    "secondary-container": "#6664e4",
+                    "on-tertiary-container": "#fffbff",
+                    "inverse-on-surface": "#f1f0f5",
+                    "tertiary-fixed": "#ffdbcc",
+                    "on-secondary-fixed-variant": "#3631b4",
+                    "background": "#faf9fe",
+                    "surface-dim": "#dad9df",
+                    "on-tertiary": "#ffffff",
+                    "outline": "#717786",
+                    "error-container": "#ffdad6"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "stack-lg": "24px",
+                    "gutter": "16px",
+                    "stack-md": "16px",
+                    "stack-sm": "8px",
+                    "sidebar-width": "260px",
+                    "margin-page": "40px"
+            },
+            "fontFamily": {
+                    "display-lg": ["Inter"],
+                    "label-md": ["Geist"],
+                    "headline-md": ["Inter"],
+                    "headline-sm": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "body-md": ["Inter"],
+                    "mono-sm": ["Geist"]
+            },
+            "fontSize": {
+                    "display-lg": ["34px", {"lineHeight": "41px", "letterSpacing": "-0.022em", "fontWeight": "700"}],
+                    "label-md": ["13px", {"lineHeight": "16px", "letterSpacing": "-0.01em", "fontWeight": "500"}],
+                    "headline-md": ["24px", {"lineHeight": "30px", "letterSpacing": "-0.019em", "fontWeight": "600"}],
+                    "headline-sm": ["20px", {"lineHeight": "25px", "letterSpacing": "-0.017em", "fontWeight": "600"}],
+                    "body-lg": ["17px", {"lineHeight": "22px", "letterSpacing": "-0.015em", "fontWeight": "400"}],
+                    "body-md": ["15px", {"lineHeight": "20px", "letterSpacing": "-0.012em", "fontWeight": "400"}],
+                    "mono-sm": ["12px", {"lineHeight": "18px", "letterSpacing": "0em", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #F6F6F6;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        .macos-shadow {
+            box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+        }
+
+        .toggle-checkbox:checked {
+            @apply right-0 bg-white;
+            right: 0;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            @apply bg-[#007AFF];
+        }
+
+        .macos-blur {
+            backdrop-filter: blur(20px) saturate(180%);
+        }
+
+        /* macOS Traffic Light Buttons */
+        .traffic-light {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        /* Custom Inset Shadow for Inputs */
+        .macos-input {
+            border: 0.5px solid rgba(0,0,0,0.15);
+            background-color: white;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .macos-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.4);
+            border-color: #007AFF;
+        }
+    </style>
+</head>
+<body class="font-body-md text-on-surface overflow-hidden h-screen flex">
+<!-- macOS Window Wrapper -->
+<div class="flex w-full h-full bg-surface-container-lowest overflow-hidden shadow-2xl">
+<!-- SIDEBAR (SideNavBar) -->
+<aside class="fixed left-0 top-0 h-full w-sidebar-width bg-surface/80 dark:bg-inverse-surface/80 backdrop-blur-xl border-r border-black/10 flex flex-col p-stack-md space-y-stack-sm z-50">
+<!-- Traffic Lights Control -->
+<div class="flex space-x-2 mb-6 px-2">
+<div class="traffic-light bg-[#FF5F56] border border-[#E0443E]"></div>
+<div class="traffic-light bg-[#FFBD2E] border border-[#DEA123]"></div>
+<div class="traffic-light bg-[#27C93F] border border-[#1AAB29]"></div>
+</div>
+<!-- Brand Section -->
+<div class="px-2 mb-8">
+<h1 class="font-display-lg text-display-lg font-bold text-on-surface">InterviewOS</h1>
+<p class="font-body-md text-on-surface-variant opacity-70">Technical Simulator</p>
+</div>
+<!-- Navigation Links -->
+<nav class="flex-grow space-y-1">
+<a class="flex items-center px-3 py-2 text-on-surface-variant hover:bg-on-surface-variant/10 rounded-lg transition-colors duration-200 active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined mr-3 text-[20px]">home</span>
+<span class="font-body-md">Home</span>
+</a>
+<a class="flex items-center px-3 py-2 text-on-surface-variant hover:bg-on-surface-variant/10 rounded-lg transition-colors duration-200 active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined mr-3 text-[20px]">terminal</span>
+<span class="font-body-md">Processes</span>
+</a>
+<a class="flex items-center px-3 py-2 text-on-surface-variant hover:bg-on-surface-variant/10 rounded-lg transition-colors duration-200 active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined mr-3 text-[20px]">person</span>
+<span class="font-body-md">Profile</span>
+</a>
+<a class="flex items-center px-3 py-2 bg-primary text-on-primary rounded-lg transition-colors duration-200 active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined mr-3 text-[20px]">settings</span>
+<span class="font-body-md">Settings</span>
+</a>
+</nav>
+<!-- Footer Nav -->
+<div class="pt-4 border-t border-black/5 space-y-1">
+<a class="flex items-center px-3 py-2 text-on-surface-variant hover:bg-on-surface-variant/10 rounded-lg transition-colors duration-200" href="#">
+<span class="material-symbols-outlined mr-3 text-[20px]">help</span>
+<span class="font-body-md">Help</span>
+</a>
+<a class="flex items-center px-3 py-2 text-on-surface-variant hover:bg-on-surface-variant/10 rounded-lg transition-colors duration-200" href="#">
+<span class="material-symbols-outlined mr-3 text-[20px]">logout</span>
+<span class="font-body-md">Sign Out</span>
+</a>
+</div>
+</aside>
+<!-- MAIN CONTENT AREA -->
+<main class="ml-sidebar-width flex-1 flex flex-col relative bg-[#F6F6F6] min-h-screen">
+<!-- TOP NAV BAR (TopNavBar) -->
+<header class="h-14 flex justify-between items-center px-gutter w-full bg-surface/80 backdrop-blur-xl border-b border-black/5 z-40">
+<div class="flex items-center space-x-4">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant opacity-50 text-[18px]">search</span>
+<input class="pl-10 pr-4 py-1.5 bg-surface-container-high border-none rounded-md text-label-md w-64 focus:ring-2 focus:ring-primary/20" placeholder="Search settings..." type="text"/>
+</div>
+</div>
+<div class="flex items-center space-x-4">
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors">history</button>
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors">notifications</button>
+<button class="px-4 py-1.5 bg-primary text-on-primary rounded-md font-label-md text-label-md hover:bg-primary-container transition-all active:scale-95 shadow-sm">
+                        Start Session
+                    </button>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-black/10">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of a software engineer in their late 20s, with a friendly and focused expression, shot in a modern workspace with soft natural lighting and a shallow depth of field, using a clean light-mode aesthetic consistent with high-end tech platforms." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBn50bIbSD0eFILRVgGeGR8iv-XTIMilnJSJLEMCffCQDira7adzGZpZao0HKdLxbPEZu3rP76OheSp7e3YRidEcJ_DCycFWYz5ZUi40KS2m6bcw4c3WYZckF6NnTR70TKOP8ncbi1zcNDtke4y1Ud8tks-BCooW3dJnKY7AOBT4Dc_zgzshKHC0N2ThaPUO_TfMcbB6zs5FRqQ7KkCm1v2q4IfFDLKlsuNSdjRY3vi83EBzis0DfTh"/>
+</div>
+</div>
+</header>
+<!-- SETTINGS CONTENT -->
+<div class="flex-1 overflow-y-auto p-margin-page max-w-[1000px] mx-auto w-full">
+<div class="mb-10">
+<h2 class="font-display-lg text-display-lg mb-2">AI Configuration</h2>
+<p class="font-body-md text-on-surface-variant">Manage your Large Language Model providers and interaction preferences.</p>
+</div>
+<!-- Bento Grid Layout for Settings Groups -->
+<div class="grid grid-cols-12 gap-gutter">
+<!-- Provider Section: OpenAI -->
+<section class="col-span-12 lg:col-span-8 bg-white rounded-xl border border-black/10 p-stack-lg transition-all hover:shadow-md">
+<div class="flex items-center mb-6">
+<div class="w-10 h-10 bg-on-background rounded-lg flex items-center justify-center mr-4">
+<span class="material-symbols-outlined text-white" style="font-variation-settings: 'FILL' 1;">bolt</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm">OpenAI</h3>
+<p class="text-label-md text-on-surface-variant">Recommended for general logic and coding tasks.</p>
+</div>
+</div>
+<div class="space-y-4">
+<div class="flex flex-col">
+<label class="text-label-md font-semibold mb-1.5 ml-1">API Key</label>
+<input class="macos-input px-4 py-2.5 rounded-lg font-mono-sm w-full" placeholder="sk-••••••••••••••••••••••••" type="password"/>
+<p class="mt-2 text-[12px] text-on-surface-variant opacity-60">Your key is encrypted locally and never leaves your browser session.</p>
+</div>
+</div>
+</section>
+<!-- Preferences Section -->
+<section class="col-span-12 lg:col-span-4 bg-white rounded-xl border border-black/10 p-stack-lg transition-all hover:shadow-md flex flex-col justify-between">
+<div>
+<h3 class="font-headline-sm text-headline-sm mb-6">System Preferences</h3>
+<div class="space-y-6">
+<!-- Toggle 1 -->
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<span class="text-label-md font-semibold">Enable Voice Responses</span>
+<span class="text-[12px] text-on-surface-variant">Real-time interview speech</span>
+</div>
+<div class="relative inline-block w-10 align-middle select-none transition duration-200 ease-in">
+<input checked="" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 transition-all duration-300 left-0 border-transparent shadow-sm" id="toggle1" name="toggle" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-5 rounded-full bg-surface-container-highest cursor-pointer transition-all duration-300" for="toggle1"></label>
+</div>
+</div>
+<!-- Toggle 2 -->
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<span class="text-label-md font-semibold">Transcription Storage</span>
+<span class="text-[12px] text-on-surface-variant">Save logs for review</span>
+</div>
+<div class="relative inline-block w-10 align-middle select-none transition duration-200 ease-in">
+<input class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 transition-all duration-300 left-0 border-transparent shadow-sm" id="toggle2" name="toggle" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-5 rounded-full bg-surface-container-highest cursor-pointer transition-all duration-300" for="toggle2"></label>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-8 p-3 bg-primary/5 rounded-lg border border-primary/10">
+<p class="text-[11px] text-primary font-medium leading-relaxed">
+<span class="material-symbols-outlined text-[14px] align-middle mr-1">info</span>
+                                Voice responses require high-speed internet connection for low latency.
+                            </p>
+</div>
+</section>
+<!-- Provider Section: Anthropic -->
+<section class="col-span-12 lg:col-span-6 bg-white rounded-xl border border-black/10 p-stack-lg transition-all hover:shadow-md">
+<div class="flex items-center mb-6">
+<div class="w-10 h-10 bg-tertiary-container/20 rounded-lg flex items-center justify-center mr-4">
+<span class="material-symbols-outlined text-tertiary" style="font-variation-settings: 'FILL' 1;">psychology</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm">Anthropic</h3>
+<p class="text-label-md text-on-surface-variant">Optimized for complex reasoning.</p>
+</div>
+</div>
+<div class="flex flex-col">
+<label class="text-label-md font-semibold mb-1.5 ml-1">API Key</label>
+<input class="macos-input px-4 py-2.5 rounded-lg font-mono-sm w-full" placeholder="ant-••••••••••••••••••••••••" type="password"/>
+</div>
+</section>
+<!-- Provider Section: Google Gemini -->
+<section class="col-span-12 lg:col-span-6 bg-white rounded-xl border border-black/10 p-stack-lg transition-all hover:shadow-md">
+<div class="flex items-center mb-6">
+<div class="w-10 h-10 bg-secondary-container/20 rounded-lg flex items-center justify-center mr-4">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm">Google Gemini</h3>
+<p class="text-label-md text-on-surface-variant">Ultra-fast multimodal processing.</p>
+</div>
+</div>
+<div class="flex flex-col">
+<label class="text-label-md font-semibold mb-1.5 ml-1">API Key</label>
+<input class="macos-input px-4 py-2.5 rounded-lg font-mono-sm w-full" placeholder="gem-••••••••••••••••••••••••" type="password"/>
+</div>
+</section>
+<!-- Advanced Config Hint -->
+<div class="col-span-12 flex items-center justify-center py-6">
+<button class="text-label-md text-primary font-medium flex items-center hover:underline">
+<span class="material-symbols-outlined text-[16px] mr-1">tune</span>
+                            Advanced Model Parameters
+                        </button>
+</div>
+</div>
+</div>
+<!-- FOOTER ACTION BAR -->
+<footer class="h-20 bg-white/50 backdrop-blur-md border-t border-black/5 px-margin-page flex items-center justify-end space-x-4">
+<button class="px-6 py-2 text-on-surface-variant font-label-md text-label-md hover:bg-black/5 rounded-lg transition-colors">Discard</button>
+<button class="px-8 py-2 bg-primary text-on-primary font-label-md text-label-md rounded-lg macos-shadow hover:bg-primary-container transition-all active:scale-95 flex items-center" id="saveBtn">
+<span id="saveLabel">Save Changes</span>
+<span class="material-symbols-outlined ml-2 animate-spin hidden" id="loadingIcon">sync</span>
+</button>
+</footer>
+</main>
+</div>
+<!-- Background Atmospheric Effect -->
+<div class="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
+
+</div>
+<script>
+        // Simple Interaction logic for "Save Changes"
+        const saveBtn = document.getElementById('saveBtn');
+        const saveLabel = document.getElementById('saveLabel');
+        const loadingIcon = document.getElementById('loadingIcon');
+
+        saveBtn.addEventListener('click', () => {
+            saveLabel.innerText = 'Saving...';
+            loadingIcon.classList.remove('hidden');
+            saveBtn.disabled = true;
+            saveBtn.classList.add('opacity-80');
+
+            setTimeout(() => {
+                saveLabel.innerText = 'Changes Saved';
+                loadingIcon.classList.add('hidden');
+                saveBtn.classList.remove('bg-primary');
+                saveBtn.classList.add('bg-green-600');
+                
+                setTimeout(() => {
+                    saveLabel.innerText = 'Save Changes';
+                    saveBtn.classList.remove('bg-green-600', 'opacity-80');
+                    saveBtn.classList.add('bg-primary');
+                    saveBtn.disabled = false;
+                }, 2000);
+            }, 1200);
+        });
+
+        // Hover effect for the window background animation intensity
+        document.addEventListener('mousemove', (e) => {
+            const opacity = 0.2 + (e.clientX / window.innerWidth) * 0.2;
+            const shader = document.querySelector('webgl-shader');
+            if(shader) shader.style.opacity = opacity;
+        });
+    </script>
+</body></html>

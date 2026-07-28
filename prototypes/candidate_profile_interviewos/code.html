@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Candidate Profile | InterviewOS</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Geist:wght@400;500;600&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Inter:wght@100..900&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary-fixed": "#351000",
+                    "on-surface-variant": "#414755",
+                    "on-primary": "#ffffff",
+                    "secondary-fixed-dim": "#c2c1ff",
+                    "on-tertiary-fixed-variant": "#7c2e00",
+                    "surface-container": "#eeedf3",
+                    "on-error": "#ffffff",
+                    "tertiary": "#9e3d00",
+                    "secondary-fixed": "#e2dfff",
+                    "on-primary-fixed-variant": "#004493",
+                    "surface-bright": "#faf9fe",
+                    "secondary": "#4c4aca",
+                    "inverse-primary": "#adc6ff",
+                    "primary-fixed-dim": "#adc6ff",
+                    "surface-container-high": "#e9e7ed",
+                    "on-secondary-container": "#fffbff",
+                    "on-error-container": "#93000a",
+                    "inverse-surface": "#2f3034",
+                    "on-secondary-fixed": "#0c006a",
+                    "primary": "#0058bc",
+                    "surface-container-lowest": "#ffffff",
+                    "error": "#ba1a1a",
+                    "surface": "#faf9fe",
+                    "on-background": "#1a1b1f",
+                    "on-secondary": "#ffffff",
+                    "surface-container-highest": "#e3e2e7",
+                    "outline-variant": "#c1c6d7",
+                    "surface-variant": "#e3e2e7",
+                    "primary-container": "#0070eb",
+                    "on-primary-fixed": "#001a41",
+                    "on-surface": "#1a1b1f",
+                    "tertiary-fixed-dim": "#ffb595",
+                    "surface-container-low": "#f4f3f8",
+                    "primary-fixed": "#d8e2ff",
+                    "surface-tint": "#005bc1",
+                    "tertiary-container": "#c64f00",
+                    "on-primary-container": "#fefcff",
+                    "secondary-container": "#6664e4",
+                    "on-tertiary-container": "#fffbff",
+                    "inverse-on-surface": "#f1f0f5",
+                    "tertiary-fixed": "#ffdbcc",
+                    "on-secondary-fixed-variant": "#3631b4",
+                    "background": "#faf9fe",
+                    "surface-dim": "#dad9df",
+                    "on-tertiary": "#ffffff",
+                    "outline": "#717786",
+                    "error-container": "#ffdad6"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "stack-lg": "24px",
+                    "gutter": "16px",
+                    "stack-md": "16px",
+                    "stack-sm": "8px",
+                    "sidebar-width": "260px",
+                    "margin-page": "40px"
+            },
+            "fontFamily": {
+                    "display-lg": ["Inter"],
+                    "label-md": ["Geist"],
+                    "headline-md": ["Inter"],
+                    "headline-sm": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "body-md": ["Inter"],
+                    "mono-sm": ["Geist"]
+            },
+            "fontSize": {
+                    "display-lg": ["34px", {"lineHeight": "41px", "letterSpacing": "-0.022em", "fontWeight": "700"}],
+                    "label-md": ["13px", {"lineHeight": "16px", "letterSpacing": "-0.01em", "fontWeight": "500"}],
+                    "headline-md": ["24px", {"lineHeight": "30px", "letterSpacing": "-0.019em", "fontWeight": "600"}],
+                    "headline-sm": ["20px", {"lineHeight": "25px", "letterSpacing": "-0.017em", "fontWeight": "600"}],
+                    "body-lg": ["17px", {"lineHeight": "22px", "letterSpacing": "-0.015em", "fontWeight": "400"}],
+                    "body-md": ["15px", {"lineHeight": "20px", "letterSpacing": "-0.012em", "fontWeight": "400"}],
+                    "mono-sm": ["12px", {"lineHeight": "18px", "letterSpacing": "0em", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #faf9fe;
+            color: #1a1b1f;
+            -webkit-font-smoothing: antialiased;
+        }
+        .vibrancy {
+            backdrop-filter: blur(20px) saturate(180%);
+        }
+        .mac-shadow {
+            box-shadow: 0px 10px 30px rgba(0,0,0,0.08);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        .traffic-light { width: 12px; height: 12px; border-radius: 50%; }
+        .red { background: #FF5F56; }
+        .yellow { background: #FFBD2E; }
+        .green { background: #27C93F; }
+
+        .sidebar-item-active {
+            background-color: #0058bc;
+            color: #ffffff;
+        }
+        
+        /* Custom scrollbar for macOS feel */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; border: 2px solid transparent; background-clip: content-box; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.2); background-clip: content-box; }
+    </style>
+</head>
+<body class="font-body-md text-body-md overflow-hidden h-screen flex">
+<!-- macOS Sidebar Shell -->
+<aside class="fixed left-0 top-0 h-full w-sidebar-width bg-surface/80 dark:bg-inverse-surface/80 backdrop-blur-xl border-r border-black/10 flex flex-col p-stack-md space-y-stack-sm z-50">
+<!-- Traffic Lights -->
+<div class="flex gap-2 mb-6 px-2">
+<div class="traffic-light red"></div>
+<div class="traffic-light yellow"></div>
+<div class="traffic-light green"></div>
+</div>
+<div class="mb-8 px-2">
+<h1 class="font-display-lg text-display-lg font-bold text-on-surface">InterviewOS</h1>
+<p class="text-on-surface-variant font-label-md text-label-md opacity-70">Technical Simulator</p>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-on-surface-variant/10 rounded-lg transition-colors duration-200 group" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-md">Home</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-on-surface-variant/10 rounded-lg transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">terminal</span>
+<span class="font-label-md">Processes</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 bg-primary text-on-primary rounded-lg transition-colors duration-200 shadow-sm" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-md">Profile</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-on-surface-variant/10 rounded-lg transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md">Settings</span>
+</a>
+</nav>
+<div class="pt-4 border-t border-black/5 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-on-surface-variant/10 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">help</span>
+<span class="font-label-md">Help</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-on-surface-variant/10 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-label-md">Sign Out</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 ml-sidebar-width h-full overflow-y-auto bg-surface">
+<!-- Header -->
+<header class="sticky top-0 right-0 h-14 vibrancy bg-surface/80 border-b border-black/5 flex justify-between items-center px-gutter z-40">
+<div class="flex items-center gap-4 flex-1">
+<div class="relative w-full max-w-md group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50 text-sm">search</span>
+<input class="w-full bg-surface-container-low border-none rounded-md pl-10 py-1.5 font-label-md text-label-md focus:ring-2 focus:ring-primary/20 transition-all" placeholder="Search profiles or docs..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">history</span>
+</button>
+<button class="bg-primary text-on-primary px-4 py-1.5 rounded-lg font-label-md text-label-md hover:opacity-90 active:scale-[0.98] transition-all">
+                    Start Session
+                </button>
+</div>
+</header>
+<!-- Canvas -->
+<div class="max-w-[1200px] mx-auto p-margin-page animate-in fade-in slide-in-from-bottom-4 duration-700">
+<div class="flex items-end justify-between mb-8">
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface">Candidate Profile</h2>
+<p class="text-on-surface-variant opacity-70">Manage your professional identity and interview readiness.</p>
+</div>
+<div class="flex gap-3">
+<button class="px-4 py-2 bg-surface-container border border-outline-variant rounded-lg font-label-md text-on-surface hover:bg-surface-container-high transition-colors">Discard Changes</button>
+<button class="px-6 py-2 bg-primary text-on-primary rounded-lg font-label-md shadow-sm hover:opacity-90 active:scale-95 transition-all">Save Profile</button>
+</div>
+</div>
+<div class="grid grid-cols-12 gap-8">
+<!-- Left Column: Primary Identity -->
+<div class="col-span-12 lg:col-span-4 space-y-8">
+<!-- Profile Card -->
+<section class="glass-card rounded-xl p-6 mac-shadow">
+<div class="flex flex-col items-center text-center">
+<div class="relative group">
+<div class="w-32 h-32 rounded-full overflow-hidden mb-4 border-4 border-white shadow-inner">
+<img class="w-full h-full object-cover" data-alt="A professional studio portrait of a confident software engineer in their late 20s. The lighting is soft and cinematic, with a clean minimalist office background featuring subtle bokeh effects. The overall color palette is professional and neutral, fitting a high-end macOS software application aesthetic with bright, crisp whites and deep blacks." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCs8eq2Y6y24QCN4_IeRAM7bEPOhFeerlVDFmV6PrKVapFq7tdtXbZuS8zWMg6Lno09_W_iFOLXUP5FbapcZHIrpNKtHiDkSm0MqDZoP6pMzSyesI45Js8HtGsNCnYN3mYW9gYF5WAr1QbXLWf74WvjIEdSlu5GWaGj63I6g7G-0p3Pr_mpqykhMkD7aA19HkDVfZFI4_TLPacJIpK8EofSopfGVAmfqFNZCn6yVaJQc4C5PF2Cg1pD"/>
+</div>
+<button class="absolute bottom-4 right-0 bg-primary text-on-primary p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-sm">edit</span>
+</button>
+</div>
+<h3 class="font-headline-sm text-headline-sm">Alex Chen</h3>
+<p class="text-primary font-medium mb-1">Senior Fullstack Engineer</p>
+<p class="text-on-surface-variant text-label-md">San Francisco, CA</p>
+</div>
+<div class="mt-8 space-y-4">
+<div>
+<label class="block text-label-md text-on-surface-variant mb-1.5">Target Role</label>
+<input class="w-full bg-surface-container-low border border-black/5 rounded-lg px-3 py-2 font-body-md focus:ring-2 focus:ring-primary/20 outline-none transition-all" type="text" value="Senior Software Engineer / Architect"/>
+</div>
+<div>
+<label class="block text-label-md text-on-surface-variant mb-1.5">LinkedIn Profile URL</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/40 text-lg">link</span>
+<input class="w-full bg-surface-container-low border border-black/5 rounded-lg pl-10 pr-3 py-2 font-body-md focus:ring-2 focus:ring-primary/20 outline-none transition-all" type="url" value="https://linkedin.com/in/alexchen-dev"/>
+</div>
+</div>
+</div>
+</section>
+<!-- Expertise Tags -->
+<section class="glass-card rounded-xl p-6 mac-shadow">
+<div class="flex justify-between items-center mb-4">
+<h4 class="font-headline-sm text-headline-sm !text-lg">Core Expertise</h4>
+<button class="text-primary hover:underline text-label-md">Edit</button>
+</div>
+<div class="flex flex-wrap gap-2">
+<span class="px-3 py-1 bg-primary/10 text-primary rounded-full text-label-md font-medium">React.js</span>
+<span class="px-3 py-1 bg-primary/10 text-primary rounded-full text-label-md font-medium">Node.js</span>
+<span class="px-3 py-1 bg-secondary/10 text-secondary rounded-full text-label-md font-medium">System Design</span>
+<span class="px-3 py-1 bg-primary/10 text-primary rounded-full text-label-md font-medium">Python</span>
+<span class="px-3 py-1 bg-tertiary/10 text-tertiary rounded-full text-label-md font-medium">AWS</span>
+<span class="px-3 py-1 bg-primary/10 text-primary rounded-full text-label-md font-medium">TypeScript</span>
+<span class="px-3 py-1 bg-on-surface-variant/5 text-on-surface-variant rounded-full text-label-md border border-black/5">+ Add New</span>
+</div>
+</section>
+</div>
+<!-- Right Column: Professional Details -->
+<div class="col-span-12 lg:col-span-8 space-y-8">
+<!-- Summary -->
+<section class="glass-card rounded-xl p-8 mac-shadow">
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-primary">description</span>
+<h4 class="font-headline-sm text-headline-sm !text-lg">Professional Summary</h4>
+</div>
+<textarea class="w-full bg-surface-container-low border border-black/5 rounded-xl p-4 font-body-md min-h-[200px] focus:ring-2 focus:ring-primary/20 outline-none transition-all leading-relaxed" placeholder="Write a brief overview of your technical background, achievements, and what you're looking for in your next role...">Senior Software Engineer with 8+ years of experience building scalable web applications and distributed systems. Expert in JavaScript ecosystems and cloud-native architecture. Proven track record of leading engineering teams at hyper-growth startups and delivering high-impact features. Passionate about system design, performance optimization, and mentoring junior developers.</textarea>
+</section>
+<!-- CV Upload Zone -->
+<section class="glass-card rounded-xl p-8 mac-shadow relative overflow-hidden">
+<div class="flex items-center gap-2 mb-6">
+<span class="material-symbols-outlined text-primary">upload_file</span>
+<h4 class="font-headline-sm text-headline-sm !text-lg">Resume / CV</h4>
+</div>
+<!-- Drag & Drop Area -->
+<div class="border-2 border-dashed border-outline-variant hover:border-primary/50 hover:bg-primary/5 rounded-2xl p-10 transition-all duration-300 flex flex-col items-center justify-center group cursor-pointer" id="drop-zone">
+<div class="w-16 h-16 bg-surface-container flex items-center justify-center rounded-full mb-4 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-primary text-3xl">cloud_upload</span>
+</div>
+<p class="font-headline-sm text-headline-sm !text-base mb-1">Click or drag to update CV</p>
+<p class="text-on-surface-variant text-label-md opacity-60">PDF, DOCX up to 10MB</p>
+</div>
+<!-- Current File Status -->
+<div class="mt-6 flex items-center justify-between p-3 bg-surface-container-low rounded-lg border border-black/5">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 bg-error/10 text-error flex items-center justify-center rounded">
+<span class="material-symbols-outlined">picture_as_pdf</span>
+</div>
+<div>
+<p class="text-body-md font-medium">Alex_Chen_Resume_2024.pdf</p>
+<p class="text-label-md text-on-surface-variant opacity-60">Uploaded 2 days ago • 1.2 MB</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 hover:bg-surface-container rounded-full transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined text-lg">visibility</span>
+</button>
+<button class="p-2 hover:bg-error/10 hover:text-error rounded-full transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined text-lg">delete</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Interview Readiness Stats (Visual Bonus) -->
+<div class="grid grid-cols-3 gap-4">
+<div class="glass-card p-4 rounded-xl mac-shadow flex flex-col items-center justify-center text-center">
+<span class="text-display-lg text-primary font-bold">84%</span>
+<span class="text-label-md text-on-surface-variant">Readiness Score</span>
+</div>
+<div class="glass-card p-4 rounded-xl mac-shadow flex flex-col items-center justify-center text-center">
+<span class="text-display-lg text-secondary font-bold">12</span>
+<span class="text-label-md text-on-surface-variant">Mock Interviews</span>
+</div>
+<div class="glass-card p-4 rounded-xl mac-shadow flex flex-col items-center justify-center text-center">
+<span class="text-display-lg text-tertiary font-bold">04</span>
+<span class="text-label-md text-on-surface-variant">Skill Badges</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<script>
+        // Simple Interaction logic
+        const dropZone = document.getElementById('drop-zone');
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => {
+                dropZone.classList.add('bg-primary/5', 'border-primary');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => {
+                dropZone.classList.remove('bg-primary/5', 'border-primary');
+            }, false);
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            alert('File drop detected. Logic for upload would trigger here.');
+        });
+
+        // Tooltip or small micro-interactions can go here
+    </script>
+</body></html>
