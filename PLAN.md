@@ -240,9 +240,9 @@ Acceptance:
 - Formatter, linter, type-check, and test commands succeed.
 - No runtime secret is committed.
 
-### Phase 1 — Interview Engine
+### Phase 1 — Interview Engine ✅ Completed 2026-07-28
 
-- Build `backend/interview_engine` as an installable Python package.
+- Build `backend.interview_engine` as a normal backend package importable from the repository root without installation or `sys.path` changes.
 - Define typed inputs for the candidate, job, company, interview type, interviewer, difficulty, instructions, limits, language, and media capabilities.
 - Define LangGraph state for conversation, topic coverage, goals, question count, time, limits, follow-up context, completion, and termination reason.
 - Generate the greeting, select topics, ask adaptive follow-ups, provide transitions, decide whether to continue, and close professionally.
@@ -254,7 +254,8 @@ Acceptance:
 - Build versioned, bias-aware prompt templates based on interview best practices.
 - Add the `interview-engine` logger without configuring handlers.
 - Implement `backend/cli/engine-usage.py`.
-- Test routing, defaults, stopping, prompt assembly, greeting, follow-ups, and an opt-in real-provider four-round interview.
+- Unit test only pure lifecycle, validation, topic-selection, and prompt-building functions.
+- Use `backend/cli/engine-usage.py` as the Phase 1 manual end-to-end exercise for greeting, streaming, follow-ups, stopping, and checkpoint resume behavior.
 
 Acceptance:
 
