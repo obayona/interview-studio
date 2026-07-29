@@ -23,7 +23,7 @@ python -m uvicorn backend.app.main:app --reload
 Then open `http://127.0.0.1:8000`. The inline browser harness uses the
 `/api/v1/interviews/browser-harness/ws` WebSocket. The application starts and
 serves health/capability information without credentials; interview events return a
-structured configuration error until `ai.api_key` exists in the `settings` table.
+structured configuration error until `api_key` exists in the `settings` table.
 
 The SQLite database defaults to `backend/interview_studio.sqlite3`. Yoyo migrations
 run at startup. Runtime application code never reads `.env`; persisted settings are
@@ -35,6 +35,12 @@ Health and capability routes:
 - `GET /health/ready`
 - `GET /api/v1/capabilities`
 - `GET /api/v1/interviews/{attempt_id}/history`
+
+Settings routes:
+
+- `GET/PATCH /api/v1/settings`
+- `DELETE /api/v1/settings/{key}`
+- `POST /api/v1/settings/test-provider`
 
 Clients should request interview history before starting a WebSocket session. If
 history is empty, send `session.start` to generate the greeting. If history is

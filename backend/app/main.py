@@ -12,11 +12,13 @@ from starlette.middleware.base import RequestResponseEndpoint
 
 from backend.app.api.index import INDEX_HTML
 from backend.app.api.interviews import router as interviews_router
+from backend.app.api.settings import router as settings_router
 from backend.app.api.websocket import router as websocket_router
 from backend.app.application.interviews import InterviewService
-from backend.app.core.config import AppConfig, ConfigurationStore
+from backend.app.core.config import AppConfig, SettingsService
 from backend.app.core.database import SQLiteManager
 from backend.app.core.errors import ApplicationError
+from backend.app.core.secrets import SecretBox
 from backend.app.infrastructure.checkpointer import InterviewSQLiteCheckpointer
 from backend.app.repositories.attempts import AttemptRepository
 from backend.app.repositories.settings import SettingsRepository
@@ -32,7 +34,11 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
             application_config.database_path, application_config.migrations_path
         )
         await database.start()
-        settings = ConfigurationStore(SettingsRepository(database))
+        secret_path = application_config.secret_path or application_config.database_path.with_name(
+            ".secret-key"
+        )
+        settings_repository = SettingsRepository(database, SecretBox(secret_path))
+        settings = SettingsService(settings_repository)
         attempts = AttemptRepository(database)
         await attempts.ensure_browser_harness()
         checkpointer = InterviewSQLiteCheckpointer(database)
@@ -45,6 +51,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
 
     app = FastAPI(title="Interview Studio", version="0.2.0", lifespan=lifespan)
     app.include_router(interviews_router)
+    app.include_router(settings_router)
     app.include_router(websocket_router)
 
     @app.middleware("http")
@@ -84,7 +91,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
 
     @app.get("/api/v1/capabilities")
     async def capabilities(request: Request) -> dict[str, object]:
-        store = cast(ConfigurationStore, request.app.state.settings)
+        store = cast(SettingsService, request.app.state.settings)
         return await store.capabilities()
 
     return app

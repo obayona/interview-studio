@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 
-from backend.app.core.config import ConfigurationStore
+from backend.app.core.config import SettingsService
 from backend.app.core.errors import AttemptNotFoundError, ProviderNotConfiguredError
 from backend.app.infrastructure.checkpointer import InterviewSQLiteCheckpointer
 from backend.app.repositories.attempts import AttemptRepository
@@ -13,7 +13,7 @@ class InterviewService:
     def __init__(
         self,
         attempts: AttemptRepository,
-        settings: ConfigurationStore,
+        settings: SettingsService,
         checkpointer: InterviewSQLiteCheckpointer,
     ) -> None:
         self._attempts = attempts

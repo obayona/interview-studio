@@ -7,7 +7,8 @@ Last synchronized: 2026-07-28
 - Phase 0: Partial. The implementation plan exists; Phase 1 adds the Python tooling required by the interview engine. Frontend tooling remains deferred to Phase 4.
 - Phase 1: Complete and verified on 2026-07-28.
 - Phase 2: Complete and verified on 2026-07-28.
-- Phases 3–12: Not started.
+- Phase 3: Complete and verified on 2026-07-28.
+- Phases 4–12: Not started.
 
 ## Repository baseline
 
@@ -36,7 +37,8 @@ Last synchronized: 2026-07-28
 - `backend/README.md`: Environment, dependency, import, and CLI instructions.
 - `backend/README.md` embeds the generated interview graph and documents its regeneration command.
 - `backend/app/core/database.py`: Application-owned asynchronous SQLite manager with serialized explicit transactions, WAL, foreign keys, busy timeout, Yoyo startup migrations, and clean shutdown.
-- `backend/app/core/config.py`: Filesystem application configuration plus the typed, operation-scoped AI configuration and capability store.
+- `backend/app/core/config.py`: Application-facing `SettingsService` facade for typed reads, capabilities, CRUD, and provider testing.
+- `backend/app/core/settings_definitions.py`: `SettingKey` enum and definition dictionary from which persistence validation, secret metadata, and defaults are derived.
 - `backend/app/core/errors.py`: Transport-neutral structured application errors.
 - `backend/app/repositories/settings.py`: Parameterized SQLite settings reads.
 - `backend/migrations/001_phase2_core.py`: Reversible Phase 2 schema migration.
@@ -49,6 +51,9 @@ Last synchronized: 2026-07-28
 - `backend/app/api/index.py`: Inline accessible minimal browser chat harness.
 - `backend/app/main.py`: FastAPI factory, lifespan wiring, request IDs, structured application errors, root page, health, readiness, and capabilities.
 - `backend/tests/integration/`: Temporary-database migration, startup, capability, strict-codec, saver-conformance, and real compiled-LangGraph resume coverage.
+- `backend/app/core/secrets.py`: Versioned AES-GCM secret box with a restricted local master-key file.
+- `backend/app/api/settings.py`: Validated settings status/update/removal and OpenAI provider-test routes.
+- `backend/tests/integration/test_settings.py`: Settings validation, masking, encryption, capability refresh, removal, provider absence, and tamper tests.
 
 ## Technical decisions
 
@@ -67,20 +72,27 @@ Last synchronized: 2026-07-28
 - Graph state is JSON text only. Completed LangChain messages require stable IDs and are stored once in `interview_messages`; checkpoint state is reconstructed from the ordered canonical transcript.
 - The saver supports LangGraph's async execution API only; synchronous methods fail explicitly so web graph execution cannot bypass the manager's asynchronous transaction boundary.
 - FastAPI constructs a new interview engine when a WebSocket operation starts, after resolving current persisted settings, and injects the shared shallow saver.
+- `app.state.settings` is the sole application settings dependency. `SettingsRepository` and `SecretBox` are private construction details of the lifespan and are not exposed through application state.
+- Settings API mappings and repository known-key checks derive from `SETTING_DEFINITIONS`; persistence uses flat enum values such as `api_key` while higher-level classes retain conceptual grouping.
+- `SettingKey` exposes `.value`, `.default`, and `.secret` from the single definition dictionary; `setting_keys()` supplies key-only iterations without a second registry.
 - The browser harness owns a deterministic attempt ID but a generated stable thread ID persisted in SQLite, allowing disconnect/resume without introducing the Phase 6 attempt CRUD early.
 - Reconnecting clients fetch canonical history first. A non-empty history resumes immediately and may send `user.text` without `session.start`; an empty or unavailable history causes the harness to send `session.start`.
-- Phase 2 stores setting values as specified but does not expose settings mutation routes; authenticated encryption and safe CRUD remain Phase 3 scope.
+- Phase 3 exposes settings status, updates, removal, and provider testing through the `SettingsService` facade and safe HTTP routes.
+- Phase 3 uses a local 256-bit master key at `backend/.secret-key` by default; `AppConfig.secret_path` supports an installation-specific path. The key file is mode `0600` and ignored by git.
+- Secret settings use versioned AES-GCM authenticated encryption with associated data; plaintext is never returned by the API. Values are encrypted when written.
+- Settings are constrained by a known-key registry; arbitrary client keys are rejected. Model names, voice, theme, and provider values are validated before persistence.
 
 ## Interfaces, routes, and persistence
 
 - Public backend interfaces: `backend.interview_engine.InterviewEngineBuilder`, `InterviewEngine`, typed configuration models, and enums.
 - Engine operations: `stream_start`, `stream_response`, `stream_end`, and `get_state`.
-- HTTP routes: `GET /`, `GET /health/live`, `GET /health/ready`, `GET /api/v1/capabilities`, and `GET /api/v1/interviews/{attempt_id}/history`.
+- HTTP routes: `GET /`, `GET /health/live`, `GET /health/ready`, `GET /api/v1/capabilities`, `GET /api/v1/interviews/{attempt_id}/history`, `GET/PATCH /api/v1/settings`, `DELETE /api/v1/settings/{key}`, and `POST /api/v1/settings/test-provider`.
 - WebSocket route: `/api/v1/interviews/{attempt_id}/ws`.
 - Implemented client WebSocket events: `session.start`, `user.text`, `session.end`, and `ping`.
 - Implemented server WebSocket events: `session.ready`, `assistant.text.delta`, `assistant.text.completed`, `error`, and `pong`.
 - Database entities: `settings`, minimal Phase 2 `interview_attempts`, canonical `interview_messages`, shallow `interview_graph_state`, and temporary `interview_graph_writes`.
 - Migration `001_phase2_core` creates only application-owned tables; it intentionally does not create LangGraph standard checkpoint/blob tables.
+- Phase 3 requires no schema migration: the existing key/value `settings` table supports the complete known-key registry and encrypted values.
 
 ## Known constraints
 
@@ -103,3 +115,6 @@ Last synchronized: 2026-07-28
 - Phase 2 Pytest: 15 tests passed, including temporary SQLite startup/migration and real LangGraph async saver/resume integration.
 - Yoyo migration apply and rollback: Passed on a fresh temporary SQLite database; repeated startup against an existing migrated database passed.
 - Live FastAPI/WebSocket/provider exercise: Passed greeting streaming, disconnect, checkpoint resume, and next-response streaming. The temporary credential database was deleted afterward.
+- Phase 3 Ruff lint and formatting checks: Passed for 40 backend files.
+- Phase 3 strict mypy: Passed for 29 application and engine source files.
+- Phase 3 Pytest: 17 tests passed, including settings CRUD, immediate capability refresh, masking, authenticated encryption, tamper rejection, removal, and missing-provider behavior.

@@ -51,3 +51,34 @@ Phase 2 completed and verified on 2026-07-28.
 
 - [x] Add canonical transcript history retrieval for reconnecting clients.
 - [x] Update the browser harness to hydrate history and avoid restarting resumed interviews.
+
+## Phase 3 — Settings
+
+- [x] Query `MAP.md` before starting and reconcile it with the repository.
+- [x] Register OpenAI, model, voice, media, theme, and general settings.
+- [x] Implement safe settings status, update, removal, and provider testing routes.
+- [x] Encrypt secret settings and never return plaintext values.
+- [x] Return capability explanations based on current settings.
+- [x] Validate provider, model, voice, theme, and known-key combinations.
+- [x] Add settings unit/integration coverage for immediate refresh, removal, masking, encryption, and failures.
+- [x] Verify formatting, linting, typing, tests, and settings compatibility.
+- [x] Synchronize `MAP.md` with the final implemented system.
+- [x] Mark Phase 3 complete in `PLAN.md`, `TASK.md`, and `MAP.md`.
+
+Phase 3 completed and verified on 2026-07-28.
+
+## Phase 3 follow-up
+
+- [x] Consolidate repository access behind the single `SettingsService` application facade.
+- [x] Remove `settings_repository` from FastAPI application state.
+- [x] Re-run formatting, linting, typing, and tests after the wiring refactor.
+
+## Phase 3 settings registry follow-up
+
+- [x] Add a single setting-definition registry for API names, database keys, secrets, and defaults.
+- [x] Derive repository validation and API update/delete mappings from the registry.
+- [x] Re-run formatting, linting, typing, and tests after the registry refactor.
+- [x] Simplify registry entries to one flat enum value with no duplicate API/database names.
+- [x] Replace string lookup wrappers with the `SettingKey` enum and definition dictionary.
+- [x] Remove current development database settings; backward compatibility is out of scope.
+- [x] Expose enum metadata properties and a key-only registry helper.

@@ -16,6 +16,7 @@ async def test_fresh_startup_migrates_and_boots_without_credentials(tmp_path: Pa
     config = AppConfig(
         database_path=tmp_path / "app.sqlite3",
         migrations_path=Path(__file__).parents[2] / "migrations",
+        secret_path=tmp_path / ".secret-key",
     )
     app = create_app(config)
 
