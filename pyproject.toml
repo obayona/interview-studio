@@ -14,11 +14,15 @@ select = ["E", "F", "I", "N", "UP", "B", "SIM", "RUF"]
 python_version = "3.12"
 strict = true
 warn_unreachable = true
-packages = ["backend.interview_engine"]
+packages = ["backend.interview_engine", "backend.app"]
+
+[[tool.mypy.overrides]]
+module = "yoyo.*"
+ignore_missing_imports = true
 
 [tool.coverage.run]
 branch = true
-source = ["backend/interview_engine"]
+source = ["backend/interview_engine", "backend/app"]
 
 [tool.coverage.report]
 show_missing = true

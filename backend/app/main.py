@@ -1,0 +1,93 @@
+from __future__ import annotations
+
+import logging
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from typing import cast
+from uuid import uuid4
+
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse, JSONResponse, Response
+from starlette.middleware.base import RequestResponseEndpoint
+
+from backend.app.api.index import INDEX_HTML
+from backend.app.api.interviews import router as interviews_router
+from backend.app.api.websocket import router as websocket_router
+from backend.app.application.interviews import InterviewService
+from backend.app.core.config import AppConfig, ConfigurationStore
+from backend.app.core.database import SQLiteManager
+from backend.app.core.errors import ApplicationError
+from backend.app.infrastructure.checkpointer import InterviewSQLiteCheckpointer
+from backend.app.repositories.attempts import AttemptRepository
+from backend.app.repositories.settings import SettingsRepository
+
+
+def create_app(config: AppConfig | None = None) -> FastAPI:
+    application_config = config or AppConfig.default()
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        logging.getLogger("interview-studio").debug("Starting application")
+        database = SQLiteManager(
+            application_config.database_path, application_config.migrations_path
+        )
+        await database.start()
+        settings = ConfigurationStore(SettingsRepository(database))
+        attempts = AttemptRepository(database)
+        await attempts.ensure_browser_harness()
+        checkpointer = InterviewSQLiteCheckpointer(database)
+        app.state.database = database
+        app.state.settings = settings
+        app.state.attempts = attempts
+        app.state.interviews = InterviewService(attempts, settings, checkpointer)
+        yield
+        await database.close()
+
+    app = FastAPI(title="Interview Studio", version="0.2.0", lifespan=lifespan)
+    app.include_router(interviews_router)
+    app.include_router(websocket_router)
+
+    @app.middleware("http")
+    async def request_id_middleware(
+        request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
+        request_id = request.headers.get("x-request-id") or str(uuid4())
+        request.state.request_id = request_id
+        response = await call_next(request)
+        response.headers["x-request-id"] = request_id
+        return response
+
+    @app.exception_handler(ApplicationError)
+    async def application_error_handler(request: Request, error: ApplicationError) -> JSONResponse:
+        return JSONResponse(
+            status_code=error.status_code,
+            content={
+                "code": error.code,
+                "message": error.message,
+                "field_errors": error.field_errors,
+                "request_id": request.state.request_id,
+            },
+        )
+
+    @app.get("/", response_class=HTMLResponse)
+    async def index() -> str:
+        return INDEX_HTML
+
+    @app.get("/health/live")
+    async def live() -> dict[str, str]:
+        return {"status": "ok"}
+
+    @app.get("/health/ready")
+    async def ready(request: Request) -> dict[str, str]:
+        await request.app.state.database.fetchone("SELECT 1")
+        return {"status": "ready"}
+
+    @app.get("/api/v1/capabilities")
+    async def capabilities(request: Request) -> dict[str, object]:
+        store = cast(ConfigurationStore, request.app.state.settings)
+        return await store.capabilities()
+
+    return app
+
+
+app = create_app()

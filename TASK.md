@@ -23,3 +23,31 @@ Phase 1 completed and verified on 2026-07-28.
 ## Phase 1 follow-up
 
 - [x] Add a CLI graph-image generator and reference its generated PNG from the backend README.
+
+## Phase 2 — FastAPI Wrapper and Persistence
+
+- [x] Query `MAP.md` before starting and reconcile it with the repository.
+- [x] Create FastAPI application layers and lifespan initialization.
+- [x] Implement the shared SQLite connection manager and transaction boundary.
+- [x] Enable WAL, foreign keys, busy timeout, and clean shutdown.
+- [x] Integrate Yoyo migrations.
+- [x] Create application-owned settings, attempt, transcript, graph-state, and graph-write tables.
+- [x] Implement the strict versioned JSON codec and LangChain message adapters.
+- [x] Implement the asynchronous shallow `InterviewSQLiteCheckpointer`.
+- [x] Configure web interview engines with the application checkpointer.
+- [x] Add the settings repository and typed configuration store.
+- [x] Ensure startup succeeds without API credentials.
+- [x] Build the interview application service, attempt validation, and WebSocket adapter.
+- [x] Serve the inline root-page WebSocket test UI.
+- [x] Add health, readiness, capabilities, request IDs, and structured errors.
+- [x] Add unit and temporary-database integration tests.
+- [x] Verify fresh/existing migrations, formatting, linting, typing, and tests.
+- [x] Synchronize `MAP.md` with the implemented system.
+- [x] Mark Phase 2 complete in `PLAN.md`, `TASK.md`, and `MAP.md`.
+
+Phase 2 completed and verified on 2026-07-28.
+
+## Phase 2 follow-up
+
+- [x] Add canonical transcript history retrieval for reconnecting clients.
+- [x] Update the browser harness to hydrate history and avoid restarting resumed interviews.

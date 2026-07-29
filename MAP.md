@@ -6,7 +6,8 @@ Last synchronized: 2026-07-28
 
 - Phase 0: Partial. The implementation plan exists; Phase 1 adds the Python tooling required by the interview engine. Frontend tooling remains deferred to Phase 4.
 - Phase 1: Complete and verified on 2026-07-28.
-- Phases 2–12: Not started.
+- Phase 2: Complete and verified on 2026-07-28.
+- Phases 3–12: Not started.
 
 ## Repository baseline
 
@@ -34,6 +35,20 @@ Last synchronized: 2026-07-28
 - `pyproject.toml`: Repository-level Python quality-tool configuration.
 - `backend/README.md`: Environment, dependency, import, and CLI instructions.
 - `backend/README.md` embeds the generated interview graph and documents its regeneration command.
+- `backend/app/core/database.py`: Application-owned asynchronous SQLite manager with serialized explicit transactions, WAL, foreign keys, busy timeout, Yoyo startup migrations, and clean shutdown.
+- `backend/app/core/config.py`: Filesystem application configuration plus the typed, operation-scoped AI configuration and capability store.
+- `backend/app/core/errors.py`: Transport-neutral structured application errors.
+- `backend/app/repositories/settings.py`: Parameterized SQLite settings reads.
+- `backend/migrations/001_phase2_core.py`: Reversible Phase 2 schema migration.
+- `backend/app/infrastructure/json_codec.py`: Versioned strict JSON codec and explicit LangChain message adapter; unsupported and binary values are rejected.
+- `backend/app/infrastructure/checkpointer.py`: Async `BaseCheckpointSaver` implementation with canonical transcript extraction, atomic shallow state upsert, idempotent pending writes, current-only listing, reconstruction, and graph-state deletion.
+- `backend/app/repositories/attempts.py`: Attempt configuration lookup, canonical transcript reads, and idempotent browser-harness bootstrap.
+- `backend/app/application/interviews.py`: Operation-scoped settings resolution and interview-engine orchestration using the application checkpointer.
+- `backend/app/api/websocket.py`: Versioned interview WebSocket adapter for session start/end, text answers, streaming assistant deltas/completions, ping/pong, and structured errors.
+- `backend/app/api/interviews.py`: Canonical transcript history endpoint for reconnect hydration.
+- `backend/app/api/index.py`: Inline accessible minimal browser chat harness.
+- `backend/app/main.py`: FastAPI factory, lifespan wiring, request IDs, structured application errors, root page, health, readiness, and capabilities.
+- `backend/tests/integration/`: Temporary-database migration, startup, capability, strict-codec, saver-conformance, and real compiled-LangGraph resume coverage.
 
 ## Technical decisions
 
@@ -47,20 +62,33 @@ Last synchronized: 2026-07-28
 - The engine is an internal backend module imported as `backend.interview_engine`; it has no build metadata or editable-install requirement.
 - The graph's conditional router is asynchronous, preventing unnecessary executor thread hops.
 - Structured prompts follow job-competency and behavioral/situational interviewing guidance and prohibit non-job-related protected-characteristic questions.
+- Phase 2 uses one application-owned `sqlite3` connection behind an asynchronous manager API and transaction lock; migrations run synchronously through Yoyo before the connection opens. A pool is intentionally unnecessary for the single-user SQLite architecture.
+- Persisted configuration is resolved for every operation and runtime startup never reads `.env`.
+- Graph state is JSON text only. Completed LangChain messages require stable IDs and are stored once in `interview_messages`; checkpoint state is reconstructed from the ordered canonical transcript.
+- The saver supports LangGraph's async execution API only; synchronous methods fail explicitly so web graph execution cannot bypass the manager's asynchronous transaction boundary.
+- FastAPI constructs a new interview engine when a WebSocket operation starts, after resolving current persisted settings, and injects the shared shallow saver.
+- The browser harness owns a deterministic attempt ID but a generated stable thread ID persisted in SQLite, allowing disconnect/resume without introducing the Phase 6 attempt CRUD early.
+- Reconnecting clients fetch canonical history first. A non-empty history resumes immediately and may send `user.text` without `session.start`; an empty or unavailable history causes the harness to send `session.start`.
+- Phase 2 stores setting values as specified but does not expose settings mutation routes; authenticated encryption and safe CRUD remain Phase 3 scope.
 
 ## Interfaces, routes, and persistence
 
 - Public backend interfaces: `backend.interview_engine.InterviewEngineBuilder`, `InterviewEngine`, typed configuration models, and enums.
 - Engine operations: `stream_start`, `stream_response`, `stream_end`, and `get_state`.
-- HTTP routes: None.
-- WebSocket routes: None.
-- Database entities and migrations: None in Phase 1.
+- HTTP routes: `GET /`, `GET /health/live`, `GET /health/ready`, `GET /api/v1/capabilities`, and `GET /api/v1/interviews/{attempt_id}/history`.
+- WebSocket route: `/api/v1/interviews/{attempt_id}/ws`.
+- Implemented client WebSocket events: `session.start`, `user.text`, `session.end`, and `ping`.
+- Implemented server WebSocket events: `session.ready`, `assistant.text.delta`, `assistant.text.completed`, `error`, and `pong`.
+- Database entities: `settings`, minimal Phase 2 `interview_attempts`, canonical `interview_messages`, shallow `interview_graph_state`, and temporary `interview_graph_writes`.
+- Migration `001_phase2_core` creates only application-owned tables; it intentionally does not create LangGraph standard checkpoint/blob tables.
 
 ## Known constraints
 
 - `MAP.md` did not exist before Phase 1 started; this file was derived from the repository.
 - `PHASE_PROMPT.md` has a pre-existing user modification and must not be overwritten.
 - Natural voice interruption is not implemented in Phase 1. The media ports preserve the future boundary; push-to-talk is the reliable Phase 7 baseline and browser VAD/barge-in is a higher-complexity progressive enhancement.
+- Phase 2 exposes only the protocol subset required for text interview testing. Audio, mode changes, pause/resume controls, report events, and canvas events remain assigned to later phases.
+- `interview_attempts` contains the minimal ownership/configuration fields required by the Phase 2 checkpointer and browser harness. Full process, stage, attempt lifecycle, and attempt repository behavior remain Phase 6.
 
 ## Verification
 
@@ -70,3 +98,8 @@ Last synchronized: 2026-07-28
 - Pytest: 11 pure-function and model-validation tests passed; graph/model behavior is not simulated through complex mocks.
 - `backend/cli/engine-usage.py` is the Phase 1 manual engine exercise. Backend integration tests begin only after the backend exists in Phase 2.
 - Repository diff whitespace check: Passed.
+- Phase 2 Ruff lint and formatting checks: Passed for 36 backend files.
+- Phase 2 strict mypy: Passed for 27 application and engine source files.
+- Phase 2 Pytest: 15 tests passed, including temporary SQLite startup/migration and real LangGraph async saver/resume integration.
+- Yoyo migration apply and rollback: Passed on a fresh temporary SQLite database; repeated startup against an existing migrated database passed.
+- Live FastAPI/WebSocket/provider exercise: Passed greeting streaming, disconnect, checkpoint resume, and next-response streaming. The temporary credential database was deleted afterward.

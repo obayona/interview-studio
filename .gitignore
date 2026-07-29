@@ -10,3 +10,6 @@ htmlcov/
 dist/
 build/
 *.egg-info/
+backend/interview_studio.sqlite3
+backend/interview_studio.sqlite3-shm
+backend/interview_studio.sqlite3-wal

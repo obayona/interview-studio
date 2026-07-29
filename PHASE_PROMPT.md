@@ -1,4 +1,5 @@
-Now proceed with phase 1.
+You completed phase 1
+Now proceed with phase 2.
 
 Context:
 - Specifications in @AGENT.md (functional source of truth)

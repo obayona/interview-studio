@@ -264,7 +264,7 @@ Acceptance:
 - Checkpointed conversation can resume.
 - The package has no FastAPI dependency.
 
-### Phase 2 — FastAPI Wrapper and Persistence
+### Phase 2 — FastAPI Wrapper and Persistence ✅ Completed 2026-07-28
 
 - Create FastAPI application layers and lifespan initialization.
 - Implement the shared SQLite connection manager and transaction boundary.

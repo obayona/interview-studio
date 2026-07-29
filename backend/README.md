@@ -14,9 +14,45 @@ Run the development CLI:
 python -m backend.cli.engine-usage --job "Backend engineer role"
 ```
 
+Run the FastAPI application:
+
+```bash
+python -m uvicorn backend.app.main:app --reload
+```
+
+Then open `http://127.0.0.1:8000`. The inline browser harness uses the
+`/api/v1/interviews/browser-harness/ws` WebSocket. The application starts and
+serves health/capability information without credentials; interview events return a
+structured configuration error until `ai.api_key` exists in the `settings` table.
+
+The SQLite database defaults to `backend/interview_studio.sqlite3`. Yoyo migrations
+run at startup. Runtime application code never reads `.env`; persisted settings are
+resolved when each interview session is opened.
+
+Health and capability routes:
+
+- `GET /health/live`
+- `GET /health/ready`
+- `GET /api/v1/capabilities`
+- `GET /api/v1/interviews/{attempt_id}/history`
+
+Clients should request interview history before starting a WebSocket session. If
+history is empty, send `session.start` to generate the greeting. If history is
+present, render it and send future `user.text` events directly; this avoids
+generating a duplicate question during checkpoint resume.
+
 The CLI alone may read `OPENAI_API_KEY` for development convenience. The backend module does not read
 environment variables; callers inject credentials, models, and checkpointers through
 `InterviewEngineBuilder`.
+
+Run the backend verification suite:
+
+```bash
+python -m ruff check backend
+python -m ruff format --check backend
+python -m mypy
+python -m pytest
+```
 
 ## Interview graph
 
