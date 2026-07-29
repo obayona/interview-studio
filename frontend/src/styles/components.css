@@ -1,0 +1,246 @@
+.ui-icon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  overflow: visible;
+  vertical-align: -0.125em;
+}
+
+.ui-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  min-height: 4rem;
+  padding: 0.8rem 1.6rem;
+  border: 0.1rem solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  background: var(--color-surface);
+  cursor: pointer;
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.ui-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.ui-button:hover:not(:disabled) {
+  background: var(--color-surface-muted);
+}
+
+.ui-button--primary {
+  color: var(--color-on-primary);
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+}
+
+.ui-button--primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.ui-button--danger {
+  color: var(--color-error);
+}
+
+.ui-button--icon {
+  width: 4rem;
+  padding: 0;
+}
+
+.ui-card {
+  padding: 2.8rem;
+  border: 0.1rem solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.ui-field {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.ui-field__label {
+  font-weight: 600;
+}
+
+.ui-field__hint {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 1.3rem;
+}
+
+.ui-field__error {
+  margin: 0;
+  color: var(--color-error);
+  font-size: 1.3rem;
+}
+
+.ui-input,
+.ui-select {
+  width: 100%;
+  min-height: 4.6rem;
+  padding: 0.9rem 1.2rem;
+  border: 0.1rem solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+
+.ui-input[aria-invalid='true'] {
+  border-color: var(--color-error);
+}
+
+.ui-switch {
+  display: inline-flex;
+  position: relative;
+  align-items: center;
+  width: 4.8rem;
+  height: 2.8rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999rem;
+  background: var(--color-surface-high);
+  cursor: pointer;
+}
+
+.ui-switch::after {
+  position: absolute;
+  left: 0.3rem;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0.1rem 0.4rem rgb(0 0 0 / 22%);
+  content: '';
+  transition: transform var(--transition-fast);
+}
+
+.ui-switch[aria-checked='true'] {
+  background: var(--color-primary);
+}
+
+.ui-switch[aria-checked='true']::after {
+  transform: translateX(2rem);
+}
+
+.ui-badge {
+  display: inline-flex;
+  padding: 0.3rem 0.8rem;
+  border-radius: 999rem;
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.ui-spinner {
+  color: currentcolor;
+}
+
+.ui-skeleton {
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-high);
+}
+
+.ui-skeleton::after {
+  display: block;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 255 255 / 35%),
+    transparent
+  );
+  animation: skeleton 1.2s infinite;
+  content: '';
+}
+
+@keyframes skeleton {
+  to {
+    transform: translateX(200%);
+  }
+}
+
+.ui-state {
+  display: grid;
+  place-items: center;
+  min-height: 20rem;
+  padding: 2.4rem;
+  text-align: center;
+}
+
+.ui-state__icon {
+  margin-bottom: 1rem;
+  color: var(--color-primary);
+  font-size: 2.6rem;
+}
+
+.ui-state--error .ui-state__icon {
+  color: var(--color-error);
+}
+
+.ui-state__title {
+  margin: 0;
+  font-size: 2rem;
+}
+
+.ui-state__copy {
+  max-width: 46rem;
+  margin: 0.6rem 0 1.6rem;
+  color: var(--color-text-muted);
+}
+
+.ui-toast-region {
+  position: fixed;
+  z-index: 100;
+  right: 2rem;
+  bottom: 2rem;
+  display: grid;
+  gap: 1rem;
+  width: min(36rem, calc(100vw - 4rem));
+}
+
+.ui-toast {
+  display: flex;
+  gap: 1rem;
+  align-items: start;
+  padding: 1.4rem;
+  border: 0.1rem solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-floating);
+}
+
+.ui-dialog {
+  width: min(50rem, calc(100vw - 3.2rem));
+  padding: 0;
+  border: 0.1rem solid var(--color-border);
+  border-radius: var(--radius-lg);
+  color: var(--color-text);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-floating);
+}
+
+.ui-dialog::backdrop {
+  background: rgb(0 0 0 / 40%);
+  backdrop-filter: blur(0.4rem);
+}
+
+.ui-dialog__content {
+  padding: 2.4rem;
+}
+
+.ui-dialog__actions {
+  display: flex;
+  justify-content: end;
+  gap: 1rem;
+  margin-top: 2rem;
+}

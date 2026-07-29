@@ -1,0 +1,42 @@
+---
+import { Icon, type IconName } from '../ui/Icon';
+
+const { pathname } = Astro.url;
+const links: Array<{ href: string; label: string; icon: IconName }> = [
+  { href: '/', label: 'Home', icon: 'home' },
+  { href: '/processes', label: 'Processes', icon: 'briefcase' },
+  { href: '/profile', label: 'Profile', icon: 'user' },
+  { href: '/settings', label: 'Settings', icon: 'settings' },
+];
+---
+
+<aside class="app-shell__sidebar" id="primary-navigation" transition:persist>
+  <div class="app-shell__traffic-lights" aria-hidden="true">
+    <span class="app-shell__traffic-light"></span><span
+      class="app-shell__traffic-light"></span><span
+      class="app-shell__traffic-light"></span>
+  </div>
+  <h1 class="app-shell__brand">Interview Studio</h1>
+  <p class="app-shell__tagline">Technical simulator</p>
+  <nav class="app-shell__nav" aria-label="Primary navigation">
+    {
+      links.map((link) => (
+        <a
+          class="app-shell__nav-link"
+          href={link.href}
+          aria-current={
+            pathname === link.href ||
+            (link.href !== '/' && pathname.startsWith(link.href))
+              ? 'page'
+              : undefined
+          }
+        >
+          <span class="app-shell__nav-icon">
+            <Icon name={link.icon} />
+          </span>
+          {link.label}
+        </a>
+      ))
+    }
+  </nav>
+</aside>

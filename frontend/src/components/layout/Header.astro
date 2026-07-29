@@ -1,0 +1,30 @@
+---
+import { Icon } from '../ui/Icon';
+---
+
+<header class="app-shell__header" transition:persist>
+  <button
+    class="ui-button ui-button--icon app-shell__menu-button"
+    type="button"
+    aria-label="Toggle navigation"
+    aria-controls="primary-navigation"
+    aria-expanded="false"
+    data-menu-toggle
+  >
+    <Icon name="bars" />
+  </button>
+  <label>
+    <span class="sr-only">Search</span>
+    <input
+      class="app-shell__search"
+      type="search"
+      placeholder="Search…"
+      disabled
+      title="Search will be available in a later phase"
+    />
+  </label>
+  <div class="app-shell__header-actions">
+    <a class="ui-button ui-button--primary" href="/interview">Start interview</a
+    >
+  </div>
+</header>

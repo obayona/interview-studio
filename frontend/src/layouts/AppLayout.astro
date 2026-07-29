@@ -1,0 +1,87 @@
+---
+import { ClientRouter } from 'astro:transitions';
+import Header from '../components/layout/Header.astro';
+import Sidebar from '../components/layout/Sidebar.astro';
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+const { title, description = 'Practice technical interviews with AI.' } =
+  Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#faf9fe" />
+    <title>{title} · Interview Studio</title>
+    <ClientRouter />
+    <script is:inline>
+      const savedTheme = localStorage.getItem('interview-studio-theme');
+      if (savedTheme && savedTheme !== 'system')
+        document.documentElement.dataset.theme = savedTheme;
+    </script>
+  </head>
+  <body>
+    <div class="app-shell" data-menu-open="false">
+      <Sidebar />
+      <Header />
+      <main class="app-shell__main" id="main-content"><slot /></main>
+    </div>
+    <script>
+      const bindMenu = () => {
+        const shell = document.querySelector<HTMLElement>('.app-shell');
+        const sidebar = document.querySelector<HTMLElement>(
+          '.app-shell__sidebar',
+        );
+        const button =
+          document.querySelector<HTMLButtonElement>('[data-menu-toggle]');
+
+        const syncMenu = (open = shell?.dataset.menuOpen === 'true') => {
+          const mobile = window.matchMedia('(width <= 760px)').matches;
+          const visible = !mobile || open;
+          if (shell) shell.dataset.menuOpen = String(mobile && open);
+          button?.setAttribute('aria-expanded', String(mobile && open));
+          if (sidebar) {
+            sidebar.inert = !visible;
+            sidebar.setAttribute('aria-hidden', String(!visible));
+          }
+        };
+
+        if (button && button.dataset.menuBound !== 'true') {
+          button.dataset.menuBound = 'true';
+          button.addEventListener('click', () => {
+            syncMenu(shell?.dataset.menuOpen !== 'true');
+          });
+          window.addEventListener('resize', () => syncMenu());
+          document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') syncMenu(false);
+          });
+        }
+
+        document
+          .querySelectorAll<HTMLAnchorElement>('.app-shell__nav-link')
+          .forEach((link) => {
+            const active =
+              link.pathname === window.location.pathname ||
+              (link.pathname !== '/' &&
+                window.location.pathname.startsWith(link.pathname));
+            if (active) link.setAttribute('aria-current', 'page');
+            else link.removeAttribute('aria-current');
+            if (link.dataset.menuBound !== 'true') {
+              link.dataset.menuBound = 'true';
+              link.addEventListener('click', () => syncMenu(false));
+            }
+          });
+        syncMenu();
+      };
+      bindMenu();
+      document.addEventListener('astro:page-load', bindMenu);
+    </script>
+  </body>
+</html>

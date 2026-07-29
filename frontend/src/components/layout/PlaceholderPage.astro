@@ -1,0 +1,23 @@
+---
+import type { IconName } from '../ui/Icon';
+import { Icon } from '../ui/Icon';
+interface Props {
+  title: string;
+  intro: string;
+  icon: IconName;
+  message: string;
+}
+const { title, intro, icon, message } = Astro.props;
+---
+
+<section class="page">
+  <h2 class="page__heading">{title}</h2>
+  <p class="page__intro">{intro}</p>
+  <div class="placeholder">
+    <div class="placeholder__content">
+      <div class="placeholder__icon"><Icon name={icon} /></div>
+      <h3 class="placeholder__title">Coming in its dedicated phase</h3>
+      <p class="placeholder__copy">{message}</p>
+    </div>
+  </div>
+</section>

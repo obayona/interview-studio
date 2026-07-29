@@ -14,3 +14,7 @@ backend/interview_studio.sqlite3
 backend/interview_studio.sqlite3-shm
 backend/interview_studio.sqlite3-wal
 backend/.secret-key
+frontend/node_modules/
+frontend/.astro/
+frontend/dist/
+node_modules

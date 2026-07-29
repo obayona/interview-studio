@@ -8,7 +8,8 @@ Last synchronized: 2026-07-28
 - Phase 1: Complete and verified on 2026-07-28.
 - Phase 2: Complete and verified on 2026-07-28.
 - Phase 3: Complete and verified on 2026-07-28.
-- Phases 4–12: Not started.
+- Phase 4: Complete and verified on 2026-07-28.
+- Phases 5–12: Not started.
 
 ## Repository baseline
 
@@ -54,6 +55,14 @@ Last synchronized: 2026-07-28
 - `backend/app/core/secrets.py`: Versioned AES-GCM secret box with a restricted local master-key file.
 - `backend/app/api/settings.py`: Validated settings status/update/removal and OpenAI provider-test routes.
 - `backend/tests/integration/test_settings.py`: Settings validation, masking, encryption, capability refresh, removal, provider absence, and tamper tests.
+- `frontend/`: Astro 7 and React 19 SPA-style frontend managed with pnpm 11, with strict TypeScript, ESLint, Prettier, Stylelint, and Vitest tooling.
+- `frontend/src/layouts/AppLayout.astro`: Persistent fixed shell with sidebar, header, responsive navigation, and Astro client routing transitions.
+- `frontend/src/components/ui/`: Reusable Font Awesome icon, button, form, input, select, switch, card, badge, toast, dialog, spinner, skeleton, empty-state, and error-state components.
+- `frontend/src/styles/`: Ventura Tech-derived design tokens, component styles, responsive layout, dark mode, focus states, and reduced-motion behavior.
+- `frontend/src/services/`: Typed normalized HTTP client, settings API, and versioned interview WebSocket foundation.
+- `frontend/src/features/settings/`: Integrated OpenAI, interaction, theme, model, voice, capability, provider-test, and secret-removal settings UI.
+- `frontend/src/pages/`: Working dashboard, profile, processes, process-details, interview, feedback, and settings routes.
+- `frontend/README.md`: pnpm-based setup, development, verification, deployment configuration, routes, and source-structure guide.
 
 ## Technical decisions
 
@@ -81,6 +90,11 @@ Last synchronized: 2026-07-28
 - Phase 3 uses a local 256-bit master key at `backend/.secret-key` by default; `AppConfig.secret_path` supports an installation-specific path. The key file is mode `0600` and ignored by git.
 - Secret settings use versioned AES-GCM authenticated encryption with associated data; plaintext is never returned by the API. Values are encrypted when written.
 - Settings are constrained by a known-key registry; arbitrary client keys are rejected. Model names, voice, theme, and provider values are validated before persistence.
+- Phase 4 uses Astro pages with React islands only for interactive state; the shell and placeholders render as static HTML.
+- The frontend uses native CSS with BEM naming, `1rem = 10px`, design tokens, system-aware themes, and Font Awesome through one reusable icon component.
+- Development HTTP calls use Astro's same-origin `/api` proxy to FastAPI; production base URLs can be supplied with public build-time variables.
+- Responsive navigation makes the off-canvas sidebar inert and hidden from assistive technology while closed, supports Escape and link-based closing, and avoids duplicate listeners across Astro page transitions.
+- Frontend dependency installation and scripts use pnpm; `pnpm-lock.yaml` is the authoritative lockfile.
 
 ## Interfaces, routes, and persistence
 
@@ -93,6 +107,7 @@ Last synchronized: 2026-07-28
 - Database entities: `settings`, minimal Phase 2 `interview_attempts`, canonical `interview_messages`, shallow `interview_graph_state`, and temporary `interview_graph_writes`.
 - Migration `001_phase2_core` creates only application-owned tables; it intentionally does not create LangGraph standard checkpoint/blob tables.
 - Phase 3 requires no schema migration: the existing key/value `settings` table supports the complete known-key registry and encrypted values.
+- Frontend routes: `/`, `/profile`, `/processes`, `/processes/details`, `/interview`, `/feedback`, and `/settings`.
 
 ## Known constraints
 
@@ -118,3 +133,10 @@ Last synchronized: 2026-07-28
 - Phase 3 Ruff lint and formatting checks: Passed for 40 backend files.
 - Phase 3 strict mypy: Passed for 29 application and engine source files.
 - Phase 3 Pytest: 17 tests passed, including settings CRUD, immediate capability refresh, masking, authenticated encryption, tamper rejection, removal, and missing-provider behavior.
+- Phase 4 Prettier formatting: Passed for the complete frontend.
+- Phase 4 ESLint and Stylelint: Passed.
+- Phase 4 Astro strict diagnostics: 35 files checked with zero errors, warnings, or hints.
+- Phase 4 Vitest: 4 tests passed across typed transport, switch behavior, settings integration, and axe-core accessibility coverage.
+- Phase 4 production build: 7 static routes generated successfully.
+- Phase 4 production dependency audit: No known vulnerabilities.
+- Phase 4 browser validation: Desktop settings layout and the responsive loading layout were exercised with headless Chrome; focus, reduced-motion, responsive navigation, loading, and error behavior are represented in implementation and tests.

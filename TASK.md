@@ -82,3 +82,19 @@ Phase 3 completed and verified on 2026-07-28.
 - [x] Replace string lookup wrappers with the `SettingKey` enum and definition dictionary.
 - [x] Remove current development database settings; backward compatibility is out of scope.
 - [x] Expose enum metadata properties and a key-only registry helper.
+
+## Phase 4 — Initial Astro/React Frontend
+
+- [x] Query `MAP.md` before starting and reconcile it with the repository.
+- [x] Establish the fixed Astro shell, sidebar, header, route outlet, transitions, and responsive navigation.
+- [x] Implement reusable buttons, inputs, selects, switches, cards, badges, toasts, dialogs, spinners, skeletons, empty states, errors, icons, and form fields.
+- [x] Build design tokens from the prototypes and Ventura Tech design guide.
+- [x] Implement light/dark themes and reduced-motion behavior.
+- [x] Add the typed API client, WebSocket foundation, normalized errors, and capability state.
+- [x] Create working routes for dashboard, profile, processes, process details, interview, feedback, and settings.
+- [x] Fully implement and integrate the settings page.
+- [x] Add frontend tests and run formatting, linting, typing, tests, build, and accessibility checks.
+- [x] Synchronize `MAP.md` with the final implemented system.
+- [x] Mark Phase 4 complete in `PLAN.md`, `TASK.md`, and `MAP.md`.
+
+Phase 4 completed and verified on 2026-07-28.

@@ -1,0 +1,145 @@
+.settings__loading {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 2rem;
+}
+
+.settings__warning {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding: 1.4rem 1.6rem;
+  border: 0.1rem solid
+    color-mix(in srgb, var(--color-primary) 30%, var(--color-border));
+  border-radius: var(--radius-md);
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
+}
+
+.settings__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(28rem, 1fr);
+  gap: 2rem;
+}
+
+.settings__grid > *,
+.settings__card-heading > div {
+  min-width: 0;
+}
+
+.settings__provider {
+  display: grid;
+  gap: 2.4rem;
+}
+
+.settings__preferences {
+  display: grid;
+  gap: 2.2rem;
+  align-content: start;
+}
+
+.settings__preferences h2 {
+  margin: 0;
+  font-size: 2.2rem;
+}
+
+.settings__card-heading {
+  display: flex;
+  gap: 1.6rem;
+  align-items: center;
+}
+
+.settings__provider-icon {
+  display: grid;
+  width: 5rem;
+  height: 5rem;
+  place-items: center;
+  border-radius: var(--radius-md);
+  color: #fff;
+  background: #191a1e;
+  font-size: 2.2rem;
+}
+
+.settings__card-heading h2 {
+  margin: 0;
+  font-size: 2.4rem;
+}
+
+.settings__card-heading p {
+  margin: 0.2rem 0 0;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.settings__title-row {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.settings__inline-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.settings__preference {
+  display: flex;
+  justify-content: space-between;
+  gap: 2rem;
+  align-items: center;
+}
+
+.settings__preference p {
+  margin: 0.2rem 0 0;
+  color: var(--color-text-muted);
+  font-size: 1.3rem;
+}
+
+.settings__advanced-toggle {
+  display: flex;
+  gap: 0.8rem;
+  margin: 3rem auto;
+  padding: 1rem;
+  border: 0;
+  color: var(--color-primary);
+  background: transparent;
+  cursor: pointer;
+}
+
+.settings__advanced {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2rem;
+}
+
+.settings__actions {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: end;
+  gap: 1rem;
+  margin: 3rem -2rem -6rem;
+  padding: 1.6rem 2rem;
+  border-top: 0.1rem solid var(--color-border);
+  background: color-mix(in srgb, var(--color-surface) 90%, transparent);
+  backdrop-filter: blur(1.2rem);
+}
+
+@media (width <= 900px) {
+  .settings__grid,
+  .settings__loading {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (width <= 600px) {
+  .settings__advanced {
+    grid-template-columns: 1fr;
+  }
+
+  .settings__actions {
+    margin-inline: -1.6rem;
+  }
+}

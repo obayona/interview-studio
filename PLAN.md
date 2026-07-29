@@ -312,7 +312,7 @@ Acceptance:
 - Removing a key disables dependent capabilities.
 - Masking, encryption, validation, and failures are tested.
 
-### Phase 4 — Initial Astro/React Frontend
+### Phase 4 — Initial Astro/React Frontend ✅ Completed 2026-07-28
 
 - Establish the fixed shell, sidebar, header, route outlet, transitions, and responsive navigation.
 - Implement buttons, inputs, selects, switches, cards, badges, toasts, dialogs, spinners, skeletons, empty states, errors, icons, and form fields.

@@ -1,0 +1,17 @@
+---
+import { SettingsPage } from '../features/settings/SettingsPage';
+import AppLayout from '../layouts/AppLayout.astro';
+---
+
+<AppLayout
+  title="AI configuration"
+  description="Configure Interview Studio AI models and interaction preferences."
+>
+  <section class="page">
+    <h2 class="page__heading">AI configuration</h2>
+    <p class="page__intro">
+      Manage your OpenAI models and interview interaction preferences.
+    </p>
+    <SettingsPage client:load />
+  </section>
+</AppLayout>
