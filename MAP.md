@@ -60,7 +60,7 @@ Last synchronized: 2026-07-28
 - `frontend/src/components/ui/`: Reusable Font Awesome icon, button, form, input, select, switch, card, badge, toast, dialog, spinner, skeleton, empty-state, and error-state components.
 - `frontend/src/styles/`: Ventura Tech-derived design tokens, component styles, responsive layout, dark mode, focus states, and reduced-motion behavior.
 - `frontend/src/services/`: Typed normalized HTTP client, settings API, and versioned interview WebSocket foundation.
-- `frontend/src/features/settings/`: Integrated OpenAI, interaction, theme, model, voice, capability, provider-test, and secret-removal settings UI.
+- `frontend/src/features/settings/`: Integrated OpenAI, interaction, theme, model, voice, provider-test, and secret-removal settings UI.
 - `frontend/src/pages/`: Working dashboard, profile, processes, process-details, interview, feedback, and settings routes.
 - `frontend/README.md`: pnpm-based setup, development, verification, deployment configuration, routes, and source-structure guide.
 
@@ -95,6 +95,9 @@ Last synchronized: 2026-07-28
 - Development HTTP calls use Astro's same-origin `/api` proxy to FastAPI; production base URLs can be supplied with public build-time variables.
 - Responsive navigation makes the off-canvas sidebar inert and hidden from assistive technology while closed, supports Escape and link-based closing, and avoids duplicate listeners across Astro page transitions.
 - Frontend dependency installation and scripts use pnpm; `pnpm-lock.yaml` is the authoritative lockfile.
+- Frontend TypeScript path aliases use explicit relative targets and do not set the deprecated `baseUrl` compiler option.
+- The settings page keeps the API response statuses and all editable values in its form state. `APIKeyField` encapsulates configured-key presentation, provider testing, and removal UI state; its input contains only newly typed secret text.
+- The frontend settings feature does not request or gate controls with capability state. TTS and STT remain independently editable persisted preferences; runtime consumers enforce actual provider availability.
 
 ## Interfaces, routes, and persistence
 
@@ -136,7 +139,7 @@ Last synchronized: 2026-07-28
 - Phase 4 Prettier formatting: Passed for the complete frontend.
 - Phase 4 ESLint and Stylelint: Passed.
 - Phase 4 Astro strict diagnostics: 35 files checked with zero errors, warnings, or hints.
-- Phase 4 Vitest: 4 tests passed across typed transport, switch behavior, settings integration, and axe-core accessibility coverage.
+- Phase 4 Vitest: 5 tests passed across typed transport, switch behavior, configured-secret masking, settings integration, and axe-core accessibility coverage.
 - Phase 4 production build: 7 static routes generated successfully.
 - Phase 4 production dependency audit: No known vulnerabilities.
 - Phase 4 browser validation: Desktop settings layout and the responsive loading layout were exercised with headless Chrome; focus, reduced-motion, responsive navigation, loading, and error behavior are represented in implementation and tests.

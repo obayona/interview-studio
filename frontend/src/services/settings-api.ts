@@ -1,9 +1,5 @@
 import { apiClient } from './api-client';
-import type {
-  Capabilities,
-  SettingsResponse,
-  SettingsUpdate,
-} from '../types/api';
+import type { SettingsResponse, SettingsUpdate } from '../types/api';
 
 export const settingsApi = {
   get: () => apiClient.request<SettingsResponse>('/api/v1/settings'),
@@ -27,5 +23,4 @@ export const settingsApi = {
         body: JSON.stringify({ provider: 'openai' }),
       },
     ),
-  capabilities: () => apiClient.request<Capabilities>('/api/v1/capabilities'),
 };

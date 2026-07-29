@@ -61,28 +61,6 @@ a {
   backdrop-filter: blur(2rem) saturate(180%);
 }
 
-.app-shell__traffic-lights {
-  display: flex;
-  gap: 0.8rem;
-  margin: 0 0 3rem 0.8rem;
-}
-
-.app-shell__traffic-light {
-  width: 1.2rem;
-  height: 1.2rem;
-  border-radius: 50%;
-  background: #ff5f57;
-  box-shadow: inset 0 0 0 0.1rem rgb(0 0 0 / 14%);
-}
-
-.app-shell__traffic-light:nth-child(2) {
-  background: #febc2e;
-}
-
-.app-shell__traffic-light:nth-child(3) {
-  background: #28c840;
-}
-
 .app-shell__brand {
   margin: 0 0 0.4rem;
   font-size: 2.6rem;

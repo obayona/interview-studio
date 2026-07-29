@@ -13,21 +13,34 @@ import { Switch } from '../../components/ui/Switch';
 import { ToastProvider, useToast } from '../../components/ui/Toast';
 import { ApiError } from '../../services/api-client';
 import { settingsApi } from '../../services/settings-api';
-import type {
-  Capabilities,
-  SettingStatus,
-  SettingsUpdate,
-} from '../../types/api';
+import type { SettingStatus, SettingsUpdate } from '../../types/api';
 import './settings.css';
 
 const statusValue = (items: SettingStatus[], key: string, fallback = '') =>
   items.find((item) => item.key === key)?.value ?? fallback;
 
+const settingsToForm = (settings: SettingStatus[]): SettingsUpdate => ({
+  api_key: '',
+  chat_model: statusValue(settings, 'chat_model', 'gpt-4o-mini'),
+  transcription_model: statusValue(
+    settings,
+    'transcription_model',
+    'gpt-4o-mini-transcribe',
+  ),
+  speech_model: statusValue(settings, 'speech_model', 'gpt-4o-mini-tts'),
+  vision_model: statusValue(settings, 'vision_model', 'gpt-4o-mini'),
+  voice: statusValue(settings, 'voice', 'alloy'),
+  tts_enabled: statusValue(settings, 'tts_enabled') === 'true',
+  stt_enabled: statusValue(settings, 'stt_enabled') === 'true',
+  theme: (statusValue(settings, 'theme', 'system') ||
+    'system') as SettingsUpdate['theme'],
+});
+
 function SettingsForm() {
   const { showToast } = useToast();
   const [statuses, setStatuses] = useState<SettingStatus[]>([]);
-  const [capabilities, setCapabilities] = useState<Capabilities>();
   const [form, setForm] = useState<SettingsUpdate>({
+    api_key: '',
     chat_model: 'gpt-4o-mini',
     transcription_model: 'gpt-4o-mini-transcribe',
     speech_model: 'gpt-4o-mini-tts',
@@ -37,12 +50,9 @@ function SettingsForm() {
     stt_enabled: false,
     theme: 'system',
   });
-  const [apiKey, setApiKey] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [testing, setTesting] = useState(false);
   const [error, setError] = useState<string>();
-  const [removeOpen, setRemoveOpen] = useState(false);
   const [advanced, setAdvanced] = useState(false);
 
   const apiStatus = useMemo(
@@ -54,35 +64,9 @@ function SettingsForm() {
     setLoading(true);
     setError(undefined);
     try {
-      const [settings, nextCapabilities] = await Promise.all([
-        settingsApi.get(),
-        settingsApi.capabilities(),
-      ]);
+      const settings = await settingsApi.get();
       setStatuses(settings.settings);
-      setCapabilities(nextCapabilities);
-      setForm({
-        chat_model: statusValue(settings.settings, 'chat_model', 'gpt-4o-mini'),
-        transcription_model: statusValue(
-          settings.settings,
-          'transcription_model',
-          'gpt-4o-mini-transcribe',
-        ),
-        speech_model: statusValue(
-          settings.settings,
-          'speech_model',
-          'gpt-4o-mini-tts',
-        ),
-        vision_model: statusValue(
-          settings.settings,
-          'vision_model',
-          'gpt-4o-mini',
-        ),
-        voice: statusValue(settings.settings, 'voice', 'alloy'),
-        tts_enabled: statusValue(settings.settings, 'tts_enabled') === 'true',
-        stt_enabled: statusValue(settings.settings, 'stt_enabled') === 'true',
-        theme: (statusValue(settings.settings, 'theme', 'system') ||
-          'system') as SettingsUpdate['theme'],
-      });
+      setForm(settingsToForm(settings.settings));
     } catch (requestError) {
       setError(
         requestError instanceof ApiError
@@ -101,15 +85,15 @@ function SettingsForm() {
   const save = async () => {
     setSaving(true);
     try {
+      const nextApiKey = form.api_key?.trim();
       const payload = {
         ...form,
-        ...(apiKey.trim() ? { api_key: apiKey.trim() } : {}),
+        ...(nextApiKey ? { api_key: nextApiKey } : {}),
       };
+      if (!nextApiKey) delete payload.api_key;
       const response = await settingsApi.update(payload);
       setStatuses(response.settings);
-      setApiKey('');
-      const nextCapabilities = await settingsApi.capabilities();
-      setCapabilities(nextCapabilities);
+      setForm(settingsToForm(response.settings));
       applyTheme(form.theme ?? 'system');
       showToast('Settings saved.');
     } catch (requestError) {
@@ -121,45 +105,6 @@ function SettingsForm() {
       );
     } finally {
       setSaving(false);
-    }
-  };
-
-  const testConnection = async () => {
-    setTesting(true);
-    try {
-      if (apiKey.trim()) await settingsApi.update({ api_key: apiKey.trim() });
-      const result = await settingsApi.testProvider();
-      showToast(result.message, result.ok ? 'success' : 'error');
-      if (apiKey.trim()) {
-        setApiKey('');
-        await load();
-      }
-    } catch (requestError) {
-      showToast(
-        requestError instanceof ApiError
-          ? requestError.message
-          : 'Connection test failed.',
-        'error',
-      );
-    } finally {
-      setTesting(false);
-    }
-  };
-
-  const removeKey = async () => {
-    try {
-      const response = await settingsApi.remove('api_key');
-      setStatuses(response.settings);
-      setCapabilities(await settingsApi.capabilities());
-      setRemoveOpen(false);
-      showToast('OpenAI API key removed.');
-    } catch (requestError) {
-      showToast(
-        requestError instanceof ApiError
-          ? requestError.message
-          : 'The API key was not removed.',
-        'error',
-      );
     }
   };
 
@@ -175,65 +120,18 @@ function SettingsForm() {
 
   return (
     <>
-      {!capabilities?.interview.available && (
-        <div className="settings__warning" role="status">
-          <Icon name="info" />
-          <span>
-            {capabilities?.interview.reason}. Interview controls remain
-            unavailable until this is resolved.
-          </span>
-        </div>
-      )}
       <div className="settings__grid">
-        <Card className="settings__provider">
-          <div className="settings__card-heading">
-            <span className="settings__provider-icon">
-              <Icon name="bolt" />
-            </span>
-            <div>
-              <div className="settings__title-row">
-                <h2>OpenAI</h2>
-                {apiStatus?.configured && <Badge>Configured</Badge>}
-              </div>
-              <p>Chat, transcription, speech, and vision models.</p>
-            </div>
-          </div>
-          <FormField
-            label="API key"
-            htmlFor="api-key"
-            hint={
-              apiStatus?.configured
-                ? `Stored securely · ending in ${apiStatus.masked_suffix}`
-                : 'Encrypted locally before it is stored.'
-            }
-          >
-            <Input
-              id="api-key"
-              type="password"
-              autoComplete="off"
-              value={apiKey}
-              placeholder={
-                apiStatus?.configured
-                  ? 'Leave blank to keep the current key'
-                  : 'sk-…'
-              }
-              onChange={(event) => setApiKey(event.target.value)}
-            />
-          </FormField>
-          <div className="settings__inline-actions">
-            <Button
-              onClick={() => void testConnection()}
-              disabled={testing || (!apiStatus?.configured && !apiKey.trim())}
-            >
-              {testing ? 'Testing…' : 'Test connection'}
-            </Button>
-            {apiStatus?.configured && (
-              <Button variant="danger" onClick={() => setRemoveOpen(true)}>
-                Remove key
-              </Button>
-            )}
-          </div>
-        </Card>
+        <APIKeyField
+          status={apiStatus}
+          value={form.api_key ?? ''}
+          onChange={(api_key) =>
+            setForm((current) => ({ ...current, api_key }))
+          }
+          onSettingsChange={(settings) => {
+            setStatuses(settings);
+            setForm((current) => ({ ...current, api_key: '' }));
+          }}
+        />
 
         <Card className="settings__preferences">
           <h2>Interaction preferences</h2>
@@ -344,6 +242,109 @@ function SettingsForm() {
           {saving ? 'Saving…' : 'Save changes'}
         </Button>
       </div>
+    </>
+  );
+}
+
+function APIKeyField({
+  status,
+  value,
+  onChange,
+  onSettingsChange,
+}: {
+  status?: SettingStatus;
+  value: string;
+  onChange: (value: string) => void;
+  onSettingsChange: (settings: SettingStatus[]) => void;
+}) {
+  const { showToast } = useToast();
+  const [testing, setTesting] = useState(false);
+  const [removeOpen, setRemoveOpen] = useState(false);
+  const configured = Boolean(status?.configured);
+
+  const testConnection = async () => {
+    setTesting(true);
+    try {
+      const apiKey = value.trim();
+      if (apiKey) {
+        const response = await settingsApi.update({ api_key: apiKey });
+        onSettingsChange(response.settings);
+      }
+      const result = await settingsApi.testProvider();
+      showToast(result.message, result.ok ? 'success' : 'error');
+    } catch (requestError) {
+      showToast(
+        requestError instanceof ApiError
+          ? requestError.message
+          : 'Connection test failed.',
+        'error',
+      );
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  const removeKey = async () => {
+    try {
+      const response = await settingsApi.remove('api_key');
+      onSettingsChange(response.settings);
+      setRemoveOpen(false);
+      showToast('OpenAI API key removed.');
+    } catch (requestError) {
+      showToast(
+        requestError instanceof ApiError
+          ? requestError.message
+          : 'The API key was not removed.',
+        'error',
+      );
+    }
+  };
+
+  return (
+    <Card className="settings__provider">
+      <div className="settings__card-heading">
+        <span className="settings__provider-icon">
+          <Icon name="bolt" />
+        </span>
+        <div>
+          <div className="settings__title-row">
+            <h2>OpenAI</h2>
+            {configured && <Badge>Configured</Badge>}
+          </div>
+          <p>Chat, transcription, speech, and vision models.</p>
+        </div>
+      </div>
+      <FormField
+        label="API key"
+        htmlFor="api-key"
+        hint={
+          configured
+            ? `Stored securely · ending in ${status?.masked_suffix}`
+            : 'Encrypted locally before it is stored.'
+        }
+      >
+        <Input
+          id="api-key"
+          type="password"
+          autoComplete="off"
+          value={value}
+          placeholder={configured ? '********' : 'sk-…'}
+          onChange={(event) => onChange(event.target.value)}
+        />
+      </FormField>
+      <div className="settings__inline-actions">
+        <Button
+          onClick={() => void testConnection()}
+          disabled={testing || (!configured && !value.trim())}
+        >
+          {testing ? 'Testing…' : 'Test connection'}
+        </Button>
+        {configured && (
+          <Button variant="danger" onClick={() => setRemoveOpen(true)}>
+            Remove key
+          </Button>
+        )}
+      </div>
       <Dialog
         open={removeOpen}
         title="Remove OpenAI API key?"
@@ -355,7 +356,7 @@ function SettingsForm() {
           another key is configured.
         </p>
       </Dialog>
-    </>
+    </Card>
   );
 }
 

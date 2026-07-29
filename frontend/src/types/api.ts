@@ -30,14 +30,3 @@ export interface SettingsUpdate {
   stt_enabled?: boolean;
   theme?: 'system' | 'light' | 'dark';
 }
-
-export interface Capability {
-  available: boolean;
-  reason: string | null;
-}
-
-export interface Capabilities {
-  interview: Capability;
-  speech_to_text: Capability;
-  text_to_speech: Capability;
-}
