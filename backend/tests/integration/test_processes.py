@@ -68,9 +68,26 @@ async def test_process_crud_stage_configuration_and_repeated_attempts(
             ]
             assert process["stages"][2]["configuration"]["difficulty"] == "senior"
 
+            repeated_payload = {
+                "title": "Second backend role",
+                "company_name": "Example Co",
+                "target_role": "Backend Engineer",
+                "job": {"kind": "text", "value": "Build reliable APIs."},
+                "stages": [
+                    {
+                        **stage("screening"),
+                        "id": process["stages"][0]["id"],
+                    }
+                ],
+            }
+            second_process = await client.post("/api/v1/processes", json=repeated_payload)
+            assert second_process.status_code == 201
+            assert second_process.json()["stages"][0]["id"] != process["stages"][0]["id"]
+
             listed = (await client.get("/api/v1/processes")).json()
-            assert listed[0]["stage_count"] == 3
-            assert listed[0]["attempt_count"] == 0
+            listed_process = next(item for item in listed if item["id"] == process["id"])
+            assert listed_process["stage_count"] == 3
+            assert listed_process["attempt_count"] == 0
 
             process_id = process["id"]
             stage_id = process["stages"][0]["id"]

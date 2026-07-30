@@ -408,6 +408,8 @@ Acceptance:
 
 ### Phase 8 — Evaluation and Feedback
 
+**Status: Complete and verified on 2026-07-30.**
+
 - Build `backend/report_engine` with typed input/output and no checkpointer.
 - Evaluate completed or explicitly ended attempts.
 - Generate overall and category scores, strengths, weaknesses, per-answer observations, advice, study plan, and transcript evidence references.

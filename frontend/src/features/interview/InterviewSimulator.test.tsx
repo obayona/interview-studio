@@ -12,10 +12,15 @@ const history = vi.fn();
 const connect = vi.fn();
 const send = vi.fn();
 const close = vi.fn();
+const navigate = vi.fn();
 let emit: ((event: Record<string, unknown>) => void) | undefined;
 
 vi.mock('../../services/interview-api', () => ({
   interviewApi: { history: (...args: unknown[]) => history(...args) },
+}));
+
+vi.mock('../../services/navigation', () => ({
+  navigate: (...args: unknown[]) => navigate(...args),
 }));
 
 vi.mock('../../services/interview-socket', () => ({
@@ -67,7 +72,6 @@ describe('InterviewSimulator', () => {
         payload: { text: 'Tell me ' },
       });
     });
-
     expect(screen.getByLabelText('Interviewer is responding')).toBeVisible();
 
     act(() => {
@@ -144,6 +148,9 @@ describe('InterviewSimulator', () => {
         payload: { status: 'completed' },
       });
     });
+    expect(navigate).toHaveBeenCalledWith(
+      '/feedback?attempt=attempt-1&evaluate=1',
+    );
     expect(
       screen.queryByRole('button', { name: 'End session' }),
     ).not.toBeInTheDocument();

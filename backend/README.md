@@ -84,6 +84,21 @@ Process routes:
 - `GET/PATCH/DELETE /api/v1/processes/{process_id}`
 - `POST /api/v1/processes/{process_id}/stages/{stage_id}/attempts`
 
+Report routes:
+
+- `GET/POST /api/v1/attempts/{attempt_id}/report`
+- `GET /api/v1/processes/{process_id}/report`
+
+Only completed attempts can be evaluated. Evaluation is request-bound and
+checkpointer-free: cancelling the request stores no partial report, and a later
+request can retry. Valid reports are stored atomically with their schema and
+evaluation versions and canonical transcript evidence IDs. Simultaneous
+evaluation requests for one attempt return `409`.
+
+Process feedback is computed from persisted attempt reports. It selects the
+highest score in each enabled stage, averages those selected stage reports
+equally, and reports unevaluated stages as missing coverage rather than zero.
+
 URL imports accept public HTTP(S) HTML or plain-text sources only, enforce bounded
 redirects and response sizes, reject local/private destinations, and return
 normalized text for preview.

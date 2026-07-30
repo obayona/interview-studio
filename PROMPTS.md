@@ -35,3 +35,12 @@ required while the project is still in development.
 
 Expose definition metadata through `SettingKey` properties and provide a helper
 for key-only iteration, keeping one source dictionary.
+
+---
+
+Implement Phase 8 evaluation and feedback: evaluate completed attempts only,
+redirect completed interviews to a request-bound feedback page, persist fully
+validated versioned reports with transcript evidence, prevent duplicate
+evaluations, support retry without partial storage, add process-detail evaluation
+actions, and deterministically consolidate the highest-scoring attempt per
+enabled stage into process feedback.

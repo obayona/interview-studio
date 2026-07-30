@@ -15,11 +15,13 @@ from backend.app.api.interviews import attempts_router
 from backend.app.api.interviews import router as interviews_router
 from backend.app.api.processes import router as processes_router
 from backend.app.api.profile import router as profile_router
+from backend.app.api.reports import router as reports_router
 from backend.app.api.settings import router as settings_router
 from backend.app.api.websocket import router as websocket_router
 from backend.app.application.interviews import InterviewService
 from backend.app.application.processes import ProcessService
 from backend.app.application.profiles import ProfileService
+from backend.app.application.reports import ReportService
 from backend.app.core.config import AppConfig, SettingsService
 from backend.app.core.database import SQLiteManager
 from backend.app.core.errors import ApplicationError
@@ -28,6 +30,7 @@ from backend.app.infrastructure.checkpointer import InterviewSQLiteCheckpointer
 from backend.app.repositories.attempts import AttemptRepository
 from backend.app.repositories.processes import ProcessRepository
 from backend.app.repositories.profile import ProfileRepository
+from backend.app.repositories.reports import ReportRepository
 from backend.app.repositories.settings import SettingsRepository
 
 
@@ -55,6 +58,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
         app.state.interviews = InterviewService(attempts, settings, checkpointer)
         app.state.profile = ProfileService(profiles, settings)
         app.state.processes = ProcessService(ProcessRepository(database), profiles, settings)
+        app.state.reports = ReportService(ReportRepository(database), attempts, profiles, settings)
         yield
         await database.close()
 
@@ -63,6 +67,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
     app.include_router(attempts_router)
     app.include_router(profile_router)
     app.include_router(processes_router)
+    app.include_router(reports_router)
     app.include_router(settings_router)
     app.include_router(websocket_router)
 

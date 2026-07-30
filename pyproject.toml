@@ -14,7 +14,12 @@ select = ["E", "F", "I", "N", "UP", "B", "SIM", "RUF"]
 python_version = "3.12"
 strict = true
 warn_unreachable = true
-packages = ["backend.interview_engine", "backend.app", "backend.profile_parser"]
+packages = [
+    "backend.interview_engine",
+    "backend.app",
+    "backend.profile_parser",
+    "backend.report_engine",
+]
 
 [[tool.mypy.overrides]]
 module = "yoyo.*"

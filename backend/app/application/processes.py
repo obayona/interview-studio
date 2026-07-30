@@ -16,6 +16,7 @@ from backend.app.domain.processes import (
     ProcessCreate,
     ProcessSummary,
     ProcessUpdate,
+    new_id,
 )
 from backend.app.repositories.processes import ProcessRepository
 from backend.app.repositories.profile import ProfileRepository
@@ -151,6 +152,7 @@ class ProcessService:
     async def create(self, payload: ProcessCreate) -> InterviewProcess:
         job_text, job_url = await self._resolve(payload.job)
         company_text, company_url = await self._resolve(payload.company)
+        stages = [stage.model_copy(update={"id": new_id()}) for stage in payload.stages]
         return await self._repository.create(
             title=payload.title.strip(),
             company_name=payload.company_name.strip(),
@@ -159,7 +161,7 @@ class ProcessService:
             company_info=company_text,
             job_source_url=job_url,
             company_source_url=company_url,
-            stages=payload.stages,
+            stages=stages,
         )
 
     async def update(self, process_id: str, payload: ProcessUpdate) -> InterviewProcess:

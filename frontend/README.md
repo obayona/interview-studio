@@ -78,6 +78,7 @@ src/
     layout/       Astro shell components
     ui/           Reusable accessible React components
   features/
+    feedback/     Attempt evaluation and deterministic process feedback
     interview/    Streaming text/audio simulator and browser media controls
     profile/      Profile editor, autosave, avatar, and CV import
     processes/    Process list, configurable creation/editing, and attempt history
@@ -121,3 +122,9 @@ without changing the saved preference.
 Process details list every attempt with its timestamp and status. Ready or paused
 attempts can be started/resumed, completed attempts open read-only, and deletion
 uses an explicit confirmation before removing the attempt history.
+When an interview finishes, the simulator redirects to
+`/feedback?attempt=…&process=…&evaluate=1`, where a blocking progress state remains
+visible during request-bound evaluation. Reload or cancellation never stores a
+partial report, and the page provides retry. Process details expose Evaluate or
+View feedback per completed attempt, sequential pending evaluation, and
+best-attempt-per-stage process feedback.

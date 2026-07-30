@@ -11,6 +11,7 @@ import {
   type TranscriptMessage,
 } from '../../services/interview-api';
 import { profileApi } from '../../services/profile-api';
+import { navigate } from '../../services/navigation';
 import {
   InterviewSocket,
   type SocketEvent,
@@ -165,7 +166,21 @@ function InterviewSimulatorContent() {
       } else if (event.type === 'assistant.audio.cancelled') {
         stopPlayback();
       } else if (event.type === 'interview.state') {
-        setStatus(payload.status as Status);
+        const nextStatus = payload.status as Status;
+        setStatus(nextStatus);
+        if (nextStatus === 'completed') {
+          intentionalClose.current = true;
+          const params = new URLSearchParams(window.location.search);
+          const attempt = params.get('attempt');
+          const process = params.get('process');
+          if (attempt) {
+            navigate(
+              `/feedback?attempt=${encodeURIComponent(attempt)}` +
+                `${process ? `&process=${encodeURIComponent(process)}` : ''}` +
+                '&evaluate=1',
+            );
+          }
+        }
       } else if (event.type === 'warning') {
         showToast(String(payload.message), 'error');
       } else if (event.type === 'error') {

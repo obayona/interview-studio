@@ -8,6 +8,7 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { ErrorState } from '../../components/ui/States';
 import { ToastProvider, useToast } from '../../components/ui/Toast';
 import { processApi } from '../../services/process-api';
+import { reportApi } from '../../services/report-api';
 import type { AttemptSummary, InterviewProcess } from '../../types/process';
 import { stageLabels } from './defaults';
 import './processes.css';
@@ -36,6 +37,10 @@ function ProcessDetailContent() {
   const [startingStage, setStartingStage] = useState<string>();
   const [attemptToDelete, setAttemptToDelete] = useState<AttemptSummary>();
   const [deletingAttempt, setDeletingAttempt] = useState(false);
+  const [evaluationProgress, setEvaluationProgress] = useState<{
+    completed: number;
+    total: number;
+  }>();
   const [processId, setProcessId] = useState<string | null>();
 
   useEffect(() => {
@@ -106,9 +111,60 @@ function ProcessDetailContent() {
     }
   };
 
+  const evaluatePending = async () => {
+    if (!process) return;
+    const pending = process.stages.flatMap((stage) =>
+      stage.attempts.filter(
+        (attempt) =>
+          attempt.status === 'completed' && !attempt.report_available,
+      ),
+    );
+    if (!pending.length) return;
+    setEvaluationProgress({ completed: 0, total: pending.length });
+    let completed = 0;
+    try {
+      for (const attempt of pending) {
+        await reportApi.evaluate(attempt.id);
+        completed += 1;
+        setEvaluationProgress({ completed, total: pending.length });
+      }
+      await load();
+      showToast(
+        `${completed} completed ${completed === 1 ? 'attempt' : 'attempts'} evaluated.`,
+        'success',
+      );
+    } catch {
+      await load();
+      showToast(
+        `Evaluation stopped after ${completed} of ${pending.length} attempts.`,
+        'error',
+      );
+    } finally {
+      setEvaluationProgress(undefined);
+    }
+  };
+
   if (loading) return <Skeleton height="50rem" />;
   if (error) return <ErrorState message={error} onRetry={() => void load()} />;
   if (!process) return null;
+  const pendingEvaluationCount = process.stages.reduce(
+    (count, stage) =>
+      count +
+      stage.attempts.filter(
+        (attempt) =>
+          attempt.status === 'completed' && !attempt.report_available,
+      ).length,
+    0,
+  );
+  const hasReports = process.stages.some((stage) =>
+    stage.attempts.some((attempt) => attempt.report_available),
+  );
+  const evaluatedAttempts = process.stages.flatMap((stage) =>
+    stage.attempts.filter((attempt) => attempt.report_available),
+  );
+  const bestScore = Math.max(
+    ...evaluatedAttempts.map((attempt) => attempt.overall_score ?? 0),
+  );
 
   return (
     <div className="processes">
@@ -123,6 +179,28 @@ function ProcessDetailContent() {
           </p>
         </div>
         <div className="processes__actions">
+          {pendingEvaluationCount > 0 && (
+            <Button
+              disabled={Boolean(evaluationProgress)}
+              onClick={() => void evaluatePending()}
+            >
+              <Icon
+                name={evaluationProgress ? 'spinner' : 'report'}
+                spin={Boolean(evaluationProgress)}
+              />
+              {evaluationProgress
+                ? `Evaluating ${evaluationProgress.completed + 1} of ${evaluationProgress.total}…`
+                : `Evaluate pending (${pendingEvaluationCount})`}
+            </Button>
+          )}
+          {hasReports && (
+            <a
+              className="ui-button"
+              href={`/feedback?process=${encodeURIComponent(process.id)}`}
+            >
+              <Icon name="report" /> View process feedback
+            </a>
+          )}
           <a
             className="ui-button"
             href={`/processes/edit?id=${encodeURIComponent(process.id)}`}
@@ -196,6 +274,28 @@ function ProcessDetailContent() {
                           {attemptStatusLabels[attempt.status] ??
                             attempt.status.replaceAll('_', ' ')}
                         </Badge>
+                        {attempt.status === 'completed' && (
+                          <a
+                            className="ui-button ui-button--icon"
+                            href={
+                              `/feedback?attempt=${encodeURIComponent(attempt.id)}` +
+                              `&process=${encodeURIComponent(process.id)}` +
+                              (attempt.report_available ? '' : '&evaluate=1')
+                            }
+                            aria-label={
+                              attempt.report_available
+                                ? `View feedback for attempt ${attempt.attempt_number}`
+                                : `Evaluate attempt ${attempt.attempt_number}`
+                            }
+                            title={
+                              attempt.report_available
+                                ? `View feedback · ${attempt.overall_score}/100`
+                                : 'Evaluate completed attempt'
+                            }
+                          >
+                            <Icon name="report" />
+                          </a>
+                        )}
                         <a
                           className="ui-button ui-button--icon"
                           href={`/interview?attempt=${encodeURIComponent(
@@ -256,9 +356,26 @@ function ProcessDetailContent() {
           <Card>
             <h2>Feedback</h2>
             <p className="processes__muted">
-              Feedback and interview scores will appear here after evaluation is
-              introduced in Phase 8.
+              {hasReports
+                ? `${evaluatedAttempts.length} evaluated ${
+                    evaluatedAttempts.length === 1 ? 'attempt' : 'attempts'
+                  } · Best score ${bestScore}/100`
+                : pendingEvaluationCount
+                  ? `${pendingEvaluationCount} completed ${
+                      pendingEvaluationCount === 1
+                        ? 'attempt is'
+                        : 'attempts are'
+                    } ready to evaluate.`
+                  : 'Complete an interview to generate evidence-based feedback.'}
             </p>
+            {hasReports && (
+              <a
+                className="ui-button"
+                href={`/feedback?process=${encodeURIComponent(process.id)}`}
+              >
+                View process feedback
+              </a>
+            )}
           </Card>
         </aside>
       </div>

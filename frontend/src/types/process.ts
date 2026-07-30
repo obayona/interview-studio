@@ -42,6 +42,8 @@ export interface AttemptSummary {
   started_at: string | null;
   ended_at: string | null;
   termination_reason: string | null;
+  report_available: boolean;
+  overall_score: number | null;
   created_at: string;
 }
 

@@ -65,8 +65,10 @@ class ProcessRepository:
         )
         attempt_rows = await self._database.fetchall(
             """
-            SELECT a.* FROM interview_attempts a
+            SELECT a.*, r.overall_score FROM interview_attempts a
             JOIN interview_stages s ON s.id = a.stage_id
+            LEFT JOIN interview_reports r
+              ON r.attempt_id = a.id AND r.evaluation_version = 1
             WHERE s.process_id = ?
             ORDER BY s.position, a.attempt_number
             """,
@@ -82,6 +84,8 @@ class ProcessRepository:
                     started_at=attempt["started_at"],
                     ended_at=attempt["ended_at"],
                     termination_reason=attempt["termination_reason"],
+                    report_available=attempt["overall_score"] is not None,
+                    overall_score=attempt["overall_score"],
                     created_at=str(attempt["created_at"]),
                 )
             )

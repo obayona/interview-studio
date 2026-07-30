@@ -152,3 +152,18 @@ Phase 6 completed and verified on 2026-07-29.
 - [x] Mark Phase 7 complete in `PLAN.md`, `TASK.md`, and `MAP.md`.
 
 Phase 7 completed and verified on 2026-07-30.
+
+## Phase 8 — Evaluation and Feedback
+
+- [x] Query `MAP.md` before starting and reconcile it with the repository.
+- [x] Add the versioned report engine and validated evidence-bearing report schema.
+- [x] Add report persistence, attempt evaluation, duplicate prevention, and process aggregation.
+- [x] Add attempt and process report APIs with completed-attempt state enforcement.
+- [x] Build automatic post-interview evaluation and the accessible feedback page.
+- [x] Add process-detail evaluation, report, and pending-evaluation actions.
+- [x] Add backend and frontend Phase 8 tests.
+- [x] Run migration, formatting, linting, typing, tests, build, and accessibility verification.
+- [x] Completely synchronize `MAP.md` with the implemented system.
+- [x] Mark Phase 8 complete in `PLAN.md`, `TASK.md`, and `MAP.md`.
+
+Phase 8 completed and verified on 2026-07-30.

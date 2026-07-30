@@ -70,6 +70,8 @@ class AttemptSummary(BaseModel):
     started_at: str | None
     ended_at: str | None
     termination_reason: str | None
+    report_available: bool = False
+    overall_score: int | None = None
     created_at: str
 
 

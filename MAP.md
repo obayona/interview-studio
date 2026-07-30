@@ -12,7 +12,8 @@ Last synchronized: 2026-07-30
 - Phase 5: Complete and verified on 2026-07-29.
 - Phase 6: Complete and verified on 2026-07-29.
 - Phase 7: Complete and verified on 2026-07-30.
-- Phases 8–12: Not started.
+- Phase 8: Complete and verified on 2026-07-30.
+- Phases 9–12: Not started.
 
 ## Repository baseline
 
@@ -50,8 +51,11 @@ Last synchronized: 2026-07-30
 - `backend/migrations/001_phase2_core.py`: Reversible settings foundation migration.
 - `backend/migrations/002_phase5_profile.py`: Reversible developer-profile, ordered link/experience/project, and avatar schema migration; CV documents are intentionally absent.
 - `backend/migrations/003_phase6_processes.py`: Complete interview schema in dependency order: processes, ordered stages, full attempts, canonical messages, graph state, and pending writes.
+- `backend/migrations/004_phase8_reports.py`: Attempt-versioned, cascade-owned validated evaluation-report persistence.
+- `backend/report_engine/`: Checkpointer-free LangGraph evaluation workflow with bounded, versioned report schemas and canonical transcript evidence references.
 - `backend/app/domain/processes.py`, `backend/app/repositories/processes.py`, and `backend/app/application/processes.py`: Validated process aggregate, atomic persistence, safe content import, and repeated-attempt creation.
 - `backend/app/api/processes.py`: Process list/create/detail/update/delete, URL-preview, and stage-attempt routes.
+- `backend/app/repositories/reports.py`, `backend/app/application/reports.py`, and `backend/app/api/reports.py`: Atomic completed-attempt report persistence, request-scoped duplicate-safe evaluation, evidence validation, retrieval, and deterministic process aggregation.
 - `backend/app/infrastructure/json_codec.py`: Versioned strict JSON codec and explicit LangChain message adapter; unsupported and binary values are rejected.
 - `backend/app/infrastructure/checkpointer.py`: Async `BaseCheckpointSaver` implementation with canonical transcript extraction, atomic shallow state upsert, idempotent pending writes, current-only listing, reconstruction, and graph-state deletion.
 - `backend/app/repositories/attempts.py`: Attempt configuration/status lookup, canonical transcript reads, pause/resume transitions, confirmed deletion with stage-status recalculation, and idempotent browser-harness bootstrap.
@@ -80,9 +84,11 @@ Last synchronized: 2026-07-30
 - Toast context identity lives in a dedicated non-rendering module, preventing Vite/Astro hot refresh or client navigation from pairing a refreshed `useToast` consumer with a stale provider context.
 - `frontend/src/styles/`: Ventura Tech-derived design tokens, component styles, responsive layout, dark mode, focus states, and reduced-motion behavior.
 - `frontend/src/services/`: Typed normalized HTTP client, settings API, and versioned interview WebSocket foundation.
+- `frontend/src/services/report-api.ts` and `frontend/src/types/report.ts`: Typed attempt-evaluation and process-aggregation transports, including evidence, competency, study-plan, and selected-stage source metadata.
 - `frontend/src/features/settings/`: Integrated OpenAI, interaction, theme, model, voice, provider-test, and secret-removal settings UI.
 - `frontend/src/features/profile/`: Prototype-aligned profile editor with autosave, explicit save, avatar management, ordered experience/projects, and modal profile import from a PDF CV.
-- `frontend/src/features/processes/`: Searchable process list, mode-aware reusable create/edit form, safe import preview, ordered stage configuration, process detail, complete attempt history with start/resume/view/delete actions, confirmed deletion, and feedback placeholders.
+- `frontend/src/features/processes/`: Searchable process list, mode-aware reusable create/edit form, safe import preview, ordered stage configuration, process detail, complete attempt history, completed-attempt evaluation/report actions, sequential pending evaluation, and confirmed deletion.
+- `frontend/src/features/feedback/`: Request-bound attempt evaluation with blocking progress/retry and accessible evidence-linked reports, plus deterministic process feedback with explicit stage coverage.
 - Attempt-history actions use compact start, resume, view, and delete icons with accessible names and native title tooltips. Attempt badges translate persisted state names into user-facing labels without changing transport values.
 - Process-detail stage badges likewise translate `not_started`, `in_progress`, `completed`, and `skipped` into readable labels without changing persisted/API status values.
 - `frontend/src/features/interview/`: API-history hydration, reconnecting versioned WebSocket session, typed answers, explicit-permission push-to-talk, friendly voice-answer/spoken-reply controls, sequenced/cancellable browser audio, pause/end controls, and an accessible meeting-style transcript UI. The bundled interviewer portrait is presented as a large circular participant tile with an animated streaming glow.
@@ -129,9 +135,13 @@ Last synchronized: 2026-07-30
 - The typed-answer composer belongs to the transcript panel and is removed from view with that panel. The meeting control dock separates process/attempt identity on the left, voice and session actions in the center, and transcript/context actions on the right. Its larger circular controls visually select recording/TTS, paused state, the open transcript, and the open context dialog while retaining `aria-pressed`, labels, and title tooltips.
 - The transcript panel has no internal heading row; its message history consumes the available height and visibility is controlled exclusively by the selected transcript action in the meeting dock.
 - WebSocket turn completion emits the persisted attempt status. When it becomes `completed`, the simulator immediately removes its input and session controls, leaving a read-only transcript accessible through the process attempt-history view action.
+- A live transition to persisted `completed` redirects the simulator to the attempt feedback route with automatic evaluation requested. Opening an already-completed transcript remains read-only and does not create an evaluation implicitly.
 - Attempt history hydration includes process/company/role metadata, configuration limits, planned topics, and checkpoint-derived covered topics. A compact details action opens the same responsive modal on desktop and mobile so context never permanently consumes transcript space.
 - Persistence and interaction statuses remain distinct: an attempt stays `in_progress` in SQLite while a completed non-terminal stream emits `ready_for_answer` to enable candidate input; only persisted `completed` maps to the terminal simulator state.
 - Reconnecting clients fetch canonical history first. A non-empty history resumes immediately and may send `user.text` without `session.start`; an empty or unavailable history causes the harness to send `session.start`.
+- Phase 8 report generation is request-scoped and checkpointer-free. Structured output is fully validated before persistence, and evidence uses canonical LangGraph message IDs.
+- Only completed attempts are eligible for evaluation. An in-memory per-attempt guard rejects simultaneous work, cancellation releases the guard without storing partial output, and an existing versioned report is returned idempotently.
+- Process feedback selects the highest-scoring evaluated attempt per enabled stage (latest attempt number breaks ties), equally averages selected stage scores, and deterministically deduplicates sourced feedback. Unevaluated stages are reported as missing coverage rather than zero scores.
 - Phase 3 exposes settings status, updates, removal, and provider testing through the `SettingsService` facade and safe HTTP routes.
 - Phase 3 uses a local 256-bit master key at `backend/.secret-key` by default; `AppConfig.secret_path` supports an installation-specific path. The key file is mode `0600` and ignored by git.
 - Secret settings use versioned AES-GCM authenticated encryption with associated data; plaintext is never returned by the API. Values are encrypted when written.
@@ -170,6 +180,7 @@ Last synchronized: 2026-07-30
 - Frontend test setup does not patch `HTMLDialogElement.prototype`; profile feature tests mock the shared dialog component locally because jsdom does not implement native modal methods.
 - Process list, creation, and detail pages share the `process-page-title` Astro view-transition identity. The persistent application shell stays mounted while the heading performs a lightweight native handoff; reduced-motion behavior remains governed by the global transition policy.
 - Process creation is submit-only at `/processes/new`; editing is isolated at `/processes/edit?id=…` and uses the shared autosave hook for every metadata, source, order, stage, configuration, and switch change after 700 ms or on blur.
+- New-process stage IDs are server-owned: client IDs identify temporary form rows only and are replaced atomically during creation. Persisted stage IDs remain stable during editing, preventing prerendered draft IDs from colliding across processes.
 - Process creation has a leading back-arrow to the process collection; process editing resolves its process identifier into a leading back-arrow to the exact process detail, with the collection as a safe fallback.
 - Process detail exposes a leading back-arrow link above its page title to `/processes`, matching the create/edit page hierarchy while retaining the shared title transition.
 - Shared inputs preserve the base `ui-input` presentation when a feature class is supplied; the responsive process search therefore matches profile fields while retaining its toolbar-specific width.
@@ -180,15 +191,16 @@ Last synchronized: 2026-07-30
 
 - Public backend interfaces: `backend.interview_engine.InterviewEngineBuilder`, `InterviewEngine`, typed configuration models, and enums.
 - Engine operations: `stream_start`, `stream_response`, `stream_end`, and `get_state`.
-- HTTP routes: `GET /`, health/readiness/capabilities, interview history, settings CRUD/provider test, profile/avatar/CV import, process CRUD/import preview, and per-stage attempt creation under `/api/v1/processes`.
+- HTTP routes: `GET /`, health/readiness/capabilities, interview history, settings CRUD/provider test, profile/avatar/CV import, process CRUD/import preview, per-stage attempt creation, attempt report retrieval/evaluation, and process report aggregation under `/api/v1`.
 - WebSocket route: `/api/v1/interviews/{attempt_id}/ws`.
 - Implemented client WebSocket events: `session.start`, `user.text`, `user.audio.start`, `user.audio.chunk`, `user.audio.end`, `audio.output.cancel`, `mode.update`, `session.pause`, `session.resume`, `session.end`, and `ping`.
 - Implemented server WebSocket events: `session.ready`, assistant text/audio delta/completion/cancellation, partial/final transcripts, interview state, mode updates, warnings, errors, and `pong`.
-- Database entities: `settings`, `interview_processes`, ordered `interview_stages`, numbered `interview_attempts`, canonical `interview_messages`, shallow `interview_graph_state`, temporary `interview_graph_writes`, singleton `developer_profiles`, ordered `profile_links`, ordered `work_experiences`, and ordered `projects`.
+- Database entities: `settings`, `interview_processes`, ordered `interview_stages`, numbered `interview_attempts`, canonical `interview_messages`, shallow `interview_graph_state`, temporary `interview_graph_writes`, versioned `interview_reports`, singleton `developer_profiles`, ordered `profile_links`, ordered `work_experiences`, and ordered `projects`.
 - Migration `001_phase2_core` creates only settings. Interview persistence is consolidated in migration 003 so attempts are created with their final process-stage relationship instead of being altered later.
 - Phase 3 requires no schema migration: the existing key/value `settings` table supports the complete known-key registry and encrypted values.
 - Migration `002_phase5_profile` creates only the final profile schema without CV-document persistence. Collection ordering is protected by per-profile unique positions.
 - Migration `003_phase6_processes` creates the complete interview persistence graph from parent to child. Attempts have nullable stage ownership for the browser harness, immutable per-stage numbering, a non-null TTS preference, timing, and termination metadata from initial creation; no follow-up table alteration is required.
+- Migration `004_phase8_reports` adds bounded-score report metadata and a versioned JSON report owned by its attempt; process deletion therefore cascades through reports.
 - Migration history is intentionally development-only. Databases produced by the superseded pre-consolidation migration layout must be recreated; there is no compatibility upgrade path.
 - Frontend routes: `/`, `/profile`, `/processes`, `/processes/new`, `/processes/edit`, `/processes/details`, `/interview`, `/feedback`, and `/settings`.
 
@@ -212,6 +224,15 @@ Last synchronized: 2026-07-30
 - Phase 2 Ruff lint and formatting checks: Passed for 36 backend files.
 - Phase 2 strict mypy: Passed for 27 application and engine source files.
 - Phase 2 Pytest: 15 tests passed, including temporary SQLite startup/migration and real LangGraph async saver/resume integration.
+- Phase 8 fresh-database migrations and fixtures: Passed through the integration suite.
+- Phase 8 Ruff lint and formatting: Passed for 76 backend Python files.
+- Phase 8 strict mypy: Passed for 50 backend package source files.
+- Phase 8 Pytest: 29 tests passed, including completed-only evaluation, evidence-bearing persistence, cancellation/retry, duplicate rejection, and best-per-stage aggregation.
+- Phase 8 Prettier, ESLint, and Stylelint: Passed.
+- Phase 8 frontend tests: 18 tests passed across 8 files, including automatic evaluation progress, evidence rendering, failure retry, and simulator completion navigation.
+- Phase 8 Astro diagnostics: 61 files passed with zero errors, warnings, or hints.
+- Phase 8 production build: 9 static routes built successfully.
+- Phase 8 repository diff whitespace check: Passed.
 - Yoyo migration apply and rollback: Passed on a fresh temporary SQLite database; repeated startup against an existing migrated database passed.
 - Live FastAPI/WebSocket/provider exercise: Passed greeting streaming, disconnect, checkpoint resume, and next-response streaming. The temporary credential database was deleted afterward.
 - Phase 3 Ruff lint and formatting checks: Passed for 40 backend files.
