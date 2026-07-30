@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from typing import TypedDict
-from uuid import uuid4
 
 from backend.app.core.database import SQLiteManager
 from backend.app.infrastructure.json_codec import StrictJsonCodec
@@ -31,32 +29,6 @@ class AttemptRepository:
         return str(row["thread_id"]), InterviewConfiguration.model_validate_json(
             row["configuration_json"]
         )
-
-    async def ensure_browser_harness(self) -> str:
-        attempt_id = "browser-harness"
-        existing = await self.get_configuration(attempt_id)
-        if existing is not None:
-            return attempt_id
-        now = datetime.now(UTC).isoformat()
-        configuration = InterviewConfiguration(
-            job_listing="Practice a general software engineering interview.",
-        )
-        async with self._database.transaction() as connection:
-            connection.execute(
-                """
-                INSERT OR IGNORE INTO interview_attempts (
-                    id, thread_id, status, configuration_json, created_at, updated_at
-                ) VALUES (?, ?, 'ready', ?, ?, ?)
-                """,
-                (
-                    attempt_id,
-                    f"harness-{uuid4()}",
-                    configuration.model_dump_json(),
-                    now,
-                    now,
-                ),
-            )
-        return attempt_id
 
     async def transcript(self, attempt_id: str) -> list[TranscriptMessage]:
         rows = await self._database.fetchall(

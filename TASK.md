@@ -98,3 +98,23 @@ Phase 3 completed and verified on 2026-07-28.
 - [x] Mark Phase 4 complete in `PLAN.md`, `TASK.md`, and `MAP.md`.
 
 Phase 4 completed and verified on 2026-07-28.
+
+## Phase 5 — Candidate Profile and CV Import
+
+- [x] Query `MAP.md` before starting and reconcile it with the repository.
+- [x] Add the profile schema migration.
+- [x] Implement profile, link, experience, project, and avatar repositories.
+- [x] Implement profile CRUD and ordered collection APIs.
+- [x] Validate and store avatar image uploads.
+- [x] Convert size-limited PDF CV uploads to text and parse them with structured AI.
+- [x] Implement transient CV import without storing files, extracted text, or AI output.
+- [x] Build the complete profile frontend from the prototype.
+- [x] Add debounced autosave, blur save, explicit Save, stale-response protection, and visible status.
+- [x] Add ordered work-experience and project editors.
+- [x] Add avatar and CV upload/import interfaces.
+- [x] Add backend and frontend profile/CV tests.
+- [x] Run migration, formatting, linting, typing, tests, build, and accessibility verification.
+- [x] Synchronize `MAP.md` with the final implemented system.
+- [x] Mark Phase 5 complete in `PLAN.md`, `TASK.md`, and `MAP.md`.
+
+Phase 5 completed and verified on 2026-07-29.

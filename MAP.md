@@ -1,15 +1,16 @@
 # Interview Studio System Map
 
-Last synchronized: 2026-07-28
+Last synchronized: 2026-07-29
 
 ## Current status
 
-- Phase 0: Partial. The implementation plan exists; Phase 1 adds the Python tooling required by the interview engine. Frontend tooling remains deferred to Phase 4.
+- Phase 0: Partial. Governance and application tooling exist; desktop and deployment foundations remain assigned to later phases.
 - Phase 1: Complete and verified on 2026-07-28.
 - Phase 2: Complete and verified on 2026-07-28.
 - Phase 3: Complete and verified on 2026-07-28.
 - Phase 4: Complete and verified on 2026-07-28.
-- Phases 5–12: Not started.
+- Phase 5: Complete and verified on 2026-07-29.
+- Phases 6–12: Not started.
 
 ## Repository baseline
 
@@ -17,8 +18,8 @@ Last synchronized: 2026-07-28
 - `PLAN.md`: Mandatory implementation sequence and architectural decisions.
 - `TASK.md`: Phase execution checklist.
 - `PROMPTS.md`: Append-only user prompt record.
-- `prototypes/`: Reference HTML and screenshots; no application frontend exists yet.
-- `backend/`: Not present at initial synchronization.
+- `prototypes/`: Reference HTML and screenshots used as visual direction for implemented frontend features.
+- `backend/`: FastAPI application, domain services, persistence, AI packages, migrations, and tests.
 
 ## Implemented modules
 
@@ -43,6 +44,7 @@ Last synchronized: 2026-07-28
 - `backend/app/core/errors.py`: Transport-neutral structured application errors.
 - `backend/app/repositories/settings.py`: Parameterized SQLite settings reads.
 - `backend/migrations/001_phase2_core.py`: Reversible Phase 2 schema migration.
+- `backend/migrations/002_phase5_profile.py`: Reversible developer-profile, ordered link/experience/project, and avatar schema migration; CV documents are intentionally absent.
 - `backend/app/infrastructure/json_codec.py`: Versioned strict JSON codec and explicit LangChain message adapter; unsupported and binary values are rejected.
 - `backend/app/infrastructure/checkpointer.py`: Async `BaseCheckpointSaver` implementation with canonical transcript extraction, atomic shallow state upsert, idempotent pending writes, current-only listing, reconstruction, and graph-state deletion.
 - `backend/app/repositories/attempts.py`: Attempt configuration lookup, canonical transcript reads, and idempotent browser-harness bootstrap.
@@ -55,12 +57,22 @@ Last synchronized: 2026-07-28
 - `backend/app/core/secrets.py`: Versioned AES-GCM secret box with a restricted local master-key file.
 - `backend/app/api/settings.py`: Validated settings status/update/removal and OpenAI provider-test routes.
 - `backend/tests/integration/test_settings.py`: Settings validation, masking, encryption, capability refresh, removal, provider absence, and tamper tests.
+- `backend/app/domain/profile.py`: Validated developer-profile aggregate, ordered links, experience, projects, and transient CV suggestions.
+- `backend/app/repositories/profile.py`: Atomic singleton-profile persistence, ordered collection replacement, and avatar BLOB access.
+- `backend/app/application/profiles.py`: Profile orchestration with avatar validation and request-scoped PDF-to-AI import.
+- `backend/fixtures/`: Ordered plain-Python SQL fixtures for non-secret setting defaults, the singleton profile, and the browser harness, plus a minimal transactional runner.
+- `backend/app/api/profile.py`: Profile aggregate, avatar, and transient CV import HTTP routes.
+- `backend/profile_parser/`: Bounded `pypdf` text extraction and checkpointer-free LangGraph structured-AI CV interpretation package.
+- `backend/tests/integration/test_profile.py`: Profile persistence, ordering, avatar validation, transient CV import, and no-document-storage coverage.
 - `frontend/`: Astro 7 and React 19 SPA-style frontend managed with pnpm 11, with strict TypeScript, ESLint, Prettier, Stylelint, and Vitest tooling.
 - `frontend/src/layouts/AppLayout.astro`: Persistent fixed shell with sidebar, header, responsive navigation, and Astro client routing transitions.
 - `frontend/src/components/ui/`: Reusable Font Awesome icon, button, form, input, select, switch, card, badge, toast, dialog, spinner, skeleton, empty-state, and error-state components.
 - `frontend/src/styles/`: Ventura Tech-derived design tokens, component styles, responsive layout, dark mode, focus states, and reduced-motion behavior.
 - `frontend/src/services/`: Typed normalized HTTP client, settings API, and versioned interview WebSocket foundation.
 - `frontend/src/features/settings/`: Integrated OpenAI, interaction, theme, model, voice, provider-test, and secret-removal settings UI.
+- `frontend/src/features/profile/`: Prototype-aligned profile editor with autosave, explicit save, avatar management, ordered experience/projects, and modal CV import.
+- `frontend/src/services/profile-api.ts`: Typed profile aggregate and transient multipart avatar/CV transport.
+- `frontend/src/types/profile.ts`: Profile aggregate, ordered collections, draft, and transient CV suggestion transport types.
 - `frontend/src/pages/`: Working dashboard, profile, processes, process-details, interview, feedback, and settings routes.
 - `frontend/README.md`: pnpm-based setup, development, verification, deployment configuration, routes, and source-structure guide.
 
@@ -98,18 +110,30 @@ Last synchronized: 2026-07-28
 - Frontend TypeScript path aliases use explicit relative targets and do not set the deprecated `baseUrl` compiler option.
 - The settings page keeps the API response statuses and all editable values in its form state. `APIKeyField` encapsulates configured-key presentation, provider testing, and removal UI state; its input contains only newly typed secret text.
 - The frontend settings feature does not request or gate controls with capability state. TTS and STT remain independently editable persisted preferences; runtime consumers enforce actual provider availability.
+- Phase 5 uses a single local profile with ID `default`; aggregate updates and ordered collection replacement share one SQLite transaction.
+- Direct, idempotent SQL fixture scripts run independently from the web application in explicit order: missing non-secret setting defaults, the singleton profile, then the browser-harness attempt. The web lifespan assumes these installation invariants already exist. Phase 6 will also move migration invocation from the web lifespan into the installer.
+- Avatar uploads are limited to 2 MB, validated by MIME type, decoded format, and dimensions, and stored with metadata as a SQLite BLOB.
+- CV intake accepts text-based PDFs up to 10 MB and 30 pages. `pypdf` only converts documents to bounded plain text; a fresh structured-output OpenAI/LangGraph parser interprets the complete profile using the current database key and chat model for each upload.
+- AI CV parsing has no heuristic or compatibility fallback and no checkpointer. Missing provider configuration returns an explicit 503, provider failures return an explicit 502, and requests use a bounded timeout/retry policy.
+- AI-extracted experience ordering is retained, positions and IDs are normalized locally, and a role is considered current only when the extracted record has no end date.
+- CV bytes, extracted text, and AI suggestions exist only during the import request. The backend returns suggestions without mutating the profile; the frontend places non-empty suggestions into the editable form.
+- Profile editing uses a 700 ms debounce, saves again on blur or explicit action, exposes pending/saving/saved/error status, and sequences requests so stale responses never replace newer form state.
+- Experience and project order is the array order submitted by the client; the repository normalizes persisted positions during each atomic replacement.
+- Profile collection editors use each persisted or client-generated item ID as the React list key, preserving component identity when ordered rows move.
+- The profile header places `Import CV` beside `Save profile`. One modal handles file selection and submit, becomes non-dismissible with an accessible spinner during AI processing, and closes automatically after applying results to the form.
 
 ## Interfaces, routes, and persistence
 
 - Public backend interfaces: `backend.interview_engine.InterviewEngineBuilder`, `InterviewEngine`, typed configuration models, and enums.
 - Engine operations: `stream_start`, `stream_response`, `stream_end`, and `get_state`.
-- HTTP routes: `GET /`, `GET /health/live`, `GET /health/ready`, `GET /api/v1/capabilities`, `GET /api/v1/interviews/{attempt_id}/history`, `GET/PATCH /api/v1/settings`, `DELETE /api/v1/settings/{key}`, and `POST /api/v1/settings/test-provider`.
+- HTTP routes: `GET /`, `GET /health/live`, `GET /health/ready`, `GET /api/v1/capabilities`, `GET /api/v1/interviews/{attempt_id}/history`, `GET/PATCH /api/v1/settings`, `DELETE /api/v1/settings/{key}`, `POST /api/v1/settings/test-provider`, `GET/PATCH /api/v1/profile`, `GET/POST/DELETE /api/v1/profile/avatar`, and `POST /api/v1/profile/cv/import`.
 - WebSocket route: `/api/v1/interviews/{attempt_id}/ws`.
 - Implemented client WebSocket events: `session.start`, `user.text`, `session.end`, and `ping`.
 - Implemented server WebSocket events: `session.ready`, `assistant.text.delta`, `assistant.text.completed`, `error`, and `pong`.
-- Database entities: `settings`, minimal Phase 2 `interview_attempts`, canonical `interview_messages`, shallow `interview_graph_state`, and temporary `interview_graph_writes`.
+- Database entities: `settings`, minimal Phase 2 `interview_attempts`, canonical `interview_messages`, shallow `interview_graph_state`, temporary `interview_graph_writes`, singleton `developer_profiles`, ordered `profile_links`, ordered `work_experiences`, and ordered `projects`.
 - Migration `001_phase2_core` creates only application-owned tables; it intentionally does not create LangGraph standard checkpoint/blob tables.
 - Phase 3 requires no schema migration: the existing key/value `settings` table supports the complete known-key registry and encrypted values.
+- Migration `002_phase5_profile` creates only the final profile schema without CV-document persistence. Collection ordering is protected by per-profile unique positions.
 - Frontend routes: `/`, `/profile`, `/processes`, `/processes/details`, `/interview`, `/feedback`, and `/settings`.
 
 ## Known constraints
@@ -119,6 +143,7 @@ Last synchronized: 2026-07-28
 - Natural voice interruption is not implemented in Phase 1. The media ports preserve the future boundary; push-to-talk is the reliable Phase 7 baseline and browser VAD/barge-in is a higher-complexity progressive enhancement.
 - Phase 2 exposes only the protocol subset required for text interview testing. Audio, mode changes, pause/resume controls, report events, and canvas events remain assigned to later phases.
 - `interview_attempts` contains the minimal ownership/configuration fields required by the Phase 2 checkpointer and browser harness. Full process, stage, attempt lifecycle, and attempt repository behavior remain Phase 6.
+- Phase 5 CV extraction supports text-based PDFs. Scanned/image-only and password-protected PDFs return a validation error instead of invoking OCR.
 
 ## Verification
 
@@ -143,3 +168,17 @@ Last synchronized: 2026-07-28
 - Phase 4 production build: 7 static routes generated successfully.
 - Phase 4 production dependency audit: No known vulnerabilities.
 - Phase 4 browser validation: Desktop settings layout and the responsive loading layout were exercised with headless Chrome; focus, reduced-motion, responsive navigation, loading, and error behavior are represented in implementation and tests.
+- Phase 5 migration startup: Passed against a fresh temporary SQLite database.
+- Phase 5 Ruff formatting and lint: Passed for 51 backend files.
+- Phase 5 strict mypy: Passed for 37 backend and profile-parser source files.
+- Phase 5 Pytest: 20 tests passed, including profile aggregate persistence, ordering, avatar validation, transient CV import, absence of CV persistence, and parser normalization.
+- Phase 5 frontend Prettier, ESLint, and Stylelint: Passed.
+- Phase 5 Astro diagnostics: 39 files checked with zero errors, warnings, or hints.
+- Phase 5 Vitest: 7 tests passed, including profile loading, debounced autosave, retryable errors, and axe-core accessibility coverage.
+- Phase 5 production build: All 7 static routes generated successfully.
+- Phase 5 dependency checks: Python has no broken requirements and the production pnpm audit reports no known vulnerabilities.
+- Phase 5 browser validation: The live API-backed profile page passed desktop and responsive visual checks in headless Chrome.
+- Phase 5 CV parser refinement: `resume.pdf` was exercised against the configured `gpt-4o-mini` provider; structured extraction correctly identified the name, headline, summary, email, skills, and six ordered work experiences without creating or merging a document.
+- Phase 5 transient CV import refinement: backend tests remain at 20 passing, frontend tests increased to 8 passing, the 7-route production build succeeds, and CV-document persistence is absent from the consolidated Phase 5 migration.
+- Independent fixture refinement: the web lifespan has no fixture dependency; integration tests explicitly prepare migrated databases and apply the SQL fixtures. Ruff and strict mypy pass for 42 backend source files, all 20 backend tests pass, repeated execution is idempotent, and user-overridden defaults are preserved.
+- Phase 5 migration consolidation: the obsolete migration 003 was removed, migration 002 now creates only the final non-document profile schema, and the development Yoyo ledger was cleaned to contain migrations 001 and 002 only; application startup against that state passed.

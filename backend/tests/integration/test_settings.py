@@ -8,22 +8,26 @@ from backend.app.core.config import AppConfig
 from backend.app.core.secrets import SecretBox
 from backend.app.core.settings_definitions import SettingKey, setting_keys
 from backend.app.main import create_app
+from backend.tests.integration.helpers import prepare_database
 
 
 async def test_settings_are_validated_masked_encrypted_and_live(tmp_path: Path) -> None:
-    app = create_app(
-        AppConfig(
-            database_path=tmp_path / "settings.sqlite3",
-            migrations_path=Path(__file__).parents[2] / "migrations",
-            secret_path=tmp_path / ".secret-key",
-        )
+    config = AppConfig(
+        database_path=tmp_path / "settings.sqlite3",
+        migrations_path=Path(__file__).parents[2] / "migrations",
+        secret_path=tmp_path / ".secret-key",
     )
+    await prepare_database(config)
+    app = create_app(config)
     async with app.router.lifespan_context(app):
         transport = httpx.ASGITransport(app=app)
         async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
             initial = await client.get("/api/v1/settings")
             assert initial.status_code == 200
-            assert all(item["configured"] is False for item in initial.json()["settings"])
+            initial_by_key = {item["key"]: item for item in initial.json()["settings"]}
+            assert initial_by_key["api_key"]["configured"] is False
+            assert initial_by_key["chat_model"]["value"] == "gpt-4o-mini"
+            assert initial_by_key["theme"]["value"] == "system"
 
             invalid = await client.patch("/api/v1/settings", json={"voice": "not-a-voice"})
             assert invalid.status_code == 422

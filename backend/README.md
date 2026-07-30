@@ -26,8 +26,31 @@ serves health/capability information without credentials; interview events retur
 structured configuration error until `api_key` exists in the `settings` table.
 
 The SQLite database defaults to `backend/interview_studio.sqlite3`. Yoyo migrations
-run at startup. Runtime application code never reads `.env`; persisted settings are
-resolved when each interview session is opened.
+currently run at startup. Fixtures are executed separately and the web application
+assumes required initial records already exist. Runtime application code never reads
+`.env`; persisted settings are resolved when each interview session is opened.
+
+Fixtures are plain Python scripts in `backend/fixtures/` and run in the explicit
+order listed by `backend/fixtures/runner.py`:
+
+1. Insert missing non-secret setting defaults such as `chat_model` and `theme`.
+2. Create the singleton `default` developer profile.
+3. Create the `browser-harness` development interview attempt.
+
+Each fixture executes idempotent SQL directly. `INSERT OR IGNORE` prevents repeated
+execution from overwriting user values or creating duplicate entities. API keys and
+other secret settings are never seeded. Repositories treat fixture records as
+installation invariants rather than creating them during reads or updates.
+
+After the database schema exists, run fixtures independently:
+
+```bash
+python -m backend.fixtures.runner backend/interview_studio.sqlite3
+```
+
+The Phase 6 installer will run migrations and then this fixture runner before
+launching the web application. At that point migrations will also leave the
+request-serving process.
 
 Health and capability routes:
 
@@ -41,6 +64,16 @@ Settings routes:
 - `GET/PATCH /api/v1/settings`
 - `DELETE /api/v1/settings/{key}`
 - `POST /api/v1/settings/test-provider`
+
+Profile routes:
+
+- `GET/PATCH /api/v1/profile`
+- `GET/POST/DELETE /api/v1/profile/avatar`
+- `POST /api/v1/profile/cv/import`
+
+Avatar uploads accept validated JPEG, PNG, or WebP images up to 2 MB. CV import
+accepts text-based PDF files up to 10 MB and returns structured AI suggestions.
+The uploaded file, extracted text, and suggestions are not persisted by the backend.
 
 Clients should request interview history before starting a WebSocket session. If
 history is empty, send `session.start` to generate the greeting. If history is

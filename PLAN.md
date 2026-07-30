@@ -140,7 +140,6 @@ Create one migration per coherent schema change and supply reversible rollback l
 - `profile_links`: profile, link type, and URL.
 - `work_experiences`: employer, role, dates, current-role flag, description, and ordering.
 - `projects`: name, role, description, technologies, URL, repository URL, and ordering.
-- `profile_documents`: CV filename, MIME type, size, BLOB, parse status/error, and timestamps.
 - `interview_processes`: title, company/job inputs, normalized research, target role, overall status, and timestamps.
 - `interview_stages`: process, type, order, enabled flag, configuration JSON, and status.
 - `interview_attempts`: stage, attempt number, status, timing, effective configuration, unique LangGraph thread ID, and termination reason.
@@ -328,24 +327,24 @@ Acceptance:
 - Settings and capability warnings update correctly.
 - Keyboard, focus, loading, error, and responsive states work.
 
-### Phase 5 — Candidate Profile and CV Import
+### Phase 5 — Candidate Profile and CV Import ✅ Completed 2026-07-29
 
-- Add migrations, repositories, and APIs for the profile, links, experience, projects, avatar, and CV documents.
+- Add migrations, repositories, and APIs for the profile, links, experience, projects, and avatar.
 - Validate avatar MIME type, dimensions, and size before BLOB storage.
 - Implement debounced autosave, blur save, explicit Save, stale-response protection, and visible status.
 - Support ordered work experiences and projects.
 - Accept size-limited PDF CVs.
 - Extract text with a conventional PDF parser first.
-- Use an LLM only where normalization requires it; do not use a checkpointer.
-- Show an import preview before merging and preserve manual data until confirmation.
+- Interpret the extracted CV text entirely with structured AI through a checkpointer-free LangGraph workflow.
+- Treat CV uploads as transient import input and never persist the file or extracted text.
 - Store LinkedIn and portfolio URLs without LinkedIn scraping.
 
 Acceptance:
 
 - Profiles save and reload correctly.
 - Invalid files are rejected.
-- CV preview handles missing and duplicate fields.
-- Imports do not silently overwrite data.
+- CV import returns validated structured fields without changing the stored profile.
+- The frontend places imported values in the editable form for review and normal profile saving.
 
 ### Phase 6 — Interview Processes
 
