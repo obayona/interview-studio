@@ -13,6 +13,7 @@ import { Switch } from '../../components/ui/Switch';
 import { ToastProvider, useToast } from '../../components/ui/Toast';
 import { ApiError } from '../../services/api-client';
 import { settingsApi } from '../../services/settings-api';
+import { useAutosave } from '../../hooks/useAutosave';
 import type { SettingStatus, SettingsUpdate } from '../../types/api';
 import './settings.css';
 
@@ -51,9 +52,46 @@ function SettingsForm() {
     theme: 'system',
   });
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string>();
   const [advanced, setAdvanced] = useState(false);
+  const {
+    status: saveStatus,
+    valueRef: formRef,
+    track,
+    reset,
+    saveNow: save,
+  } = useAutosave({
+    value: form,
+    enabled: !loading,
+    persist: async (nextForm) => {
+      const nextApiKey = nextForm.api_key?.trim();
+      const payload = {
+        ...nextForm,
+        ...(nextApiKey ? { api_key: nextApiKey } : {}),
+      };
+      if (!nextApiKey) delete payload.api_key;
+      const response = await settingsApi.update(payload);
+      return {
+        response,
+        form: settingsToForm(response.settings),
+      };
+    },
+    normalize: (result) => result.form,
+    onSaved: (result, normalized, submitted, isCurrent, announced) => {
+      setStatuses(result.response.settings);
+      if (isCurrent) setForm(normalized);
+      applyTheme(submitted.theme ?? 'system');
+      if (announced) showToast('Settings saved.');
+    },
+    onError: (requestError) =>
+      showToast(
+        requestError instanceof ApiError
+          ? requestError.message
+          : 'Settings could not be saved.',
+        'error',
+      ),
+    onAlreadySaved: () => showToast('Settings are already up to date.'),
+  });
 
   const apiStatus = useMemo(
     () => statuses.find((item) => item.key === 'api_key'),
@@ -66,7 +104,9 @@ function SettingsForm() {
     try {
       const settings = await settingsApi.get();
       setStatuses(settings.settings);
-      setForm(settingsToForm(settings.settings));
+      const nextForm = settingsToForm(settings.settings);
+      setForm(nextForm);
+      reset(nextForm);
     } catch (requestError) {
       setError(
         requestError instanceof ApiError
@@ -76,36 +116,19 @@ function SettingsForm() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [reset]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  const save = async () => {
-    setSaving(true);
-    try {
-      const nextApiKey = form.api_key?.trim();
-      const payload = {
-        ...form,
-        ...(nextApiKey ? { api_key: nextApiKey } : {}),
-      };
-      if (!nextApiKey) delete payload.api_key;
-      const response = await settingsApi.update(payload);
-      setStatuses(response.settings);
-      setForm(settingsToForm(response.settings));
-      applyTheme(form.theme ?? 'system');
-      showToast('Settings saved.');
-    } catch (requestError) {
-      showToast(
-        requestError instanceof ApiError
-          ? requestError.message
-          : 'Settings could not be saved.',
-        'error',
-      );
-    } finally {
-      setSaving(false);
-    }
+  const update = <Key extends keyof SettingsUpdate>(
+    key: Key,
+    value: SettingsUpdate[Key],
+  ) => {
+    const next = { ...formRef.current, [key]: value };
+    track(next);
+    setForm(next);
   };
 
   if (loading) {
@@ -119,17 +142,30 @@ function SettingsForm() {
   if (error) return <ErrorState message={error} onRetry={() => void load()} />;
 
   return (
-    <>
+    <div
+      className="settings__form"
+      onBlur={(event) => {
+        if (
+          (event.relatedTarget as HTMLElement | null)?.closest(
+            '[data-settings-save]',
+          )
+        )
+          return;
+        void save(formRef.current);
+      }}
+    >
       <div className="settings__grid">
         <APIKeyField
           status={apiStatus}
           value={form.api_key ?? ''}
-          onChange={(api_key) =>
-            setForm((current) => ({ ...current, api_key }))
-          }
+          saving={saveStatus === 'saving'}
+          onChange={(api_key) => update('api_key', api_key)}
+          onSave={() => save(formRef.current)}
           onSettingsChange={(settings) => {
             setStatuses(settings);
-            setForm((current) => ({ ...current, api_key: '' }));
+            const next = { ...formRef.current, api_key: '' };
+            track(next);
+            setForm(next);
           }}
         />
 
@@ -139,28 +175,25 @@ function SettingsForm() {
             label="Voice responses"
             description="Generate spoken interviewer responses."
             checked={Boolean(form.tts_enabled)}
-            onChange={(tts_enabled) =>
-              setForm((current) => ({ ...current, tts_enabled }))
-            }
+            onChange={(tts_enabled) => update('tts_enabled', tts_enabled)}
           />
           <Preference
             label="Speech input"
             description="Transcribe your microphone input."
             checked={Boolean(form.stt_enabled)}
-            onChange={(stt_enabled) =>
-              setForm((current) => ({ ...current, stt_enabled }))
-            }
+            onChange={(stt_enabled) => update('stt_enabled', stt_enabled)}
           />
           <FormField label="Theme" htmlFor="theme">
             <Select
               id="theme"
               value={form.theme}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  theme: event.target.value as SettingsUpdate['theme'],
-                }))
-              }
+              onChange={(event) => {
+                const theme = event.target.value as NonNullable<
+                  SettingsUpdate['theme']
+                >;
+                applyTheme(theme);
+                update('theme', theme);
+              }}
             >
               <option value="system">Follow system</option>
               <option value="light">Light</option>
@@ -184,36 +217,31 @@ function SettingsForm() {
             label="Chat model"
             name="chat_model"
             value={form.chat_model}
-            setForm={setForm}
+            onChange={(value) => update('chat_model', value)}
           />
           <ModelField
             label="Transcription model"
             name="transcription_model"
             value={form.transcription_model}
-            setForm={setForm}
+            onChange={(value) => update('transcription_model', value)}
           />
           <ModelField
             label="Speech model"
             name="speech_model"
             value={form.speech_model}
-            setForm={setForm}
+            onChange={(value) => update('speech_model', value)}
           />
           <ModelField
             label="Vision model"
             name="vision_model"
             value={form.vision_model}
-            setForm={setForm}
+            onChange={(value) => update('vision_model', value)}
           />
           <FormField label="Voice" htmlFor="voice">
             <Select
               id="voice"
               value={form.voice}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  voice: event.target.value,
-                }))
-              }
+              onChange={(event) => update('voice', event.target.value)}
             >
               {[
                 'alloy',
@@ -237,24 +265,37 @@ function SettingsForm() {
         </Card>
       )}
       <div className="settings__actions">
-        <Button onClick={() => void load()}>Discard</Button>
-        <Button variant="primary" onClick={() => void save()} disabled={saving}>
-          {saving ? 'Saving…' : 'Save changes'}
+        <span aria-live="polite">
+          {saveStatus === 'pending' && 'Changes pending'}
+          {saveStatus === 'saved' && 'All changes saved'}
+          {saveStatus === 'error' && 'Save failed'}
+        </span>
+        <Button
+          variant="primary"
+          onClick={() => void save(formRef.current, true)}
+          disabled={saveStatus === 'saving'}
+          data-settings-save
+        >
+          {saveStatus === 'saving' ? 'Saving…' : 'Save changes'}
         </Button>
       </div>
-    </>
+    </div>
   );
 }
 
 function APIKeyField({
   status,
   value,
+  saving,
   onChange,
+  onSave,
   onSettingsChange,
 }: {
   status?: SettingStatus;
   value: string;
+  saving: boolean;
   onChange: (value: string) => void;
+  onSave: () => Promise<boolean>;
   onSettingsChange: (settings: SettingStatus[]) => void;
 }) {
   const { showToast } = useToast();
@@ -266,10 +307,7 @@ function APIKeyField({
     setTesting(true);
     try {
       const apiKey = value.trim();
-      if (apiKey) {
-        const response = await settingsApi.update({ api_key: apiKey });
-        onSettingsChange(response.settings);
-      }
+      if (apiKey) await onSave();
       const result = await settingsApi.testProvider();
       showToast(result.message, result.ok ? 'success' : 'error');
     } catch (requestError) {
@@ -335,12 +373,17 @@ function APIKeyField({
       <div className="settings__inline-actions">
         <Button
           onClick={() => void testConnection()}
-          disabled={testing || (!configured && !value.trim())}
+          disabled={saving || testing || (!configured && !value.trim())}
+          data-settings-save
         >
           {testing ? 'Testing…' : 'Test connection'}
         </Button>
         {configured && (
-          <Button variant="danger" onClick={() => setRemoveOpen(true)}>
+          <Button
+            variant="danger"
+            onClick={() => setRemoveOpen(true)}
+            data-settings-save
+          >
             Remove key
           </Button>
         )}
@@ -390,21 +433,19 @@ function ModelField({
   label,
   name,
   value,
-  setForm,
+  onChange,
 }: {
   label: string;
   name: keyof SettingsUpdate;
   value?: string;
-  setForm: React.Dispatch<React.SetStateAction<SettingsUpdate>>;
+  onChange: (value: string) => void;
 }) {
   return (
     <FormField label={label} htmlFor={name}>
       <Input
         id={name}
         value={value ?? ''}
-        onChange={(event) =>
-          setForm((current) => ({ ...current, [name]: event.target.value }))
-        }
+        onChange={(event) => onChange(event.target.value)}
       />
     </FormField>
   );

@@ -161,10 +161,6 @@ describe('ProfilePage', () => {
       expect(screen.queryByText('Processing your CV')).toBeNull(),
     );
     expect(screen.getByLabelText('Name')).toHaveValue('Imported Name');
-    expect(
-      screen.getByText(
-        'CV details imported. Review the profile before saving.',
-      ),
-    ).toBeVisible();
+    expect(screen.getByText('CV details imported.')).toBeVisible();
   });
 });

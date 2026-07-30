@@ -87,6 +87,12 @@ src/
   types/          API transport types
 ```
 
+Settings and profile forms update optimistically and persist after 700 ms of
+inactivity or when a field loses focus. Their explicit Save buttons flush pending
+changes, become disabled while saving, and provide visible status/toast feedback.
+CV import keeps its modal spinner visible until AI extraction and the resulting
+profile save both finish.
+
 The current routes are:
 
 - `/`

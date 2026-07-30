@@ -1,4 +1,10 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import axe from 'axe-core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SettingsPage } from './SettingsPage';
@@ -77,5 +83,90 @@ describe('SettingsPage', () => {
     expect(
       screen.queryByPlaceholderText('Leave blank to keep the current key'),
     ).not.toBeInTheDocument();
+  });
+
+  it('autosaves switches without requiring the Save button', async () => {
+    const fetchMock = vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
+      const settings = [
+        { key: 'api_key', configured: false, value: null },
+        { key: 'chat_model', configured: true, value: 'gpt-4o-mini' },
+        { key: 'tts_enabled', configured: true, value: 'false' },
+        { key: 'stt_enabled', configured: true, value: 'false' },
+        { key: 'theme', configured: true, value: 'system' },
+      ];
+      if (init?.method === 'PATCH') {
+        const update = JSON.parse(String(init.body)) as {
+          tts_enabled: boolean;
+        };
+        settings.find((item) => item.key === 'tts_enabled')!.value = String(
+          update.tts_enabled,
+        );
+      }
+      return Promise.resolve(
+        new Response(JSON.stringify({ settings }), { status: 200 }),
+      );
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<SettingsPage />);
+    fireEvent.click(
+      await screen.findByRole('switch', { name: 'Voice responses' }),
+    );
+
+    await waitFor(
+      () => {
+        const patch = fetchMock.mock.calls.find(
+          ([, init]) => init?.method === 'PATCH',
+        );
+        expect(JSON.parse(String(patch?.[1]?.body))).toMatchObject({
+          tts_enabled: true,
+        });
+      },
+      { timeout: 2000 },
+    );
+    expect(screen.queryByRole('button', { name: 'Discard' })).toBeNull();
+  });
+
+  it('disables an explicit Save button while the request is pending', async () => {
+    let finishSave: ((response: Response) => void) | undefined;
+    const pendingSave = new Promise<Response>((resolve) => {
+      finishSave = resolve;
+    });
+    const settings = [
+      { key: 'api_key', configured: false, value: null },
+      { key: 'chat_model', configured: true, value: 'gpt-4o-mini' },
+      { key: 'theme', configured: true, value: 'system' },
+    ];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((_input: RequestInfo | URL, init?: RequestInit) =>
+        init?.method === 'PATCH'
+          ? pendingSave
+          : Promise.resolve(
+              new Response(JSON.stringify({ settings }), { status: 200 }),
+            ),
+      ),
+    );
+
+    render(<SettingsPage />);
+    fireEvent.change(await screen.findByLabelText('Theme'), {
+      target: { value: 'dark' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    expect(
+      await screen.findByRole('button', { name: 'Saving…' }),
+    ).toBeDisabled();
+    finishSave!(
+      new Response(
+        JSON.stringify({
+          settings: settings.map((item) =>
+            item.key === 'theme' ? { ...item, value: 'dark' } : item,
+          ),
+        }),
+        { status: 200 },
+      ),
+    );
+    expect(await screen.findByText('Settings saved.')).toBeVisible();
   });
 });

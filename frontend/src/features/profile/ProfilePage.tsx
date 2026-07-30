@@ -2,11 +2,11 @@ import {
   Fragment,
   useCallback,
   useEffect,
-  useRef,
   useState,
   type ChangeEvent,
   type ReactNode,
 } from 'react';
+import { announceProfileUpdate } from '../../components/layout/HeaderAvatar';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -20,6 +20,7 @@ import { ErrorState } from '../../components/ui/States';
 import { ToastProvider, useToast } from '../../components/ui/Toast';
 import { ApiError } from '../../services/api-client';
 import { profileApi } from '../../services/profile-api';
+import { useAutosave, type SaveStatus } from '../../hooks/useAutosave';
 import type {
   DeveloperProfile,
   ProfileDraft,
@@ -60,7 +61,6 @@ const toDraft = (profile: DeveloperProfile): ProfileDraft => ({
   projects: profile.projects,
 });
 
-const serialize = (draft: ProfileDraft) => JSON.stringify(draft);
 const newId = () => crypto.randomUUID();
 const applyImport = (
   current: ProfileDraft,
@@ -92,16 +92,29 @@ function ProfileForm() {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [cvProcessing, setCVProcessing] = useState(false);
   const [error, setError] = useState<string>();
-  const [saveStatus, setSaveStatus] = useState<
-    'idle' | 'pending' | 'saving' | 'saved' | 'error'
-  >('idle');
-  const draftRef = useRef(draft);
-  const lastSaved = useRef(serialize(emptyDraft));
-  const requestSequence = useRef(0);
-
-  useEffect(() => {
-    draftRef.current = draft;
-  }, [draft]);
+  const {
+    status: saveStatus,
+    valueRef: draftRef,
+    track,
+    reset,
+    saveNow: save,
+  } = useAutosave({
+    value: draft,
+    enabled: !loading,
+    persist: profileApi.update,
+    normalize: toDraft,
+    onSaved: (saved, _normalized, _submitted, _isCurrent, announced) => {
+      setProfile(saved);
+      announceProfileUpdate(saved);
+      if (announced) showToast('Profile saved.');
+    },
+    onError: (requestError) =>
+      showToast(
+        messageFor(requestError, 'Profile could not be saved.'),
+        'error',
+      ),
+    onAlreadySaved: () => showToast('Profile is already up to date.'),
+  });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -110,58 +123,29 @@ function ProfileForm() {
       const nextProfile = await profileApi.get();
       const nextDraft = toDraft(nextProfile);
       setProfile(nextProfile);
+      announceProfileUpdate(nextProfile);
       setDraft(nextDraft);
-      lastSaved.current = serialize(nextDraft);
-      setSaveStatus('idle');
+      reset(nextDraft);
     } catch (requestError) {
       setError(messageFor(requestError, 'Could not load the profile.'));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [reset]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  const save = useCallback(
-    async (nextDraft: ProfileDraft, announce = false) => {
-      const snapshot = serialize(nextDraft);
-      if (snapshot === lastSaved.current) return;
-      const sequence = ++requestSequence.current;
-      setSaveStatus('saving');
-      try {
-        const saved = await profileApi.update(nextDraft);
-        if (sequence !== requestSequence.current) return;
-        lastSaved.current = snapshot;
-        setProfile(saved);
-        setSaveStatus(
-          serialize(draftRef.current) === snapshot ? 'saved' : 'pending',
-        );
-        if (announce) showToast('Profile saved.');
-      } catch (requestError) {
-        if (sequence !== requestSequence.current) return;
-        setSaveStatus('error');
-        showToast(
-          messageFor(requestError, 'Profile could not be saved.'),
-          'error',
-        );
-      }
-    },
-    [showToast],
-  );
-
-  useEffect(() => {
-    if (loading || serialize(draft) === lastSaved.current) return;
-    setSaveStatus('pending');
-    const timer = window.setTimeout(() => void save(draft), 700);
-    return () => window.clearTimeout(timer);
-  }, [draft, loading, save]);
-
   const update = <Key extends keyof ProfileDraft>(
     key: Key,
     value: ProfileDraft[Key],
-  ) => setDraft((current) => ({ ...current, [key]: value }));
+  ) =>
+    setDraft((current) => {
+      const next = { ...current, [key]: value };
+      track(next);
+      return next;
+    });
 
   const updateLink = (type: ProfileLinkType, url: string) => {
     const existing = draft.links.find((link) => link.link_type === type);
@@ -188,7 +172,9 @@ function ProfileForm() {
     if (!file) return;
     setAvatarUploading(true);
     try {
-      setProfile(await profileApi.uploadAvatar(file));
+      const nextProfile = await profileApi.uploadAvatar(file);
+      setProfile(nextProfile);
+      announceProfileUpdate(nextProfile);
       showToast('Profile photo updated.');
     } catch (requestError) {
       showToast(messageFor(requestError, 'Photo upload failed.'), 'error');
@@ -202,10 +188,13 @@ function ProfileForm() {
     setCVProcessing(true);
     try {
       const suggestions = await profileApi.importCV(selectedCV);
-      setDraft((current) => applyImport(current, suggestions));
+      const nextDraft = applyImport(draftRef.current, suggestions);
+      track(nextDraft);
+      setDraft(nextDraft);
+      if (!(await save(nextDraft))) return;
       setImportOpen(false);
       setSelectedCV(undefined);
-      showToast('CV details imported. Review the profile before saving.');
+      showToast('CV details imported.');
     } catch (requestError) {
       showToast(messageFor(requestError, 'CV import failed.'), 'error');
     } finally {
@@ -235,6 +224,7 @@ function ProfileForm() {
           variant="primary"
           onClick={() => void save(draftRef.current, true)}
           disabled={saveStatus === 'saving'}
+          data-profile-save
         >
           {saveStatus === 'saving' ? 'Saving…' : 'Save profile'}
         </Button>
@@ -242,7 +232,15 @@ function ProfileForm() {
 
       <div
         className="profile__layout"
-        onBlur={() => void save(draftRef.current)}
+        onBlur={(event) => {
+          if (
+            (event.relatedTarget as HTMLElement | null)?.closest(
+              '[data-profile-save]',
+            )
+          )
+            return;
+          void save(draftRef.current);
+        }}
       >
         <aside className="profile__sidebar">
           <Card className="profile__identity">
@@ -275,6 +273,7 @@ function ProfileForm() {
                     .removeAvatar()
                     .then((nextProfile) => {
                       setProfile(nextProfile);
+                      announceProfileUpdate(nextProfile);
                       showToast('Profile photo removed.');
                     })
                     .catch((requestError) => {
@@ -548,11 +547,7 @@ function ProfileForm() {
   );
 }
 
-function SaveStatus({
-  status,
-}: {
-  status: 'idle' | 'pending' | 'saving' | 'saved' | 'error';
-}) {
+function SaveStatus({ status }: { status: SaveStatus }) {
   const labels = {
     idle: 'Profile loaded',
     pending: 'Unsaved changes',

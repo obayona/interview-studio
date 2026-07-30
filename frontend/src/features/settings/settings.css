@@ -4,6 +4,10 @@
   gap: 2rem;
 }
 
+.settings__form {
+  display: flow-root;
+}
+
 .settings__grid {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(28rem, 1fr);
@@ -112,6 +116,13 @@
   border-top: 0.1rem solid var(--color-border);
   background: color-mix(in srgb, var(--color-surface) 90%, transparent);
   backdrop-filter: blur(1.2rem);
+}
+
+.settings__actions span {
+  align-self: center;
+  margin-right: auto;
+  color: var(--color-text-muted);
+  font-size: 1.3rem;
 }
 
 @media (width <= 900px) {

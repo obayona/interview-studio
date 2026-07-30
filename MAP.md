@@ -66,6 +66,7 @@ Last synchronized: 2026-07-29
 - `backend/tests/integration/test_profile.py`: Profile persistence, ordering, avatar validation, transient CV import, and no-document-storage coverage.
 - `frontend/`: Astro 7 and React 19 SPA-style frontend managed with pnpm 11, with strict TypeScript, ESLint, Prettier, Stylelint, and Vitest tooling.
 - `frontend/src/layouts/AppLayout.astro`: Persistent fixed shell with sidebar, header, responsive navigation, and Astro client routing transitions.
+- `frontend/src/components/layout/HeaderAvatar.tsx`: Global profile link that loads the current avatar, uses a user-icon fallback, and reacts to profile updates without a page reload.
 - `frontend/src/components/ui/`: Reusable Font Awesome icon, button, form, input, select, switch, card, badge, toast, dialog, spinner, skeleton, empty-state, and error-state components.
 - `frontend/src/styles/`: Ventura Tech-derived design tokens, component styles, responsive layout, dark mode, focus states, and reduced-motion behavior.
 - `frontend/src/services/`: Typed normalized HTTP client, settings API, and versioned interview WebSocket foundation.
@@ -110,6 +111,10 @@ Last synchronized: 2026-07-29
 - Frontend TypeScript path aliases use explicit relative targets and do not set the deprecated `baseUrl` compiler option.
 - The settings page keeps the API response statuses and all editable values in its form state. `APIKeyField` encapsulates configured-key presentation, provider testing, and removal UI state; its input contains only newly typed secret text.
 - The frontend settings feature does not request or gate controls with capability state. TTS and STT remain independently editable persisted preferences; runtime consumers enforce actual provider availability.
+- Settings and profile use the same optimistic persistence behavior: controls update locally immediately, changes save after 700 ms of inactivity or when focus leaves, failures produce error toasts, and duplicate saves of the same snapshot are suppressed.
+- `frontend/src/hooks/useAutosave.ts` centralizes shared snapshots, debounce, stale-response handling, duplicate-request suppression, normalization, status, explicit saving, and error callbacks; pages call its stable `saveNow` operation when focus leaves their form boundary.
+- Explicit Save buttons remain available, show a disabled `Saving…` state during requests, and report success or an already-current state. Settings has no discard action; switches, selects, model fields, theme, and API-key input all participate in autosave.
+- The global header loads the singleton profile avatar through a reusable React island, links it to `/profile`, falls back to the shared user icon when no avatar is configured or loading fails, and responds to profile update events without requiring a page reload.
 - Phase 5 uses a single local profile with ID `default`; aggregate updates and ordered collection replacement share one SQLite transaction.
 - Direct, idempotent SQL fixture scripts run independently from the web application in explicit order: missing non-secret setting defaults, the singleton profile, then the browser-harness attempt. The web lifespan assumes these installation invariants already exist. Phase 6 will also move migration invocation from the web lifespan into the installer.
 - Avatar uploads are limited to 2 MB, validated by MIME type, decoded format, and dimensions, and stored with metadata as a SQLite BLOB.
@@ -120,7 +125,7 @@ Last synchronized: 2026-07-29
 - Profile editing uses a 700 ms debounce, saves again on blur or explicit action, exposes pending/saving/saved/error status, and sequences requests so stale responses never replace newer form state.
 - Experience and project order is the array order submitted by the client; the repository normalizes persisted positions during each atomic replacement.
 - Profile collection editors use each persisted or client-generated item ID as the React list key, preserving component identity when ordered rows move.
-- The profile header places `Import CV` beside `Save profile`. One modal handles file selection and submit, becomes non-dismissible with an accessible spinner during AI processing, and closes automatically after applying results to the form.
+- The profile header places `Import CV` beside `Save profile`. One modal handles file selection and submit, remains non-dismissible with an accessible spinner through AI processing and profile persistence, and closes only after the imported draft saves successfully.
 - The shared React `Dialog` owns only controlled native `<dialog>` mechanics and renders arbitrary children/native dialog properties. Feature-specific titles, content, actions, and cancellation rules are composed by settings and profile features.
 - Frontend test setup does not patch `HTMLDialogElement.prototype`; profile feature tests mock the shared dialog component locally because jsdom does not implement native modal methods.
 
@@ -184,3 +189,4 @@ Last synchronized: 2026-07-29
 - Phase 5 transient CV import refinement: backend tests remain at 20 passing, frontend tests increased to 8 passing, the 7-route production build succeeds, and CV-document persistence is absent from the consolidated Phase 5 migration.
 - Independent fixture refinement: the web lifespan has no fixture dependency; integration tests explicitly prepare migrated databases and apply the SQL fixtures. Ruff and strict mypy pass for 42 backend source files, all 20 backend tests pass, repeated execution is idempotent, and user-overridden defaults are preserved.
 - Phase 5 migration consolidation: the obsolete migration 003 was removed, migration 002 now creates only the final non-document profile schema, and the development Yoyo ledger was cleaned to contain migrations 001 and 002 only; application startup against that state passed.
+- Unified frontend persistence and header refinement: Prettier, ESLint, Stylelint, and Astro diagnostics pass across 42 checked files; 11 frontend tests pass, including settings switch autosave, explicit-save loading state, profile autosave, CV import, and the global avatar fallback; all 7 production routes build successfully.

@@ -129,6 +129,19 @@ PROMPTS.md
 - Dark mode follows system preference initially and supports an explicit persisted override.
 - Prototype images define visual direction, not unsupported product behavior.
 
+### Frontend form persistence guide
+
+- Use `frontend/src/hooks/useAutosave.ts` for editable data pages instead of implementing page-specific debounce, snapshot, request-sequencing, or save-status logic.
+- Update controlled form state optimistically so the interface responds immediately; retain the local value when persistence fails and report the failure through a toast.
+- Persist changes after 700 ms of inactivity and flush the current snapshot when focus leaves a field or control.
+- Switches, selects, checkboxes, text inputs, ordered collections, and other ordinary controls follow the same autosave contract.
+- Keep an explicit Save action when it helps user confidence. It flushes the latest snapshot, displays a disabled `Saving…` state while active, and shows success or already-current feedback.
+- Do not add Discard actions unless a workflow has an explicit draft boundary and restoring the last server snapshot is a defined product action.
+- Suppress duplicate requests for an unchanged or already-saving snapshot and ignore stale responses when a newer request is authoritative.
+- Normalize successful API responses through the hook before recording the saved snapshot, while preserving newer optimistic edits.
+- Long-running or consequential operations such as CV import use an explicit submit action and a blocking progress state. Keep that state visible until parsing and resulting persistence both finish; errors retain the user’s recoverable input.
+- Every new editable page must test debounced autosave, focus-loss flushing where relevant, explicit-save loading behavior, and error-toast handling.
+
 ## 3. Core Data Model and Migration Sequence
 
 Create one migration per coherent schema change and supply reversible rollback logic where data loss is not inherently unavoidable.
