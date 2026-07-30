@@ -1,5 +1,6 @@
 ---
 import { Icon } from '../ui/Icon';
+import { HeaderAvatar } from './HeaderAvatar';
 ---
 
 <header class="app-shell__header" transition:persist>
@@ -24,7 +25,10 @@ import { Icon } from '../ui/Icon';
     />
   </label>
   <div class="app-shell__header-actions">
-    <a class="ui-button ui-button--primary" href="/interview">Start interview</a
+    <a
+      class="ui-button ui-button--primary app-shell__start-interview"
+      href="/interview">Start interview</a
     >
+    <HeaderAvatar client:load />
   </div>
 </header>
