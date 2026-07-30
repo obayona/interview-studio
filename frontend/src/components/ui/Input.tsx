@@ -1,5 +1,13 @@
 import type { InputHTMLAttributes } from 'react';
 
-export function Input(props: InputHTMLAttributes<HTMLInputElement>) {
-  return <input className="ui-input" {...props} />;
+export function Input({
+  className,
+  ...props
+}: InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <input
+      className={['ui-input', className].filter(Boolean).join(' ')}
+      {...props}
+    />
+  );
 }

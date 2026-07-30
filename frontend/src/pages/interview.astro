@@ -1,13 +1,38 @@
 ---
+import { Icon } from '../components/ui/Icon';
 import PlaceholderPage from '../components/layout/PlaceholderPage.astro';
 import AppLayout from '../layouts/AppLayout.astro';
 ---
 
 <AppLayout title="Interview">
-  <PlaceholderPage
-    title="Interview simulator"
-    intro="A focused environment for realistic, streaming interview practice."
-    icon="interview"
-    message="The full text and voice simulator arrives in Phase 7. The typed WebSocket client foundation is already available."
-  />
+  <section class="page">
+    <a class="page__back-link" href="/processes" data-attempt-back>
+      <Icon name="arrowLeft" />
+      Back to process
+    </a>
+    <PlaceholderPage
+      title="Interview simulator"
+      intro="A focused environment for realistic, streaming interview practice."
+      icon="interview"
+      message="The full text and voice simulator arrives in Phase 7. The typed WebSocket client foundation is already available."
+    />
+  </section>
 </AppLayout>
+
+<script>
+  const updateAttemptBackLink = () => {
+    const link = document.querySelector<HTMLAnchorElement>(
+      '[data-attempt-back]',
+    );
+    const processId = new URLSearchParams(window.location.search).get(
+      'process',
+    );
+    if (link && processId) {
+      link.href = `/processes/details?id=${encodeURIComponent(processId)}`;
+    }
+  };
+
+  document.addEventListener('astro:page-load', updateAttemptBackLink, {
+    once: true,
+  });
+</script>

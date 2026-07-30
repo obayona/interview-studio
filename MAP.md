@@ -78,7 +78,7 @@ Last synchronized: 2026-07-29
 - `frontend/src/services/`: Typed normalized HTTP client, settings API, and versioned interview WebSocket foundation.
 - `frontend/src/features/settings/`: Integrated OpenAI, interaction, theme, model, voice, provider-test, and secret-removal settings UI.
 - `frontend/src/features/profile/`: Prototype-aligned profile editor with autosave, explicit save, avatar management, ordered experience/projects, and modal profile import from a PDF CV.
-- `frontend/src/features/processes/`: Searchable process list, create/edit form, safe import preview, ordered stage configuration, process detail, attempt history/actions, confirmed deletion, and feedback placeholders.
+- `frontend/src/features/processes/`: Searchable process list, mode-aware reusable create/edit form, safe import preview, ordered stage configuration, process detail, attempt history/actions, confirmed deletion, and feedback placeholders.
 - `frontend/src/services/process-api.ts` and `frontend/src/types/process.ts`: Typed process aggregate, content-source, stage-configuration, attempt, and CRUD transport contracts.
 - `frontend/src/services/profile-api.ts`: Typed profile aggregate and transient multipart avatar/CV transport.
 - `frontend/src/types/profile.ts`: Profile aggregate, ordered collections, draft, and transient CV suggestion transport types.
@@ -143,6 +143,12 @@ Last synchronized: 2026-07-29
 - The shared React `Dialog` owns only controlled native `<dialog>` mechanics and renders arbitrary children/native dialog properties. Feature-specific titles, content, actions, and cancellation rules are composed by settings and profile features.
 - Frontend test setup does not patch `HTMLDialogElement.prototype`; profile feature tests mock the shared dialog component locally because jsdom does not implement native modal methods.
 - Process list, creation, and detail pages share the `process-page-title` Astro view-transition identity. The persistent application shell stays mounted while the heading performs a lightweight native handoff; reduced-motion behavior remains governed by the global transition policy.
+- Process creation is submit-only at `/processes/new`; editing is isolated at `/processes/edit?id=…` and uses the shared autosave hook for every metadata, source, order, stage, configuration, and switch change after 700 ms or on blur.
+- Process creation has a leading back-arrow to the process collection; process editing resolves its process identifier into a leading back-arrow to the exact process detail, with the collection as a safe fallback.
+- Process detail exposes a leading back-arrow link above its page title to `/processes`, matching the create/edit page hierarchy while retaining the shared title transition.
+- Shared inputs preserve the base `ui-input` presentation when a feature class is supplied; the responsive process search therefore matches profile fields while retaining its toolbar-specific width.
+- Process-list search keeps the entered text immediate and applies client-side filtering through the shared 300 ms debounced-value hook.
+- Starting an attempt carries its parent process identifier to `/interview`; the attempt route uses it for a leading back-arrow link to the exact process detail, with the process collection as a safe fallback when parent context is absent.
 
 ## Interfaces, routes, and persistence
 
@@ -158,7 +164,7 @@ Last synchronized: 2026-07-29
 - Migration `002_phase5_profile` creates only the final profile schema without CV-document persistence. Collection ordering is protected by per-profile unique positions.
 - Migration `003_phase6_processes` creates the complete interview persistence graph from parent to child. Attempts have nullable stage ownership for the browser harness, immutable per-stage numbering, timing, and termination metadata from initial creation; no follow-up table alteration is required.
 - Migration history is intentionally development-only. Databases produced by the superseded pre-consolidation migration layout must be recreated; there is no compatibility upgrade path.
-- Frontend routes: `/`, `/profile`, `/processes`, `/processes/new`, `/processes/details`, `/interview`, `/feedback`, and `/settings`.
+- Frontend routes: `/`, `/profile`, `/processes`, `/processes/new`, `/processes/edit`, `/processes/details`, `/interview`, `/feedback`, and `/settings`.
 
 ## Known constraints
 
@@ -213,9 +219,9 @@ Last synchronized: 2026-07-29
 - Phase 6 strict mypy: Passed for 48 backend application, CLI, engine, and profile-parser source files.
 - Phase 6 Pytest: 23 tests passed, including process CRUD, persisted stage configuration, skipped-stage protection, safe text/URL normalization, independent starts, repeated numbered attempts, reordering with history, cascaded deletion, and SSRF rejection.
 - Phase 6 frontend Prettier, ESLint, and Stylelint: Passed.
-- Phase 6 Astro diagnostics: 50 files checked with zero errors, warnings, or hints.
-- Phase 6 Vitest: 14 tests passed, including process list navigation/progress, ordered default stages, skipped-stage visibility, attempt history, repeat actions, and axe-core accessibility coverage.
-- Phase 6 production build: All 8 static routes generated successfully.
+- Phase 6 Astro diagnostics: 52 files checked with zero errors, warnings, or hints.
+- Phase 6 Vitest: 15 tests passed, including process list navigation/progress, edit-only switch autosave, ordered default stages, skipped-stage visibility, attempt history, repeat actions, and axe-core accessibility coverage.
+- Phase 6 production build: All 9 static routes generated successfully.
 - Phase 6 dependency check: Python reports no broken requirements.
 - Fixture-loader layering refinement: reusable execution lives in `backend.app.core.fixtures`; both the CLI wrapper and integration preparation import that core operation. Ruff, strict mypy, and all 23 backend tests pass.
 - Interview migration consolidation: fresh apply and complete rollback pass with migration 001 limited to settings and migration 003 creating processes before stages, final-form attempts, messages, graph state, and writes; all 23 backend tests remain passing.

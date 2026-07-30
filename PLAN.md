@@ -123,6 +123,7 @@ PROMPTS.md
 ### Accessibility and UI behavior
 
 - Preserve semantic landmarks, keyboard navigation, visible focus, high contrast, reduced-motion support, and meaningful labels.
+- Child and attempt pages include a leading back-arrow link to their immediate parent page. Navigation into a child carries or resolves the parent identifier so the link returns to the exact originating record rather than only its collection.
 - Use Font Awesome through one reusable icon component.
 - Use reusable toast and `<dialog>` components instead of `alert`, `confirm`, or `prompt`.
 - Every data screen includes loading, empty, error, and success states.

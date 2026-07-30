@@ -79,6 +79,7 @@ src/
     ui/           Reusable accessible React components
   features/
     profile/      Profile editor, autosave, avatar, and CV import
+    processes/    Process list, configurable creation/editing, and attempt history
     settings/     Settings page React island
   layouts/        Persistent application layout
   pages/          Astro file-based routes
@@ -98,6 +99,8 @@ The current routes are:
 - `/`
 - `/profile`
 - `/processes`
+- `/processes/new`
+- `/processes/edit`
 - `/processes/details`
 - `/interview`
 - `/feedback`

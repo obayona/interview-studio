@@ -173,6 +173,21 @@ a {
   margin: 0 auto;
 }
 
+.page__back-link {
+  display: inline-flex;
+  width: fit-content;
+  gap: 0.8rem;
+  align-items: center;
+  margin-bottom: 1.6rem;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.page__back-link:hover {
+  color: var(--color-primary);
+}
+
 .page__heading {
   margin: 0;
   font-size: clamp(3rem, 4vw, 4.2rem);

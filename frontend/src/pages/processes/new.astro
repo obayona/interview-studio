@@ -1,21 +1,21 @@
 ---
 import { Icon } from '../../components/ui/Icon';
-import { ProcessDetail } from '../../features/processes/ProcessDetail';
+import { ProcessForm } from '../../features/processes/ProcessForm';
 import AppLayout from '../../layouts/AppLayout.astro';
 ---
 
-<AppLayout title="Process details">
+<AppLayout title="Create interview process">
   <section class="page">
     <a class="page__back-link" href="/processes">
       <Icon name="arrowLeft" />
       Back to processes
     </a>
     <h2 class="page__heading" transition:name="process-page-title">
-      Process details
+      Create interview process
     </h2>
     <p class="page__intro">
-      Review stages, start or repeat interviews, and inspect attempt history.
+      Add role context and tailor each optional interview stage.
     </p>
-    <ProcessDetail client:load />
+    <ProcessForm mode="create" client:load />
   </section>
 </AppLayout>

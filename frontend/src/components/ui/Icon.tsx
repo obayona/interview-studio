@@ -1,5 +1,6 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
+  faArrowLeft,
   faArrowRight,
   faArrowUp,
   faBars,
@@ -26,6 +27,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 
 const icons = {
+  arrowLeft: faArrowLeft,
   arrowRight: faArrowRight,
   arrowUp: faArrowUp,
   bars: faBars,

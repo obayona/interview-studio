@@ -1,0 +1,37 @@
+---
+import { Icon } from '../../components/ui/Icon';
+import { ProcessForm } from '../../features/processes/ProcessForm';
+import AppLayout from '../../layouts/AppLayout.astro';
+---
+
+<AppLayout title="Edit interview process">
+  <section class="page">
+    <a class="page__back-link" href="/processes" data-process-edit-back>
+      <Icon name="arrowLeft" />
+      Back to process
+    </a>
+    <h2 class="page__heading" transition:name="process-page-title">
+      Edit interview process
+    </h2>
+    <p class="page__intro">
+      Changes save automatically after you stop editing or leave a field.
+    </p>
+    <ProcessForm mode="edit" client:load />
+  </section>
+</AppLayout>
+
+<script>
+  const updateProcessEditBackLink = () => {
+    const link = document.querySelector<HTMLAnchorElement>(
+      '[data-process-edit-back]',
+    );
+    const processId = new URLSearchParams(window.location.search).get('id');
+    if (link && processId) {
+      link.href = `/processes/details?id=${encodeURIComponent(processId)}`;
+    }
+  };
+
+  document.addEventListener('astro:page-load', updateProcessEditBackLink, {
+    once: true,
+  });
+</script>
