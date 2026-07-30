@@ -78,6 +78,7 @@ src/
     layout/       Astro shell components
     ui/           Reusable accessible React components
   features/
+    profile/      Profile editor, autosave, avatar, and CV import
     settings/     Settings page React island
   layouts/        Persistent application layout
   pages/          Astro file-based routes

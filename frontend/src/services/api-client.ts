@@ -19,9 +19,13 @@ export class ApiClient {
   async request<T>(path: string, init: RequestInit = {}): Promise<T> {
     let response: Response;
     try {
+      const isFormData = init.body instanceof FormData;
       response = await fetch(`${this.baseUrl}${path}`, {
         ...init,
-        headers: { 'Content-Type': 'application/json', ...init.headers },
+        headers: {
+          ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+          ...init.headers,
+        },
       });
     } catch {
       throw new ApiError(
@@ -45,6 +49,7 @@ export class ApiClient {
         body.request_id,
       );
     }
+    if (response.status === 204) return undefined as T;
     return (await response.json()) as T;
   }
 }

@@ -1,13 +1,14 @@
 ---
-import PlaceholderPage from '../components/layout/PlaceholderPage.astro';
+import { ProfilePage } from '../features/profile/ProfilePage';
 import AppLayout from '../layouts/AppLayout.astro';
 ---
 
 <AppLayout title="Profile">
-  <PlaceholderPage
-    title="Candidate profile"
-    intro="Build the context that interviewers use to tailor questions."
-    icon="user"
-    message="Profile editing, experience, projects, and CV import arrive in Phase 5."
-  />
+  <section class="page">
+    <h2 class="page__heading">Candidate profile</h2>
+    <p class="page__intro">
+      Manage your professional identity and interview readiness.
+    </p>
+    <ProfilePage client:load />
+  </section>
 </AppLayout>

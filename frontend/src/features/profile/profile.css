@@ -1,0 +1,235 @@
+.profile__loading {
+  display: grid;
+  grid-template-columns: minmax(24rem, 0.75fr) minmax(0, 2fr);
+  gap: 2.4rem;
+}
+
+.profile__toolbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 1.6rem;
+  margin: -6.8rem 0 3.2rem;
+}
+
+.profile__save-status {
+  color: var(--color-text-muted);
+  font-size: 1.3rem;
+}
+
+.profile__save-status--saved {
+  color: var(--color-success);
+}
+
+.profile__save-status--error {
+  color: var(--color-error);
+}
+
+.profile__layout {
+  display: grid;
+  grid-template-columns: minmax(28rem, 0.8fr) minmax(0, 2fr);
+  gap: 2.4rem;
+  align-items: start;
+}
+
+.profile__sidebar,
+.profile__content {
+  display: grid;
+  gap: 2.4rem;
+}
+
+.profile__identity {
+  display: grid;
+  gap: 1.6rem;
+}
+
+.profile__avatar {
+  display: grid;
+  width: 13rem;
+  height: 13rem;
+  place-items: center;
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 50%;
+  color: var(--color-primary);
+  background: var(--color-surface-high);
+  font-size: 5rem;
+}
+
+.profile__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile__upload-button {
+  margin: 0 auto;
+  cursor: pointer;
+}
+
+.profile__sidebar h2,
+.profile__content h2 {
+  margin: 0;
+  font-size: 2.1rem;
+}
+
+.profile__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  margin-top: 1.4rem;
+}
+
+.profile__section-heading,
+.profile__collection-heading {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.profile__section-heading {
+  color: var(--color-primary);
+}
+
+.profile__section-heading h2 {
+  color: var(--color-text);
+}
+
+.profile__collection-heading {
+  justify-content: space-between;
+}
+
+.profile__textarea {
+  width: 100%;
+  min-height: 16rem;
+  resize: vertical;
+}
+
+.profile__contact-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.6rem;
+  margin-top: 2rem;
+}
+
+.profile__collection {
+  display: grid;
+  gap: 1.6rem;
+}
+
+.profile__editor {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.2rem;
+  padding: 2rem;
+  border: 0.1rem solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.profile__editor legend {
+  padding: 0 0.8rem;
+  font-weight: 700;
+}
+
+.profile__editor-actions {
+  position: absolute;
+  display: flex;
+  gap: 0.6rem;
+  inset: -1.4rem 1.2rem auto auto;
+}
+
+.profile__editor-actions .ui-button {
+  min-height: 3.2rem;
+  padding: 0.5rem 1rem;
+}
+
+.profile__editor-description,
+.profile__checkbox {
+  grid-column: 1 / -1;
+}
+
+.profile__editor-description {
+  min-height: 9rem;
+}
+
+.profile__checkbox {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+}
+
+.profile__empty {
+  padding: 2.4rem;
+  margin: 0;
+  border: 0.1rem dashed var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.profile__dropzone {
+  display: grid;
+  min-height: 18rem;
+  place-items: center;
+  align-content: center;
+  gap: 0.8rem;
+  border: 0.2rem dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  text-align: center;
+}
+
+.profile__dropzone .ui-icon {
+  color: var(--color-primary);
+  font-size: 3.6rem;
+}
+
+.profile__dropzone span {
+  color: var(--color-text-muted);
+  font-size: 1.3rem;
+}
+
+.profile__processing {
+  display: grid;
+  justify-items: center;
+  gap: 1.6rem;
+  padding: 2rem 0 0.8rem;
+  text-align: center;
+}
+
+.profile__processing .ui-spinner {
+  color: var(--color-primary);
+  font-size: 2.8rem;
+}
+
+.profile__processing p {
+  max-width: 38rem;
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+@media (width <= 980px) {
+  .profile__layout,
+  .profile__loading {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (width <= 640px) {
+  .profile__toolbar {
+    justify-content: space-between;
+    margin: 0 0 2rem;
+  }
+
+  .profile__sidebar,
+  .profile__contact-grid,
+  .profile__editor {
+    grid-template-columns: 1fr;
+  }
+
+  .profile__editor > * {
+    grid-column: 1;
+  }
+}

@@ -345,16 +345,20 @@ function APIKeyField({
           </Button>
         )}
       </div>
-      <Dialog
-        open={removeOpen}
-        title="Remove OpenAI API key?"
-        onClose={() => setRemoveOpen(false)}
-        onConfirm={() => void removeKey()}
-      >
-        <p>
-          Interviews and enabled voice features will be unavailable until
-          another key is configured.
-        </p>
+      <Dialog open={removeOpen} onClose={() => setRemoveOpen(false)}>
+        <div className="ui-dialog__content">
+          <h2>Remove OpenAI API key?</h2>
+          <p>
+            Interviews and enabled voice features will be unavailable until
+            another key is configured.
+          </p>
+          <div className="ui-dialog__actions">
+            <Button onClick={() => setRemoveOpen(false)}>Cancel</Button>
+            <Button variant="primary" onClick={() => void removeKey()}>
+              Confirm
+            </Button>
+          </div>
+        </div>
       </Dialog>
     </Card>
   );

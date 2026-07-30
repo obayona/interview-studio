@@ -121,6 +121,8 @@ Last synchronized: 2026-07-29
 - Experience and project order is the array order submitted by the client; the repository normalizes persisted positions during each atomic replacement.
 - Profile collection editors use each persisted or client-generated item ID as the React list key, preserving component identity when ordered rows move.
 - The profile header places `Import CV` beside `Save profile`. One modal handles file selection and submit, becomes non-dismissible with an accessible spinner during AI processing, and closes automatically after applying results to the form.
+- The shared React `Dialog` owns only controlled native `<dialog>` mechanics and renders arbitrary children/native dialog properties. Feature-specific titles, content, actions, and cancellation rules are composed by settings and profile features.
+- Frontend test setup does not patch `HTMLDialogElement.prototype`; profile feature tests mock the shared dialog component locally because jsdom does not implement native modal methods.
 
 ## Interfaces, routes, and persistence
 
