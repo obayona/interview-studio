@@ -10,7 +10,6 @@ from backend.interview_engine.models import (
     InterviewerProfile,
     InterviewLimits,
     InterviewType,
-    MediaCapabilities,
 )
 
 
@@ -36,7 +35,6 @@ class StageConfiguration(BaseModel):
     language: str = Field(default="English", min_length=2, max_length=80)
     topics: list[str] = Field(default_factory=list, max_length=50)
     limits: InterviewLimits = Field(default_factory=InterviewLimits)
-    media: MediaCapabilities = Field(default_factory=MediaCapabilities)
 
 
 class StageInput(BaseModel):

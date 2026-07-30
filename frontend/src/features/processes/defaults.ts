@@ -13,9 +13,7 @@ export const stageLabels: Record<InterviewType, string> = {
   mixed: 'Mixed interview',
 };
 
-export const newStageConfiguration = (
-  media: Partial<StageConfiguration['media']> = {},
-): StageConfiguration => ({
+export const newStageConfiguration = (): StageConfiguration => ({
   difficulty: 'mid',
   interviewer_profile: 'tech_lead',
   user_instructions: '',
@@ -26,18 +24,9 @@ export const newStageConfiguration = (
     max_duration_minutes: 30,
     follow_up_questions_per_topic: 1,
   },
-  media: {
-    text_input: true,
-    text_output: true,
-    speech_to_text: media.speech_to_text ?? false,
-    text_to_speech: media.text_to_speech ?? false,
-    natural_interruptions: false,
-  },
 });
 
-export const defaultStages = (
-  media: Partial<StageConfiguration['media']> = {},
-): StageInput[] =>
+export const defaultStages = (): StageInput[] =>
   (
     [
       ['screening', true],
@@ -49,5 +38,5 @@ export const defaultStages = (
     id: crypto.randomUUID(),
     stage_type,
     enabled,
-    configuration: newStageConfiguration(media),
+    configuration: newStageConfiguration(),
   }));

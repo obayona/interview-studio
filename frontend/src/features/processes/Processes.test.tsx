@@ -118,23 +118,7 @@ describe('process pages', () => {
     ).toEqual([]);
   });
 
-  it('shows ordered stages and inherits global media defaults', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(() =>
-        Promise.resolve(
-          new Response(
-            JSON.stringify({
-              settings: [
-                { key: 'stt_enabled', value: 'true', configured: true },
-                { key: 'tts_enabled', value: 'true', configured: true },
-              ],
-            }),
-            { status: 200 },
-          ),
-        ),
-      ),
-    );
+  it('shows ordered stages without attempt-level media settings', () => {
     render(<ProcessForm mode="create" />);
 
     expect(screen.getByText('1. Screening')).toBeVisible();
@@ -144,14 +128,12 @@ describe('process pages', () => {
     expect(
       screen.getByRole('switch', { name: 'Include System design' }),
     ).toHaveAttribute('aria-checked', 'false');
-    await waitFor(() => {
-      expect(
-        screen.getAllByRole('switch', { name: 'Speech input' })[0],
-      ).toHaveAttribute('aria-checked', 'true');
-      expect(
-        screen.getAllByRole('switch', { name: 'Voice responses' })[0],
-      ).toHaveAttribute('aria-checked', 'true');
-    });
+    expect(
+      screen.queryByRole('switch', { name: 'Speech input' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('switch', { name: 'Voice responses' }),
+    ).not.toBeInTheDocument();
   });
 
   it('autosaves switches only when editing an existing process', async () => {

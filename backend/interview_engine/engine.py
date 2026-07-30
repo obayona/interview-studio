@@ -10,15 +10,34 @@ from langchain_core.runnables import RunnableConfig
 
 from backend.interview_engine.graph import InterviewGraph
 from backend.interview_engine.models import InterviewConfiguration
+from backend.interview_engine.ports import SpeechToTextPort, TextToSpeechPort
 from backend.interview_engine.state import InterviewState
 
 logger = logging.getLogger("interview-engine")
 
 
 class InterviewEngine:
-    def __init__(self, configuration: InterviewConfiguration, graph: InterviewGraph) -> None:
+    def __init__(
+        self,
+        configuration: InterviewConfiguration,
+        graph: InterviewGraph,
+        speech_to_text: SpeechToTextPort | None = None,
+        text_to_speech: TextToSpeechPort | None = None,
+    ) -> None:
         self.configuration = configuration
         self._graph = graph
+        self._speech_to_text = speech_to_text
+        self._text_to_speech = text_to_speech
+
+    async def transcribe(self, audio: bytes, filename: str) -> str:
+        if self._speech_to_text is None:
+            raise ValueError("Speech-to-text is not configured")
+        return await self._speech_to_text.transcribe(audio, filename)
+
+    async def synthesize(self, text: str) -> bytes:
+        if self._text_to_speech is None:
+            raise ValueError("Text-to-speech is not configured")
+        return await self._text_to_speech.synthesize(text)
 
     async def stream_start(self, thread_id: str) -> AsyncIterator[str]:
         logger.debug("Starting interview thread %s", thread_id)

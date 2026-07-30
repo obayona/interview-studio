@@ -132,7 +132,7 @@ class AttemptRepository:
             "max_duration_minutes": configuration.limits.max_duration_minutes,
         }
 
-    async def media_preferences(self, attempt_id: str) -> dict[str, bool | None] | None:
+    async def media_preferences(self, attempt_id: str) -> dict[str, bool] | None:
         row = await self._database.fetchone(
             """
             SELECT current_stt_enabled, current_tts_enabled
@@ -143,12 +143,8 @@ class AttemptRepository:
         if row is None:
             return None
         return {
-            "speech_to_text": (
-                None if row["current_stt_enabled"] is None else bool(row["current_stt_enabled"])
-            ),
-            "text_to_speech": (
-                None if row["current_tts_enabled"] is None else bool(row["current_tts_enabled"])
-            ),
+            "speech_to_text": bool(row["current_stt_enabled"]),
+            "text_to_speech": bool(row["current_tts_enabled"]),
         }
 
     async def set_media_preference(self, attempt_id: str, key: str, value: bool) -> None:

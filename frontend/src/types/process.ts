@@ -26,13 +26,6 @@ export interface StageConfiguration {
     max_duration_minutes: number;
     follow_up_questions_per_topic: number;
   };
-  media: {
-    text_input: boolean;
-    text_output: boolean;
-    speech_to_text: boolean;
-    text_to_speech: boolean;
-    natural_interruptions: boolean;
-  };
 }
 
 export interface StageInput {

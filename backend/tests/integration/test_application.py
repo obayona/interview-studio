@@ -44,7 +44,7 @@ async def test_prepared_database_boots_without_credentials(tmp_path: Path) -> No
 
         service = cast(InterviewService, app.state.interviews)
         with pytest.raises(ProviderNotConfiguredError):
-            await anext(service.start("browser-harness"))
+            await service.open_session("browser-harness")
 
     await prepare_database(config)
     async with app.router.lifespan_context(app):

@@ -16,7 +16,6 @@ from backend.interview_engine.models import (
     InterviewerProfile,
     InterviewLimits,
     InterviewType,
-    MediaCapabilities,
 )
 from backend.interview_engine.ports import SpeechToTextPort, TextToSpeechPort
 
@@ -37,7 +36,6 @@ class InterviewEngineBuilder:
         self._language = "English"
         self._topics: tuple[str, ...] = ()
         self._limits = InterviewLimits()
-        self._media = MediaCapabilities()
         self._speech_to_text: SpeechToTextPort | None = None
         self._text_to_speech: TextToSpeechPort | None = None
 
@@ -97,10 +95,6 @@ class InterviewEngineBuilder:
         self._limits = limits
         return self
 
-    def set_media_capabilities(self, media: MediaCapabilities) -> Self:
-        self._media = media
-        return self
-
     def set_speech_to_text(self, adapter: SpeechToTextPort) -> Self:
         self._speech_to_text = adapter
         return self
@@ -121,13 +115,16 @@ class InterviewEngineBuilder:
             language=self._language,
             topics=self._topics,
             limits=self._limits,
-            media=self._media,
         )
-        self._validate_media_adapters()
         chat_model = self._chat_model or self._build_openai_model()
         checkpointer = self._checkpointer or InMemorySaver()
         graph = InterviewGraph(configuration, chat_model, checkpointer)
-        return InterviewEngine(configuration, graph)
+        return InterviewEngine(
+            configuration,
+            graph,
+            speech_to_text=self._speech_to_text,
+            text_to_speech=self._text_to_speech,
+        )
 
     def _build_openai_model(self) -> BaseChatModel:
         if not self._api_key:
@@ -141,9 +138,3 @@ class InterviewEngineBuilder:
             model=self._model_name,
             temperature=0.4,
         )
-
-    def _validate_media_adapters(self) -> None:
-        if self._media.speech_to_text and self._speech_to_text is None:
-            raise ValueError("Speech-to-text is enabled but no adapter was configured")
-        if self._media.text_to_speech and self._text_to_speech is None:
-            raise ValueError("Text-to-speech is enabled but no adapter was configured")

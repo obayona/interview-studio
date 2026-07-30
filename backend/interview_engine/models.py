@@ -62,16 +62,6 @@ class InterviewLimits(BaseModel):
     follow_up_questions_per_topic: int = Field(default=1, ge=0, le=3)
 
 
-class MediaCapabilities(BaseModel):
-    model_config = ConfigDict(frozen=True)
-
-    text_input: bool = True
-    text_output: bool = True
-    speech_to_text: bool = False
-    text_to_speech: bool = False
-    natural_interruptions: bool = False
-
-
 class InterviewConfiguration(BaseModel):
     model_config = ConfigDict(frozen=True)
 
@@ -85,7 +75,6 @@ class InterviewConfiguration(BaseModel):
     language: str = Field(default="English", min_length=2, max_length=80)
     topics: tuple[str, ...] = ()
     limits: InterviewLimits = Field(default_factory=InterviewLimits)
-    media: MediaCapabilities = Field(default_factory=MediaCapabilities)
 
     @field_validator("topics")
     @classmethod

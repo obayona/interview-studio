@@ -7,6 +7,7 @@ from urllib.parse import urljoin, urlsplit
 
 import httpx
 
+from backend.app.core.config import SettingsService
 from backend.app.core.errors import ApplicationError
 from backend.app.domain.processes import (
     ContentSource,
@@ -127,10 +128,12 @@ class ProcessService:
         self,
         repository: ProcessRepository,
         profiles: ProfileRepository,
+        settings: SettingsService,
         fetcher: SafeContentFetcher | None = None,
     ) -> None:
         self._repository = repository
         self._profiles = profiles
+        self._settings = settings
         self._fetcher = fetcher or SafeContentFetcher()
 
     async def list(self) -> list[ProcessSummary]:
@@ -205,8 +208,13 @@ class ProcessService:
             interview_type=stage.stage_type,
             **stage.configuration.model_dump(),
         )
+        ai = await self._settings.ai()
         created = await self._repository.create_attempt(
-            process_id, stage_id, configuration.model_dump_json()
+            process_id,
+            stage_id,
+            configuration.model_dump_json(),
+            speech_to_text=ai.stt_enabled,
+            text_to_speech=ai.tts_enabled,
         )
         if created is None:
             raise ApplicationError("stage_not_startable", "This stage cannot be started.", 409)

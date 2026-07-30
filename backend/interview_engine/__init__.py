@@ -7,7 +7,6 @@ from backend.interview_engine.models import (
     InterviewerProfile,
     InterviewLimits,
     InterviewType,
-    MediaCapabilities,
     TerminationReason,
 )
 
@@ -20,6 +19,5 @@ __all__ = [
     "InterviewLimits",
     "InterviewType",
     "InterviewerProfile",
-    "MediaCapabilities",
     "TerminationReason",
 ]

@@ -10,7 +10,6 @@ import { Switch } from '../../components/ui/Switch';
 import { ToastProvider, useToast } from '../../components/ui/Toast';
 import { useAutosave } from '../../hooks/useAutosave';
 import { processApi } from '../../services/process-api';
-import { settingsApi } from '../../services/settings-api';
 import type {
   ContentSource,
   InterviewProcess,
@@ -72,33 +71,6 @@ function ProcessFormContent({ mode }: { mode: 'create' | 'edit' }) {
     onError: () => showToast('Process could not be saved.', 'error'),
     onAlreadySaved: () => showToast('Process is already up to date.'),
   });
-
-  useEffect(() => {
-    if (mode !== 'create') return;
-    settingsApi
-      .get()
-      .then(({ settings }) => {
-        const enabled = (key: string) =>
-          settings.find((setting) => setting.key === key)?.value === 'true';
-        setDraft((current) => ({
-          ...current,
-          stages: current.stages.map((stage) => ({
-            ...stage,
-            configuration: {
-              ...stage.configuration,
-              media: {
-                ...stage.configuration.media,
-                speech_to_text: enabled('stt_enabled'),
-                text_to_speech: enabled('tts_enabled'),
-              },
-            },
-          })),
-        }));
-      })
-      .catch(() => {
-        // Process creation remains available with safe text-only defaults.
-      });
-  }, [mode]);
 
   useEffect(() => {
     if (mode !== 'edit') return;
@@ -554,29 +526,6 @@ function StageEditor({
               }
             />
           </FormField>
-          {(
-            [
-              ['text_input', 'Text input'],
-              ['text_output', 'Text responses'],
-              ['speech_to_text', 'Speech input'],
-              ['text_to_speech', 'Voice responses'],
-              ['natural_interruptions', 'Natural interruptions'],
-            ] as const
-          ).map(([key, label]) => (
-            <div className="processes__stage-heading" key={key}>
-              <span>{label}</span>
-              <Switch
-                label={label}
-                checked={config.media[key]}
-                onChange={(checked) =>
-                  updateConfiguration({
-                    ...config,
-                    media: { ...config.media, [key]: checked },
-                  })
-                }
-              />
-            </div>
-          ))}
         </div>
       </details>
     </Card>

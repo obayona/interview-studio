@@ -41,8 +41,9 @@ def _event(attempt_id: str, event_type: str, payload: dict[str, Any]) -> dict[st
 async def interview_websocket(websocket: WebSocket, attempt_id: str) -> None:
     await websocket.accept()
     service: InterviewService = websocket.app.state.interviews
+    session = await service.open_session(attempt_id)
     send_lock = asyncio.Lock()
-    modes = await service.media_modes(attempt_id)
+    modes = await session.media_modes()
     audio_input = bytearray()
     input_media_type = "audio/webm"
     output_sequence = 0
@@ -68,7 +69,7 @@ async def interview_websocket(websocket: WebSocket, attempt_id: str) -> None:
         nonlocal output_sequence
         audio_id = str(uuid4())
         try:
-            audio = await service.synthesize(attempt_id, text)
+            audio = await session.synthesize(text)
             for offset in range(0, len(audio), OUTPUT_CHUNK_BYTES):
                 output_sequence += 1
                 await send(
@@ -133,7 +134,7 @@ async def interview_websocket(websocket: WebSocket, attempt_id: str) -> None:
             await send("assistant.text.completed", {"text": completed})
         if modes["text_to_speech"] and speech_buffer.strip():
             queue_speech(speech_buffer.strip())
-        attempt_status = await service.status(attempt_id)
+        attempt_status = await session.status()
         await send(
             "interview.state",
             {"status": _interaction_status(attempt_status)},
@@ -176,13 +177,13 @@ async def interview_websocket(websocket: WebSocket, attempt_id: str) -> None:
                 if event_type == "session.start":
                     await send("session.ready", {"modes": modes})
                     await send("interview.state", {"status": "connecting"})
-                    await start_turn(service.start(attempt_id))
+                    await start_turn(session.start())
                 elif event_type == "user.text":
                     await cancel_audio()
                     text = str(payload.get("text", "")).strip()
                     if not text:
                         raise ValueError("Answer text cannot be empty")
-                    await start_turn(service.respond(attempt_id, text))
+                    await start_turn(session.respond(text))
                 elif event_type == "user.audio.start":
                     if not modes["speech_to_text"]:
                         raise ValueError("Speech-to-text is not enabled")
@@ -209,22 +210,20 @@ async def interview_websocket(websocket: WebSocket, attempt_id: str) -> None:
                         raise ValueError("No audio was received")
                     await send("interview.state", {"status": "transcribing"})
                     extension = "webm" if "webm" in input_media_type else "audio"
-                    text = await service.transcribe(
-                        attempt_id, bytes(audio_input), f"answer.{extension}"
-                    )
+                    text = await session.transcribe(bytes(audio_input), f"answer.{extension}")
                     audio_input.clear()
                     if not text:
                         raise ValueError("No speech was detected")
                     await send("transcript.final", {"text": text})
-                    await start_turn(service.respond(attempt_id, text))
+                    await start_turn(session.respond(text))
                 elif event_type == "audio.output.cancel":
                     await cancel_audio()
                 elif event_type == "mode.update":
-                    available = await service.media_capabilities()
+                    available = await session.media_capabilities()
                     for key in ("speech_to_text", "text_to_speech"):
                         if key in payload:
                             requested = bool(payload[key])
-                            await service.set_media_preference(attempt_id, key, requested)
+                            await session.set_media_preference(key, requested)
                             modes[key] = requested and available[key]
                             if requested and not available[key]:
                                 label = (
@@ -245,15 +244,15 @@ async def interview_websocket(websocket: WebSocket, attempt_id: str) -> None:
                     await send("mode.updated", {"modes": modes})
                 elif event_type == "session.pause":
                     await cancel_audio()
-                    await service.pause(attempt_id)
+                    await session.pause()
                     await send("interview.state", {"status": "paused"})
                 elif event_type == "session.resume":
-                    await service.resume(attempt_id)
+                    await session.resume()
                     await send("mode.updated", {"modes": modes})
                     await send("interview.state", {"status": "ready_for_answer"})
                 elif event_type == "session.end":
                     await cancel_audio()
-                    await start_turn(service.end(attempt_id))
+                    await start_turn(session.end())
                 elif event_type == "ping":
                     await send("pong", {})
                 else:

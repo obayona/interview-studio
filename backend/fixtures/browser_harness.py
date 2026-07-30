@@ -7,9 +7,7 @@ CONFIGURATION_JSON = (
     '"company_info":"","interview_type":"mixed","interviewer_profile":"tech_lead",'
     '"difficulty":"mid","user_instructions":"","language":"English","topics":[],'
     '"limits":{"max_questions":8,"max_duration_minutes":30,'
-    '"follow_up_questions_per_topic":1},"media":{"text_input":true,'
-    '"text_output":true,"speech_to_text":false,"text_to_speech":false,'
-    '"natural_interruptions":false}}'
+    '"follow_up_questions_per_topic":1}}'
 )
 
 

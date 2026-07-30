@@ -99,7 +99,7 @@ generating a duplicate question during checkpoint resume.
 History responses include the current attempt status. Completed attempts are
 read-only in the frontend, while ready, active, and paused attempts can be opened
 from their parent process. Deleting an attempt cascades its transcript, graph
-state, pending writes, and audio artifacts, then recalculates its stage status.
+state, and pending writes, then recalculates its stage status.
 
 The interview WebSocket also accepts `user.audio.start`, bounded base64
 `user.audio.chunk`, `user.audio.end`, `audio.output.cancel`, `mode.update`,

@@ -209,7 +209,13 @@ class ProcessRepository:
         return cursor.rowcount > 0
 
     async def create_attempt(
-        self, process_id: str, stage_id: str, configuration_json: str
+        self,
+        process_id: str,
+        stage_id: str,
+        configuration_json: str,
+        *,
+        speech_to_text: bool,
+        text_to_speech: bool,
     ) -> tuple[str, int] | None:
         timestamp = now()
         async with self._database.transaction() as connection:
@@ -234,8 +240,9 @@ class ProcessRepository:
                 """
                 INSERT INTO interview_attempts (
                     id, stage_id, attempt_number, thread_id, status,
-                    configuration_json, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, 'ready', ?, ?, ?)
+                    configuration_json, current_stt_enabled,
+                    current_tts_enabled, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, 'ready', ?, ?, ?, ?, ?)
                 """,
                 (
                     attempt_id,
@@ -243,6 +250,8 @@ class ProcessRepository:
                     number,
                     str(uuid4()),
                     configuration_json,
+                    int(speech_to_text),
+                    int(text_to_speech),
                     timestamp,
                     timestamp,
                 ),

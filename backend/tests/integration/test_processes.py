@@ -27,13 +27,6 @@ def stage(stage_type: str, enabled: bool = True) -> dict[str, object]:
                 "max_duration_minutes": 25,
                 "follow_up_questions_per_topic": 2,
             },
-            "media": {
-                "text_input": True,
-                "text_output": True,
-                "speech_to_text": False,
-                "text_to_speech": False,
-                "natural_interruptions": False,
-            },
         },
     }
 
@@ -82,6 +75,7 @@ async def test_process_crud_stage_configuration_and_repeated_attempts(
             process_id = process["id"]
             stage_id = process["stages"][0]["id"]
             skipped_id = process["stages"][1]["id"]
+            await app.state.settings.update({"stt_enabled": "true", "tts_enabled": "true"})
             disabled = await client.post(
                 f"/api/v1/processes/{process_id}/stages/{skipped_id}/attempts"
             )
@@ -92,12 +86,16 @@ async def test_process_crud_stage_configuration_and_repeated_attempts(
             assert second.json()["attempt_number"] == 2
             assert first.json()["id"] != second.json()["id"]
 
-            await app.state.attempts.set_media_preference(
-                first.json()["id"], "speech_to_text", True
-            )
             assert await app.state.attempts.media_preferences(first.json()["id"]) == {
                 "speech_to_text": True,
-                "text_to_speech": None,
+                "text_to_speech": True,
+            }
+            await app.state.attempts.set_media_preference(
+                first.json()["id"], "speech_to_text", False
+            )
+            assert await app.state.attempts.media_preferences(first.json()["id"]) == {
+                "speech_to_text": False,
+                "text_to_speech": True,
             }
             await app.state.attempts.mark_started(first.json()["id"])
             await app.state.attempts.mark_paused(first.json()["id"])
@@ -152,7 +150,12 @@ async def test_url_and_text_sources_use_the_same_normalized_fields(
     app = create_app(config)
     async with app.router.lifespan_context(app):
         current = app.state.processes
-        app.state.processes = ProcessService(current._repository, current._profiles, FakeFetcher())
+        app.state.processes = ProcessService(
+            current._repository,
+            current._profiles,
+            current._settings,
+            FakeFetcher(),
+        )
         transport = httpx.ASGITransport(app=app)
         async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
             preview = await client.post(

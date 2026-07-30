@@ -54,7 +54,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
         app.state.attempts = attempts
         app.state.interviews = InterviewService(attempts, settings, checkpointer)
         app.state.profile = ProfileService(profiles, settings)
-        app.state.processes = ProcessService(ProcessRepository(database), profiles)
+        app.state.processes = ProcessService(ProcessRepository(database), profiles, settings)
         yield
         await database.close()
 
