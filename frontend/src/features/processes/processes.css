@@ -179,7 +179,7 @@
   border-color: color-mix(in srgb, var(--color-danger) 35%, transparent);
 }
 
-@media (width <= 800px) {
+@media (width <= 1160px) {
   .processes__card,
   .processes__form-layout,
   .processes__detail-layout {

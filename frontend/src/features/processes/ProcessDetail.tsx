@@ -19,6 +19,13 @@ const attemptStatusLabels: Record<string, string> = {
   completed: 'Completed',
 };
 
+const stageStatusLabels: Record<string, string> = {
+  not_started: 'Not started',
+  in_progress: 'In progress',
+  completed: 'Completed',
+  skipped: 'Skipped',
+};
+
 function ProcessDetailContent() {
   const { showToast } = useToast();
   const [process, setProcess] = useState<InterviewProcess>();
@@ -146,7 +153,11 @@ function ProcessDetailContent() {
                     · {stage.configuration.limits.max_duration_minutes} minutes
                   </p>
                 </div>
-                <Badge>{stage.enabled ? stage.status : 'skipped'}</Badge>
+                <Badge>
+                  {stageStatusLabels[
+                    stage.enabled ? stage.status : 'skipped'
+                  ] ?? stage.status.replaceAll('_', ' ')}
+                </Badge>
               </div>
               {stage.configuration.user_instructions && (
                 <p>{stage.configuration.user_instructions}</p>
@@ -289,7 +300,7 @@ function ProcessDetailContent() {
           <h2>Delete interview attempt?</h2>
           <p>
             This permanently deletes attempt {attemptToDelete?.attempt_number},
-            including its transcript, checkpoint, and audio.
+            including its transcript and checkpoint.
           </p>
           <div className="ui-dialog__actions">
             <Button

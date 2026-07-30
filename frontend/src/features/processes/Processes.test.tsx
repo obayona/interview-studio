@@ -208,6 +208,8 @@ describe('process pages', () => {
     );
     expect(screen.getByText('Attempt 1')).toBeVisible();
     expect(screen.getByText('Attempt 2')).toBeVisible();
+    expect(screen.getByText('In progress')).toBeVisible();
+    expect(screen.queryByText('in_progress')).not.toBeInTheDocument();
     expect(screen.getByText('Paused')).toBeVisible();
     expect(screen.getByText('Completed')).toBeVisible();
     expect(
