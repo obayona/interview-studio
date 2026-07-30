@@ -146,9 +146,26 @@
   display: flex;
   justify-content: space-between;
   gap: 1rem;
+  align-items: center;
   padding: 1rem;
   border-radius: var(--radius-md);
   background: var(--color-surface-high);
+}
+
+.processes__attempt-summary {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.processes__attempt-summary span {
+  color: var(--color-text-muted);
+  font-size: 1.2rem;
+}
+
+.processes__attempt-actions {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
 }
 
 .processes__detail-header {
@@ -178,6 +195,15 @@
 
   .processes__detail-header {
     display: grid;
+  }
+
+  .processes__attempt {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .processes__attempt-actions {
+    flex-wrap: wrap;
   }
 }
 

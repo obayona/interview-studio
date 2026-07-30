@@ -85,6 +85,25 @@ steps = [
     ),
     step(
         """
+        CREATE TABLE audio_artifacts (
+            id TEXT PRIMARY KEY,
+            attempt_id TEXT NOT NULL REFERENCES interview_attempts(id) ON DELETE CASCADE,
+            message_id TEXT REFERENCES interview_messages(id) ON DELETE SET NULL,
+            direction TEXT NOT NULL CHECK (direction IN ('input', 'output')),
+            media_type TEXT NOT NULL,
+            duration_ms INTEGER,
+            data BLOB,
+            created_at TEXT NOT NULL
+        )
+        """,
+        "DROP TABLE IF EXISTS audio_artifacts",
+    ),
+    step(
+        "CREATE INDEX idx_audio_artifacts_attempt ON audio_artifacts(attempt_id, created_at)",
+        "DROP INDEX IF EXISTS idx_audio_artifacts_attempt",
+    ),
+    step(
+        """
         CREATE TABLE interview_graph_state (
             attempt_id TEXT NOT NULL REFERENCES interview_attempts(id) ON DELETE CASCADE,
             thread_id TEXT NOT NULL,

@@ -1,6 +1,6 @@
 # Interview Studio System Map
 
-Last synchronized: 2026-07-29
+Last synchronized: 2026-07-30
 
 ## Current status
 
@@ -11,7 +11,8 @@ Last synchronized: 2026-07-29
 - Phase 4: Complete and verified on 2026-07-28.
 - Phase 5: Complete and verified on 2026-07-29.
 - Phase 6: Complete and verified on 2026-07-29.
-- Phases 7–12: Not started.
+- Phase 7: Complete and verified on 2026-07-30.
+- Phases 8–12: Not started.
 
 ## Repository baseline
 
@@ -28,7 +29,7 @@ Last synchronized: 2026-07-29
 - `backend/interview_engine/state.py`: LangGraph interview state with message reduction and lifecycle fields.
 - `backend/interview_engine/topics.py`: Default competency plans per interview type.
 - `backend/interview_engine/prompts.py`: Versioned structured-interview system, context, turn, follow-up, and closing prompts.
-- `backend/interview_engine/ports.py`: Provider-neutral STT and TTS abstract ports for future phases.
+- `backend/interview_engine/ports.py`: Provider-neutral asynchronous byte-oriented STT and TTS ports implemented by the Phase 7 OpenAI adapters.
 - `backend/interview_engine/graph.py`: Deterministic lifecycle routing with model-generated greeting, questions, follow-ups, transitions, and closing.
 - `backend/interview_engine/engine.py`: Text streaming, response, explicit-end, and state-retrieval API.
 - `backend/interview_engine/builder.py`: Fluent dependency and configuration builder.
@@ -48,15 +49,18 @@ Last synchronized: 2026-07-29
 - `backend/app/repositories/settings.py`: Parameterized SQLite settings reads.
 - `backend/migrations/001_phase2_core.py`: Reversible settings foundation migration.
 - `backend/migrations/002_phase5_profile.py`: Reversible developer-profile, ordered link/experience/project, and avatar schema migration; CV documents are intentionally absent.
-- `backend/migrations/003_phase6_processes.py`: Complete interview schema in dependency order: processes, ordered stages, full attempts, canonical messages, graph state, and pending writes.
+- `backend/migrations/003_phase6_processes.py`: Complete interview schema in dependency order: processes, ordered stages, full attempts, canonical messages, optional audio artifacts, graph state, and pending writes.
+- `backend/migrations/004_phase7_media_preferences.py`: Reversible nullable current STT/TTS preference columns for attempt-local live overrides.
 - `backend/app/domain/processes.py`, `backend/app/repositories/processes.py`, and `backend/app/application/processes.py`: Validated process aggregate, atomic persistence, safe content import, and repeated-attempt creation.
 - `backend/app/api/processes.py`: Process list/create/detail/update/delete, URL-preview, and stage-attempt routes.
 - `backend/app/infrastructure/json_codec.py`: Versioned strict JSON codec and explicit LangChain message adapter; unsupported and binary values are rejected.
 - `backend/app/infrastructure/checkpointer.py`: Async `BaseCheckpointSaver` implementation with canonical transcript extraction, atomic shallow state upsert, idempotent pending writes, current-only listing, reconstruction, and graph-state deletion.
-- `backend/app/repositories/attempts.py`: Attempt configuration lookup, canonical transcript reads, and idempotent browser-harness bootstrap.
+- `backend/app/repositories/attempts.py`: Attempt configuration/status lookup, canonical transcript reads, pause/resume transitions, confirmed deletion with stage-status recalculation, and idempotent browser-harness bootstrap.
 - `backend/app/application/interviews.py`: Operation-scoped settings resolution and interview-engine orchestration using the application checkpointer.
+- `backend/app/infrastructure/openai_audio.py`: OpenAI transcription and MP3 speech adapters behind the interview-engine media ports.
 - `backend/app/api/websocket.py`: Versioned interview WebSocket adapter for session start/end, text answers, streaming assistant deltas/completions, ping/pong, and structured errors.
-- `backend/app/api/interviews.py`: Canonical transcript history endpoint for reconnect hydration.
+- Phase 7 extends the WebSocket adapter with push-to-talk audio segments, transient/final transcripts, live media-mode overrides, sentence-buffered sequenced audio, playback cancellation, pause/resume, and interview-state events.
+- `backend/app/api/interviews.py`: Status-bearing canonical transcript history for reconnect/read-only hydration and cascading attempt deletion.
 - `backend/app/api/index.py`: Inline accessible minimal browser chat harness.
 - `backend/app/main.py`: FastAPI factory, lifespan wiring, request IDs, structured application errors, root page, health, readiness, and capabilities.
 - `backend/tests/integration/`: Temporary-database migration, startup, capability, strict-codec, saver-conformance, and real compiled-LangGraph resume coverage.
@@ -71,14 +75,17 @@ Last synchronized: 2026-07-29
 - `backend/profile_parser/`: Bounded `pypdf` text extraction and checkpointer-free LangGraph structured-AI CV interpretation package.
 - `backend/tests/integration/test_profile.py`: Profile persistence, ordering, avatar validation, transient CV import, and no-document-storage coverage.
 - `frontend/`: Astro 7 and React 19 SPA-style frontend managed with pnpm 11, with strict TypeScript, ESLint, Prettier, Stylelint, and Vitest tooling.
-- `frontend/src/layouts/AppLayout.astro`: Persistent fixed shell with sidebar, header, responsive navigation, and Astro client routing transitions.
+- `frontend/src/layouts/AppLayout.astro`: Persistent shell with sidebar, optional standard header, explicit active-section routing, focused-page spacing, responsive navigation, and Astro client transitions.
 - `frontend/src/components/layout/HeaderAvatar.tsx`: Global profile link that loads the current avatar, uses a user-icon fallback, and reacts to profile updates without a page reload.
 - `frontend/src/components/ui/`: Reusable Font Awesome icon, button, form, input, select, switch, card, badge, toast, dialog, spinner, skeleton, empty-state, and error-state components.
+- Toast context identity lives in a dedicated non-rendering module, preventing Vite/Astro hot refresh or client navigation from pairing a refreshed `useToast` consumer with a stale provider context.
 - `frontend/src/styles/`: Ventura Tech-derived design tokens, component styles, responsive layout, dark mode, focus states, and reduced-motion behavior.
 - `frontend/src/services/`: Typed normalized HTTP client, settings API, and versioned interview WebSocket foundation.
 - `frontend/src/features/settings/`: Integrated OpenAI, interaction, theme, model, voice, provider-test, and secret-removal settings UI.
 - `frontend/src/features/profile/`: Prototype-aligned profile editor with autosave, explicit save, avatar management, ordered experience/projects, and modal profile import from a PDF CV.
-- `frontend/src/features/processes/`: Searchable process list, mode-aware reusable create/edit form, safe import preview, ordered stage configuration, process detail, attempt history/actions, confirmed deletion, and feedback placeholders.
+- `frontend/src/features/processes/`: Searchable process list, mode-aware reusable create/edit form, safe import preview, ordered stage configuration, process detail, complete attempt history with start/resume/view/delete actions, confirmed deletion, and feedback placeholders.
+- Attempt-history actions use compact start, resume, view, and delete icons with accessible names and native title tooltips. Attempt badges translate persisted state names into user-facing labels without changing transport values.
+- `frontend/src/features/interview/`: API-history hydration, reconnecting versioned WebSocket session, typed answers, explicit-permission push-to-talk, friendly voice-answer/spoken-reply controls, sequenced/cancellable browser audio, pause/end controls, and accessible transcript UI. The bundled interviewer portrait anchors the lower-left desktop rail and receives an animated streaming glow; mobile replaces it with an animated three-dot SVG message indicator.
 - `frontend/src/services/process-api.ts` and `frontend/src/types/process.ts`: Typed process aggregate, content-source, stage-configuration, attempt, and CRUD transport contracts.
 - `frontend/src/services/profile-api.ts`: Typed profile aggregate and transient multipart avatar/CV transport.
 - `frontend/src/types/profile.ts`: Profile aggregate, ordered collections, draft, and transient CV suggestion transport types.
@@ -106,6 +113,16 @@ Last synchronized: 2026-07-29
 - Settings API mappings and repository known-key checks derive from `SETTING_DEFINITIONS`; persistence uses flat enum values such as `api_key` while higher-level classes retain conceptual grouping.
 - `SettingKey` exposes `.value`, `.default`, and `.secret` from the single definition dictionary; `setting_keys()` supplies key-only iterations without a second registry.
 - The browser harness retains its deterministic attempt ID and generated stable thread ID; its nullable `stage_id` keeps it separate from user-created Phase 6 process history.
+- Phase 7 resolves initial STT/TTS modes from the attempt snapshot, persisted global enablement, and provider configuration. Connection-local live overrides may enable or disable either globally available capability even when the attempt initially preferred text-only interaction. Requests for unavailable voice capabilities emit a user-visible warning rather than silently remaining off.
+- New process-stage drafts inherit current global STT/TTS settings. Live mode updates persist separately on the attempt and take precedence over its immutable configuration snapshot after reload; provider capability still gates execution. Browser permission and autoplay failures remain transient and do not mutate preferences.
+- Push-to-talk uses base64 WebSocket chunks limited to 256 KiB and recorded segments limited to 10 MiB. Partial transcript events are transient receive progress; only final transcription text enters the interview engine and canonical transcript.
+- Assistant text remains authoritative. TTS receives sentence/latency-sized buffers, serializes speech generation in transcript order, emits sequenced MP3 chunks, and runs in a cancellable per-connection chain so interruption or mode changes stop stale and queued playback.
+- Browser playback groups chunks by audio ID, queues completed speech segments without overlap, and immediately clears current and queued output when the user records, disables TTS, or receives server cancellation.
+- Interviewer activity is derived from actual assistant text deltas rather than connection state. Desktop and mobile activity animations honor reduced-motion preferences.
+- The interview simulator consumes the viewport space remaining below the fixed shell header, page spacing, and parent back link, with a 52 rem minimum height. Its transcript is the internal overflow region, avoiding page-level vertical scrollbars on taller screens.
+- The focused interview route omits the global header, moves exact-parent and mobile-navigation actions into the chat header, uses near-full viewport height, and explicitly marks Processes as the active navigation section across persisted transitions. The chat header shows a non-interactive current-profile avatar with the candidate name as its accessible label and title tooltip. All send, media, recording, pause/resume, and end actions are compact icon-only controls; on smaller screens the answer field forms a full-width row above the wrapped action bar.
+- WebSocket turn completion emits the persisted attempt status. When it becomes `completed`, the simulator immediately removes its input and session controls, leaving a read-only transcript accessible through the process attempt-history view action.
+- Persistence and interaction statuses remain distinct: an attempt stays `in_progress` in SQLite while a completed non-terminal stream emits `ready_for_answer` to enable candidate input; only persisted `completed` maps to the terminal simulator state.
 - Reconnecting clients fetch canonical history first. A non-empty history resumes immediately and may send `user.text` without `session.start`; an empty or unavailable history causes the harness to send `session.start`.
 - Phase 3 exposes settings status, updates, removal, and provider testing through the `SettingsService` facade and safe HTTP routes.
 - Phase 3 uses a local 256-bit master key at `backend/.secret-key` by default; `AppConfig.secret_path` supports an installation-specific path. The key file is mode `0600` and ignored by git.
@@ -113,7 +130,7 @@ Last synchronized: 2026-07-29
 - Settings are constrained by a known-key registry; arbitrary client keys are rejected. Model names, voice, theme, and provider values are validated before persistence.
 - Phase 4 uses Astro pages with React islands only for interactive state; the shell and placeholders render as static HTML.
 - The frontend uses native CSS with BEM naming, `1rem = 10px`, design tokens, system-aware themes, and Font Awesome through one reusable icon component.
-- Development HTTP calls use Astro's same-origin `/api` proxy to FastAPI; production base URLs can be supplied with public build-time variables.
+- Development HTTP and WebSocket calls use Astro's same-origin `/api` proxy to FastAPI with WebSocket upgrades explicitly enabled; production base URLs can be supplied with public build-time variables.
 - Responsive navigation makes the off-canvas sidebar inert and hidden from assistive technology while closed, supports Escape and link-based closing, and avoids duplicate listeners across Astro page transitions.
 - Frontend dependency installation and scripts use pnpm; `pnpm-lock.yaml` is the authoritative lockfile.
 - Frontend TypeScript path aliases use explicit relative targets and do not set the deprecated `baseUrl` compiler option.
@@ -129,7 +146,8 @@ Last synchronized: 2026-07-29
 - Phase 6 process writes are aggregate-oriented and transactional. Ordered stage configuration is replaced freely before attempts exist; after history exists, stage identities remain stable while configuration, order, and enabled state may change for future attempts.
 - URL-based job/company input resolves only public HTTP(S) hosts, revalidates bounded redirects, accepts HTML/plain text up to 1 MB, strips executable markup, and returns normalized text for preview before persistence.
 - Starting an enabled stage snapshots the current candidate profile, process context, stage type, and complete engine configuration into a new attempt with a monotonically increasing stage-local number; prior attempts are never overwritten.
-- Opening or responding in an attempt transitions it to `in_progress` and records its first start time. A successfully streamed explicit end marks the attempt and owning stage completed with the `user_requested` termination reason.
+- Opening or responding in an attempt transitions it to `in_progress` and records its first start time. After every completed graph stream, the application reads authoritative engine state; natural limit/topic completion and explicit ends mark the attempt and owning stage completed with the graph termination reason.
+- Pause/resume events persist `paused`/`in_progress` attempt state. Opening resumable history sends `session.resume`, which restores live media modes without regenerating a question. Process detail links every historical attempt back to the simulator; completed history is read-only. Confirmed attempt deletion relies on foreign-key cascades and recalculates the owning stage from its remaining history without renumbering surviving attempts.
 - Avatar uploads are limited to 2 MB, validated by MIME type, decoded format, and dimensions, and stored with metadata as a SQLite BLOB.
 - CV intake accepts text-based PDFs up to 10 MB and 30 pages. `pypdf` only converts documents to bounded plain text; a fresh structured-output OpenAI/LangGraph parser interprets the complete profile using the current database key and chat model for each upload.
 - AI CV parsing has no heuristic or compatibility fallback and no checkpointer. Missing provider configuration returns an explicit 503, provider failures return an explicit 502, and requests use a bounded timeout/retry policy.
@@ -156,9 +174,9 @@ Last synchronized: 2026-07-29
 - Engine operations: `stream_start`, `stream_response`, `stream_end`, and `get_state`.
 - HTTP routes: `GET /`, health/readiness/capabilities, interview history, settings CRUD/provider test, profile/avatar/CV import, process CRUD/import preview, and per-stage attempt creation under `/api/v1/processes`.
 - WebSocket route: `/api/v1/interviews/{attempt_id}/ws`.
-- Implemented client WebSocket events: `session.start`, `user.text`, `session.end`, and `ping`.
-- Implemented server WebSocket events: `session.ready`, `assistant.text.delta`, `assistant.text.completed`, `error`, and `pong`.
-- Database entities: `settings`, `interview_processes`, ordered `interview_stages`, numbered `interview_attempts`, canonical `interview_messages`, shallow `interview_graph_state`, temporary `interview_graph_writes`, singleton `developer_profiles`, ordered `profile_links`, ordered `work_experiences`, and ordered `projects`.
+- Implemented client WebSocket events: `session.start`, `user.text`, `user.audio.start`, `user.audio.chunk`, `user.audio.end`, `audio.output.cancel`, `mode.update`, `session.pause`, `session.resume`, `session.end`, and `ping`.
+- Implemented server WebSocket events: `session.ready`, assistant text/audio delta/completion/cancellation, partial/final transcripts, interview state, mode updates, warnings, errors, and `pong`.
+- Database entities: `settings`, `interview_processes`, ordered `interview_stages`, numbered `interview_attempts`, canonical `interview_messages`, optional `audio_artifacts`, shallow `interview_graph_state`, temporary `interview_graph_writes`, singleton `developer_profiles`, ordered `profile_links`, ordered `work_experiences`, and ordered `projects`.
 - Migration `001_phase2_core` creates only settings. Interview persistence is consolidated in migration 003 so attempts are created with their final process-stage relationship instead of being altered later.
 - Phase 3 requires no schema migration: the existing key/value `settings` table supports the complete known-key registry and encrypted values.
 - Migration `002_phase5_profile` creates only the final profile schema without CV-document persistence. Collection ordering is protected by per-profile unique positions.
@@ -171,7 +189,7 @@ Last synchronized: 2026-07-29
 - `MAP.md` did not exist before Phase 1 started; this file was derived from the repository.
 - `PHASE_PROMPT.md` has a pre-existing user modification and must not be overwritten.
 - Natural voice interruption is not implemented in Phase 1. The media ports preserve the future boundary; push-to-talk is the reliable Phase 7 baseline and browser VAD/barge-in is a higher-complexity progressive enhancement.
-- Phase 2 exposes only the protocol subset required for text interview testing. Audio, mode changes, pause/resume controls, report events, and canvas events remain assigned to later phases.
+- Report and canvas WebSocket events remain assigned to later phases.
 - The browser-harness attempt intentionally has no owning process stage. User-created attempts always belong to a stage and receive stage-local immutable attempt numbers.
 - Phase 5 CV extraction supports text-based PDFs. Scanned/image-only and password-protected PDFs return a validation error instead of invoking OCR.
 
@@ -225,3 +243,26 @@ Last synchronized: 2026-07-29
 - Phase 6 dependency check: Python reports no broken requirements.
 - Fixture-loader layering refinement: reusable execution lives in `backend.app.core.fixtures`; both the CLI wrapper and integration preparation import that core operation. Ruff, strict mypy, and all 23 backend tests pass.
 - Interview migration consolidation: fresh apply and complete rollback pass with migration 001 limited to settings and migration 003 creating processes before stages, final-form attempts, messages, graph state, and writes; all 23 backend tests remain passing.
+- Phase 7 fresh migration apply and complete rollback: Passed with the optional attempt/message-linked audio-artifact schema included in the dependency-ordered interview migration.
+- Phase 7 backend Ruff formatting/lint and strict mypy: Passed for 68 backend files and 44 application, engine, and parser source files.
+- Phase 7 backend Pytest: 24 tests passed, including attempt/global media-mode resolution.
+- Phase 7 frontend Prettier, ESLint, and Stylelint: Passed.
+- Phase 7 Astro diagnostics: 55 files checked with zero errors, warnings, or hints.
+- Phase 7 Vitest: 16 tests passed, including history-first session startup, streamed interviewer output, typed answers, and live TTS mode updates.
+- Phase 7 production build: All 9 static routes generated successfully.
+- Phase 7 dependency checks: Python reports no broken requirements and the production pnpm audit reports no known vulnerabilities.
+- Phase 7 repository diff whitespace check: Passed.
+- Phase 7 development-proxy correction: Astro now explicitly upgrades same-origin `/api` WebSockets; a live `ping`/`pong` through Astro to FastAPI passed, followed by formatting, 55-file Astro diagnostics, all 16 frontend tests, and the repository whitespace check.
+- Phase 7 interviewer-presence refinement: desktop portrait rail, delta-driven glow, mobile animated SVG indicator, reduced-motion behavior, and friendly media labels pass Prettier, ESLint, Stylelint, all 16 frontend tests, 55-file Astro diagnostics, the 9-route production build, and the repository whitespace check.
+- Phase 7 viewport-fit refinement: the responsive simulator height and transcript-only overflow pass Prettier, Stylelint, all 16 frontend tests, 55-file Astro diagnostics, and the repository whitespace check.
+- Phase 7 attempt-history refinement: persisted pause/resume, status-bearing history, read-only completed sessions, process-detail attempt navigation, cascading confirmed deletion, and stage-status recalculation pass Ruff, strict mypy, all 24 backend tests, Prettier, ESLint, Stylelint, all 16 frontend tests, 55-file Astro diagnostics, and the 9-route production build.
+- Phase 7 attempt-action presentation refinement: icon-only actions retain accessible names and title tooltips, while attempt badges use user-facing state labels; ESLint, Stylelint, all 16 frontend tests, 55-file Astro diagnostics, and the repository whitespace check pass.
+- Phase 7 toast-context stability correction: the stable context module passes Prettier, ESLint, Stylelint, all 16 frontend tests, 56-file Astro diagnostics, and the repository whitespace check.
+- Phase 7 live-voice correction: live mode enablement now gates against global/provider capability rather than the attempt’s initial preference and unavailable requests emit warnings; Ruff, strict mypy, all 24 backend tests, all 16 frontend tests, 56-file Astro diagnostics, and the repository whitespace check pass.
+- Phase 7 compact-controls refinement: icon-only voice toggles, unified action grouping, and responsive answer stacking pass Prettier, ESLint, Stylelint, all 16 frontend tests, 56-file Astro diagnostics, and the repository whitespace check.
+- Phase 7 natural-completion correction: post-stream graph-state reconciliation and transcript-only completed UI pass Ruff, strict mypy, all 25 backend tests, Prettier, ESLint, Stylelint, all 16 frontend tests, 56-file Astro diagnostics, and the repository whitespace check.
+- Phase 7 post-greeting input correction: persisted `in_progress` now maps to interactive `ready_for_answer` after streaming; Ruff, strict mypy, all 26 backend tests, and the repository whitespace check pass.
+- Phase 7 speech-order correction: buffered TTS requests now execute through a cancellable per-connection serial chain, preserving transcript order; Ruff, strict mypy, all 26 backend tests, and the repository whitespace check pass.
+- Phase 7 durable-media refinement: migration 004 applies and rolls back cleanly; the current development database was migrated explicitly. Attempt-local media persistence and global process defaults pass Ruff, strict mypy, all 26 backend tests, Prettier, ESLint, Stylelint, all 16 frontend tests, 56-file Astro diagnostics, the 9-route production build, and the repository whitespace check.
+- Phase 7 focused-layout refinement: in-header parent navigation, reduced route whitespace, expanded transcript, fully icon-only controls, responsive stacking, and active Processes navigation pass Prettier, ESLint, Stylelint, all 16 frontend tests, 56-file Astro diagnostics, the 9-route production build, generated-route navigation inspection, and the repository whitespace check.
+- Phase 7 focused-shell refinement: the interview route omits the global header, fills the viewport, exposes mobile navigation and a non-clickable candidate avatar in the chat header, and uses an explicit persisted Processes selection; Prettier, ESLint, Stylelint, all 16 frontend tests, 56-file Astro diagnostics, the 9-route production build, generated HTML header/navigation inspection, and the repository whitespace check pass.

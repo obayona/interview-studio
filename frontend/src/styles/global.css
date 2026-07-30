@@ -168,6 +168,10 @@ a {
   padding: calc(var(--header-height) + 5rem) clamp(2rem, 5vw, 6.4rem) 6rem;
 }
 
+.app-shell__main--focused {
+  padding: 2rem clamp(2rem, 4vw, 4rem);
+}
+
 .page {
   width: min(116rem, 100%);
   margin: 0 auto;
@@ -267,6 +271,10 @@ a {
   .app-shell__main {
     margin-left: 0;
     padding-inline: 1.6rem;
+  }
+
+  .app-shell__main--focused {
+    padding-block: 1.2rem;
   }
 }
 

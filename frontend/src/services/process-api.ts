@@ -35,4 +35,9 @@ export const processApi = {
       `/api/v1/processes/${encodeURIComponent(processId)}/stages/${encodeURIComponent(stageId)}/attempts`,
       { method: 'POST' },
     ),
+  deleteAttempt: (attemptId: string) =>
+    apiClient.request<void>(
+      `/api/v1/attempts/${encodeURIComponent(attemptId)}`,
+      { method: 'DELETE' },
+    ),
 };

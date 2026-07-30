@@ -1,0 +1,329 @@
+.interview {
+  display: grid;
+  position: relative;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: calc(100dvh - 4rem);
+  min-height: 52rem;
+  overflow: hidden;
+  border: 0.1rem solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+}
+
+.page--interview {
+  margin-top: 0;
+}
+
+.interview__status {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  padding: 1.4rem 2rem;
+  border-bottom: 0.1rem solid var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.interview__back {
+  flex: 0 0 auto;
+  min-height: 3.4rem;
+}
+
+.interview__menu {
+  display: none;
+}
+
+.interview__candidate {
+  display: grid;
+  width: 3.6rem;
+  height: 3.6rem;
+  margin-inline-start: auto;
+  place-items: center;
+  overflow: hidden;
+  border: 0.1rem solid var(--color-border);
+  border-radius: 50%;
+  color: var(--color-primary);
+  background: var(--color-surface-muted);
+}
+
+.interview__candidate img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.interview__status strong {
+  color: var(--color-text);
+}
+
+.interview__mobile-speaking {
+  display: none;
+  width: 3.6rem;
+  height: 2.7rem;
+  margin-inline-start: auto;
+  color: var(--color-text-muted);
+}
+
+.interview__mobile-speaking svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.interview__mobile-speaking path {
+  fill: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));
+  stroke: currentcolor;
+  stroke-width: 2;
+}
+
+.interview__mobile-speaking circle {
+  fill: currentcolor;
+  opacity: 0.45;
+}
+
+.interview__mobile-speaking.is-streaming {
+  color: var(--color-primary);
+}
+
+.interview__mobile-speaking.is-streaming circle {
+  animation: interview-speaking-dot 1.15s infinite ease-in-out;
+}
+
+.interview__mobile-speaking.is-streaming circle:nth-of-type(2) {
+  animation-delay: 150ms;
+}
+
+.interview__mobile-speaking.is-streaming circle:nth-of-type(3) {
+  animation-delay: 300ms;
+}
+
+.interview__interviewer {
+  position: absolute;
+  z-index: 2;
+  bottom: 10rem;
+  left: 2.4rem;
+  display: grid;
+  width: 15rem;
+  justify-items: center;
+  color: var(--color-text-muted);
+  font-size: 1.3rem;
+  text-align: center;
+}
+
+.interview__interviewer strong {
+  margin-top: 1rem;
+  color: var(--color-text);
+  font-size: 1.5rem;
+}
+
+.interview__interviewer-portrait {
+  width: 13rem;
+  height: 17rem;
+  overflow: hidden;
+  border: 0.3rem solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface-muted);
+  box-shadow: 0 0.8rem 2.4rem rgb(0 0 0 / 12%);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.interview__interviewer-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.interview__interviewer.is-streaming .interview__interviewer-portrait {
+  border-color: var(--color-primary);
+  animation: interview-portrait-speaking 1.8s infinite ease-in-out;
+}
+
+.interview__status-dot {
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 50%;
+  background: var(--color-warning);
+}
+
+.interview__status-dot.is-connected {
+  background: var(--color-success);
+}
+
+.interview__conversation {
+  display: flex;
+  flex-direction: column;
+  gap: 2.4rem;
+  overflow-y: auto;
+  padding: clamp(2rem, 4vw, 4rem);
+  padding-inline-start: clamp(19rem, 20vw, 23rem);
+}
+
+.interview__welcome {
+  display: grid;
+  place-items: center;
+  margin: auto;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.interview__welcome h2 {
+  margin-bottom: 0;
+  color: var(--color-text);
+}
+
+.interview__message {
+  display: grid;
+  gap: 0.6rem;
+  max-width: min(72rem, 84%);
+}
+
+.interview__message > span {
+  color: var(--color-text-muted);
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.interview__message--user {
+  align-self: end;
+}
+
+.interview__message--user > span {
+  text-align: right;
+}
+
+.interview__bubble {
+  display: flex;
+  gap: 1.2rem;
+  align-items: start;
+  padding: 1.5rem 1.8rem;
+  border: 0.1rem solid var(--color-border);
+  border-radius: 0 var(--radius-xl) var(--radius-xl);
+  background: var(--color-surface-muted);
+}
+
+.interview__message--user .interview__bubble {
+  color: var(--color-on-primary);
+  border: 0;
+  border-radius: var(--radius-xl) 0 var(--radius-xl) var(--radius-xl);
+  background: var(--color-primary);
+}
+
+.interview__bubble p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.interview__controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  align-items: flex-end;
+  padding: 1rem 1.2rem;
+  border-top: 0.1rem solid var(--color-border);
+  background: var(--color-surface-muted);
+}
+
+.interview__answer {
+  display: flex;
+  grid-column: 1;
+  grid-row: 1;
+  gap: 0.8rem;
+  width: 100%;
+}
+
+.interview__button-bar {
+  display: flex;
+  grid-column: 2;
+  grid-row: 1;
+  gap: 0.8rem;
+  align-items: center;
+  justify-content: end;
+}
+
+.interview__answer textarea {
+  width: 100%;
+  min-height: 4rem;
+  max-height: 12rem;
+  resize: vertical;
+  padding: 1rem 1.2rem;
+  border: 0.1rem solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+
+.interview__talk.is-listening {
+  animation: interview-pulse 1.4s infinite;
+}
+
+@keyframes interview-pulse {
+  50% {
+    box-shadow: 0 0 0 0.8rem
+      color-mix(in srgb, var(--color-primary) 18%, transparent);
+  }
+}
+
+@keyframes interview-portrait-speaking {
+  50% {
+    box-shadow:
+      0 0 0 0.7rem color-mix(in srgb, var(--color-primary) 17%, transparent),
+      0 1.2rem 3.2rem color-mix(in srgb, var(--color-primary) 30%, transparent);
+  }
+}
+
+@keyframes interview-speaking-dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0);
+  }
+
+  30% {
+    opacity: 1;
+    transform: translateY(-0.3rem);
+  }
+}
+
+@media (width <= 980px) {
+  .interview__controls {
+    grid-template-columns: 1fr;
+  }
+
+  .interview__button-bar {
+    grid-column: 1;
+    grid-row: 2;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+@media (width <= 760px) {
+  .interview__menu {
+    display: inline-flex;
+  }
+
+  .interview__mobile-speaking {
+    display: block;
+  }
+
+  .interview__interviewer {
+    display: none;
+  }
+
+  .interview__conversation {
+    padding-inline-start: clamp(2rem, 4vw, 4rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .interview__talk.is-listening,
+  .interview__interviewer.is-streaming .interview__interviewer-portrait,
+  .interview__mobile-speaking.is-streaming circle {
+    animation: none;
+  }
+}

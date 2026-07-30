@@ -8,9 +8,16 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { ErrorState } from '../../components/ui/States';
 import { ToastProvider, useToast } from '../../components/ui/Toast';
 import { processApi } from '../../services/process-api';
-import type { InterviewProcess } from '../../types/process';
+import type { AttemptSummary, InterviewProcess } from '../../types/process';
 import { stageLabels } from './defaults';
 import './processes.css';
+
+const attemptStatusLabels: Record<string, string> = {
+  ready: 'Ready to start',
+  in_progress: 'In progress',
+  paused: 'Paused',
+  completed: 'Completed',
+};
 
 function ProcessDetailContent() {
   const { showToast } = useToast();
@@ -20,6 +27,8 @@ function ProcessDetailContent() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [startingStage, setStartingStage] = useState<string>();
+  const [attemptToDelete, setAttemptToDelete] = useState<AttemptSummary>();
+  const [deletingAttempt, setDeletingAttempt] = useState(false);
   const [processId, setProcessId] = useState<string | null>();
 
   useEffect(() => {
@@ -69,6 +78,24 @@ function ProcessDetailContent() {
     } catch {
       showToast('Process could not be deleted.', 'error');
       setDeleting(false);
+    }
+  };
+
+  const removeAttempt = async () => {
+    if (!attemptToDelete) return;
+    setDeletingAttempt(true);
+    try {
+      await processApi.deleteAttempt(attemptToDelete.id);
+      setAttemptToDelete(undefined);
+      await load();
+      showToast(
+        `Attempt ${attemptToDelete.attempt_number} deleted.`,
+        'success',
+      );
+    } catch {
+      showToast('Interview attempt could not be deleted.', 'error');
+    } finally {
+      setDeletingAttempt(false);
     }
   };
 
@@ -147,8 +174,56 @@ function ProcessDetailContent() {
                 >
                   {stage.attempts.map((attempt) => (
                     <li className="processes__attempt" key={attempt.id}>
-                      <span>Attempt {attempt.attempt_number}</span>
-                      <Badge>{attempt.status}</Badge>
+                      <div className="processes__attempt-summary">
+                        <strong>Attempt {attempt.attempt_number}</strong>
+                        <span>
+                          {new Date(attempt.created_at).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="processes__attempt-actions">
+                        <Badge>
+                          {attemptStatusLabels[attempt.status] ??
+                            attempt.status.replaceAll('_', ' ')}
+                        </Badge>
+                        <a
+                          className="ui-button ui-button--icon"
+                          href={`/interview?attempt=${encodeURIComponent(
+                            attempt.id,
+                          )}&process=${encodeURIComponent(process.id)}`}
+                          aria-label={
+                            attempt.status === 'completed'
+                              ? 'View attempt'
+                              : attempt.status === 'ready'
+                                ? 'Start attempt'
+                                : 'Resume attempt'
+                          }
+                          title={
+                            attempt.status === 'completed'
+                              ? 'View attempt'
+                              : attempt.status === 'ready'
+                                ? 'Start attempt'
+                                : 'Resume attempt'
+                          }
+                        >
+                          <Icon
+                            name={
+                              attempt.status === 'completed'
+                                ? 'view'
+                                : attempt.status === 'ready'
+                                  ? 'play'
+                                  : 'resume'
+                            }
+                          />
+                        </a>
+                        <Button
+                          variant="danger"
+                          aria-label={`Delete attempt ${attempt.attempt_number}`}
+                          title={`Delete attempt ${attempt.attempt_number}`}
+                          onClick={() => setAttemptToDelete(attempt)}
+                        >
+                          <Icon name="trash" />
+                        </Button>
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -199,6 +274,36 @@ function ProcessDetailContent() {
               onClick={() => void remove()}
             >
               {deleting ? 'Deleting…' : 'Delete process'}
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(attemptToDelete)}
+        onClose={() => {
+          if (!deletingAttempt) setAttemptToDelete(undefined);
+        }}
+      >
+        <div className="ui-dialog__content">
+          <h2>Delete interview attempt?</h2>
+          <p>
+            This permanently deletes attempt {attemptToDelete?.attempt_number},
+            including its transcript, checkpoint, and audio.
+          </p>
+          <div className="ui-dialog__actions">
+            <Button
+              disabled={deletingAttempt}
+              onClick={() => setAttemptToDelete(undefined)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              disabled={deletingAttempt}
+              onClick={() => void removeAttempt()}
+            >
+              {deletingAttempt ? 'Deleting…' : 'Delete attempt'}
             </Button>
           </div>
         </div>

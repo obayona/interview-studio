@@ -7,9 +7,15 @@ import '../styles/global.css';
 interface Props {
   title: string;
   description?: string;
+  focused?: boolean;
+  activeSection?: string;
 }
-const { title, description = 'Practice technical interviews with AI.' } =
-  Astro.props;
+const {
+  title,
+  description = 'Practice technical interviews with AI.',
+  focused = false,
+  activeSection,
+} = Astro.props;
 ---
 
 <!doctype html>
@@ -27,11 +33,19 @@ const { title, description = 'Practice technical interviews with AI.' } =
         document.documentElement.dataset.theme = savedTheme;
     </script>
   </head>
-  <body>
+  <body data-active-section={activeSection}>
     <div class="app-shell" data-menu-open="false">
-      <Sidebar />
-      <Header />
-      <main class="app-shell__main" id="main-content"><slot /></main>
+      <Sidebar activeSection={activeSection} />
+      {!focused && <Header />}
+      <main
+        class:list={[
+          'app-shell__main',
+          { 'app-shell__main--focused': focused },
+        ]}
+        id="main-content"
+      >
+        <slot />
+      </main>
     </div>
     <script>
       const bindMenu = () => {
@@ -67,10 +81,16 @@ const { title, description = 'Practice technical interviews with AI.' } =
         document
           .querySelectorAll<HTMLAnchorElement>('.app-shell__nav-link')
           .forEach((link) => {
+            const activeSection = document.body.dataset.activeSection;
+            const activePathname = activeSection
+              ? `/${activeSection}`
+              : window.location.pathname.startsWith('/interview')
+                ? '/processes'
+                : window.location.pathname;
             const active =
-              link.pathname === window.location.pathname ||
+              link.pathname === activePathname ||
               (link.pathname !== '/' &&
-                window.location.pathname.startsWith(link.pathname));
+                activePathname.startsWith(link.pathname));
             if (active) link.setAttribute('aria-current', 'page');
             else link.removeAttribute('aria-current');
             if (link.dataset.menuBound !== 'true') {

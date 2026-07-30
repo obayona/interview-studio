@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import AsyncIterator
 from dataclasses import dataclass
 
 
@@ -21,11 +20,11 @@ class TranscriptChunk:
 
 class SpeechToTextPort(ABC):
     @abstractmethod
-    def transcribe(self, chunks: AsyncIterator[AudioChunk]) -> AsyncIterator[TranscriptChunk]:
+    async def transcribe(self, audio: bytes, filename: str) -> str:
         raise NotImplementedError
 
 
 class TextToSpeechPort(ABC):
     @abstractmethod
-    def synthesize(self, text: AsyncIterator[str]) -> AsyncIterator[AudioChunk]:
+    async def synthesize(self, text: str) -> bytes:
         raise NotImplementedError

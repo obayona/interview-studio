@@ -31,6 +31,11 @@ class AISettings(BaseModel):
 
     api_key: str = ""
     chat_model: str = "gpt-4o-mini"
+    transcription_model: str = "gpt-4o-mini-transcribe"
+    speech_model: str = "gpt-4o-mini-tts"
+    voice: str = "alloy"
+    stt_enabled: bool = False
+    tts_enabled: bool = False
 
     @property
     def interview_ready(self) -> bool:
@@ -48,6 +53,11 @@ class SettingsService:
             (
                 SettingKey.API_KEY.value,
                 SettingKey.CHAT_MODEL.value,
+                SettingKey.TRANSCRIPTION_MODEL.value,
+                SettingKey.SPEECH_MODEL.value,
+                SettingKey.VOICE.value,
+                SettingKey.STT_ENABLED.value,
+                SettingKey.TTS_ENABLED.value,
             )
         )
         return AISettings(
@@ -56,18 +66,23 @@ class SettingsService:
                 SettingKey.CHAT_MODEL.value,
                 SettingKey.CHAT_MODEL.default,
             ),
+            transcription_model=values.get(
+                SettingKey.TRANSCRIPTION_MODEL.value,
+                SettingKey.TRANSCRIPTION_MODEL.default,
+            ),
+            speech_model=values.get(
+                SettingKey.SPEECH_MODEL.value,
+                SettingKey.SPEECH_MODEL.default,
+            ),
+            voice=values.get(SettingKey.VOICE.value, SettingKey.VOICE.default),
+            stt_enabled=values.get(SettingKey.STT_ENABLED.value) == "true",
+            tts_enabled=values.get(SettingKey.TTS_ENABLED.value) == "true",
         )
 
     async def capabilities(self) -> dict[str, object]:
         ai = await self.ai()
-        values = await self._repository.get_many(
-            tuple(
-                SettingKey(name).value
-                for name in ("stt_enabled", "tts_enabled", "transcription_model", "speech_model")
-            )
-        )
-        stt_available = bool(values.get(SettingKey.STT_ENABLED.value) == "true" and ai.api_key)
-        tts_available = bool(values.get(SettingKey.TTS_ENABLED.value) == "true" and ai.api_key)
+        stt_available = bool(ai.stt_enabled and ai.api_key and ai.transcription_model)
+        tts_available = bool(ai.tts_enabled and ai.api_key and ai.speech_model and ai.voice)
         return {
             "interview": {
                 "available": ai.interview_ready,

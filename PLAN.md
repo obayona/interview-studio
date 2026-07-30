@@ -381,7 +381,7 @@ Acceptance:
 - Attempts never overwrite history.
 - Text and URL inputs yield equivalent normalized data.
 
-### Phase 7 — TTS, STT, and Interview Simulator
+### Phase 7 — TTS, STT, and Interview Simulator ✅ Completed 2026-07-30
 
 - Implement OpenAI transcription and speech adapters behind provider-neutral ports.
 - Extend the WebSocket protocol for audio, transcript, mode, cancellation, and state events.

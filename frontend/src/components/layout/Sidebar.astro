@@ -1,7 +1,16 @@
 ---
 import { Icon, type IconName } from '../ui/Icon';
 
+interface Props {
+  activeSection?: string;
+}
+const { activeSection } = Astro.props;
 const { pathname } = Astro.url;
+const activePathname = activeSection
+  ? `/${activeSection}`
+  : pathname.startsWith('/interview')
+    ? '/processes'
+    : pathname;
 const links: Array<{ href: string; label: string; icon: IconName }> = [
   { href: '/', label: 'Home', icon: 'home' },
   { href: '/processes', label: 'Processes', icon: 'briefcase' },
@@ -20,8 +29,8 @@ const links: Array<{ href: string; label: string; icon: IconName }> = [
           class="app-shell__nav-link"
           href={link.href}
           aria-current={
-            pathname === link.href ||
-            (link.href !== '/' && pathname.startsWith(link.href))
+            activePathname === link.href ||
+            (link.href !== '/' && activePathname.startsWith(link.href))
               ? 'page'
               : undefined
           }

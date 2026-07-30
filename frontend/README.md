@@ -78,6 +78,7 @@ src/
     layout/       Astro shell components
     ui/           Reusable accessible React components
   features/
+    interview/    Streaming text/audio simulator and browser media controls
     profile/      Profile editor, autosave, avatar, and CV import
     processes/    Process list, configurable creation/editing, and attempt history
     settings/     Settings page React island
@@ -108,3 +109,15 @@ The current routes are:
 
 Design tokens support light, dark, and system themes. Shared styles include
 visible keyboard focus and reduced-motion behavior.
+
+The interview route requires `attempt` and `process` query parameters. It hydrates
+canonical history before connecting, supports typed answers in every mode, and
+uses explicit browser microphone permission for push-to-talk when STT is available.
+STT and TTS can be disabled live. Assistant audio is queued in sequence, while a
+new answer, recording, or mode change cancels stale playback.
+New process stages inherit global voice preferences, and live attempt changes are
+persisted across reloads. Microphone denial or blocked autoplay displays feedback
+without changing the saved preference.
+Process details list every attempt with its timestamp and status. Ready or paused
+attempts can be started/resumed, completed attempts open read-only, and deletion
+uses an explicit confirmation before removing the attempt history.

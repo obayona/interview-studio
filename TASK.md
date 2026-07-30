@@ -136,3 +136,19 @@ Phase 5 completed and verified on 2026-07-29.
 - [x] Mark Phase 6 complete in `PLAN.md`, `TASK.md`, and `MAP.md`.
 
 Phase 6 completed and verified on 2026-07-29.
+
+## Phase 7 — TTS, STT, and Interview Simulator
+
+- [x] Query `MAP.md` before starting and reconcile it with the repository.
+- [x] Implement OpenAI transcription and speech adapters behind provider-neutral ports.
+- [x] Extend the WebSocket protocol for bounded audio, transcripts, modes, cancellation, pause/resume, and state.
+- [x] Resolve live modes from attempt settings, global settings, provider availability, and live overrides.
+- [x] Buffer assistant text before TTS and sequence cancellable audio chunks.
+- [x] Implement browser push-to-talk capture, playback, interruption, and reconnect.
+- [x] Build the accessible interview simulator using the supplied interviewer image.
+- [x] Add backend and frontend Phase 7 tests.
+- [x] Run migration, formatting, linting, typing, tests, build, and accessibility verification.
+- [x] Completely synchronize `MAP.md` with the implemented system.
+- [x] Mark Phase 7 complete in `PLAN.md`, `TASK.md`, and `MAP.md`.
+
+Phase 7 completed and verified on 2026-07-30.

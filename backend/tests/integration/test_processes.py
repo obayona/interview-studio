@@ -92,9 +92,27 @@ async def test_process_crud_stage_configuration_and_repeated_attempts(
             assert second.json()["attempt_number"] == 2
             assert first.json()["id"] != second.json()["id"]
 
+            await app.state.attempts.set_media_preference(
+                first.json()["id"], "speech_to_text", True
+            )
+            assert await app.state.attempts.media_preferences(first.json()["id"]) == {
+                "speech_to_text": True,
+                "text_to_speech": None,
+            }
+            await app.state.attempts.mark_started(first.json()["id"])
+            await app.state.attempts.mark_paused(first.json()["id"])
             detail = (await client.get(f"/api/v1/processes/{process_id}")).json()
             assert len(detail["stages"][0]["attempts"]) == 2
+            assert detail["stages"][0]["attempts"][0]["status"] == "paused"
             assert detail["stages"][0]["status"] == "in_progress"
+
+            deleted_attempt = await client.delete(f"/api/v1/attempts/{first.json()['id']}")
+            assert deleted_attempt.status_code == 204
+            detail = (await client.get(f"/api/v1/processes/{process_id}")).json()
+            assert [item["attempt_number"] for item in detail["stages"][0]["attempts"]] == [2]
+            assert (
+                await client.delete(f"/api/v1/attempts/{first.json()['id']}")
+            ).status_code == 404
 
             reordered = [
                 {

@@ -11,6 +11,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, Response
 from starlette.middleware.base import RequestResponseEndpoint
 
 from backend.app.api.index import INDEX_HTML
+from backend.app.api.interviews import attempts_router
 from backend.app.api.interviews import router as interviews_router
 from backend.app.api.processes import router as processes_router
 from backend.app.api.profile import router as profile_router
@@ -59,6 +60,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
 
     app = FastAPI(title="Interview Studio", version="0.2.0", lifespan=lifespan)
     app.include_router(interviews_router)
+    app.include_router(attempts_router)
     app.include_router(profile_router)
     app.include_router(processes_router)
     app.include_router(settings_router)

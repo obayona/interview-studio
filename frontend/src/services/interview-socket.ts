@@ -13,6 +13,7 @@ export class InterviewSocket {
   connect(
     attemptId: string,
     onEvent: (event: SocketEvent) => void,
+    onClose?: () => void,
   ): Promise<void> {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const configuredBase = import.meta.env.PUBLIC_WS_BASE_URL as
@@ -34,6 +35,8 @@ export class InterviewSocket {
       this.socket.addEventListener('message', (message) => {
         onEvent(JSON.parse(String(message.data)) as SocketEvent);
       });
+      if (onClose)
+        this.socket.addEventListener('close', onClose, { once: true });
     });
   }
 

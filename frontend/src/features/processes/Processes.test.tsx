@@ -41,11 +41,20 @@ const process = {
         {
           id: 'attempt-1',
           attempt_number: 1,
-          status: 'ready',
-          started_at: null,
+          status: 'paused',
+          started_at: '2026-07-29T00:01:00Z',
           ended_at: null,
           termination_reason: null,
           created_at: '2026-07-29T00:00:00Z',
+        },
+        {
+          id: 'attempt-2',
+          attempt_number: 2,
+          status: 'completed',
+          started_at: '2026-07-29T01:01:00Z',
+          ended_at: '2026-07-29T01:20:00Z',
+          termination_reason: 'user_requested',
+          created_at: '2026-07-29T01:00:00Z',
         },
       ],
     },
@@ -109,7 +118,23 @@ describe('process pages', () => {
     ).toEqual([]);
   });
 
-  it('shows all ordered default stages, including skipped stages', () => {
+  it('shows ordered stages and inherits global media defaults', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify({
+              settings: [
+                { key: 'stt_enabled', value: 'true', configured: true },
+                { key: 'tts_enabled', value: 'true', configured: true },
+              ],
+            }),
+            { status: 200 },
+          ),
+        ),
+      ),
+    );
     render(<ProcessForm mode="create" />);
 
     expect(screen.getByText('1. Screening')).toBeVisible();
@@ -119,6 +144,14 @@ describe('process pages', () => {
     expect(
       screen.getByRole('switch', { name: 'Include System design' }),
     ).toHaveAttribute('aria-checked', 'false');
+    await waitFor(() => {
+      expect(
+        screen.getAllByRole('switch', { name: 'Speech input' })[0],
+      ).toHaveAttribute('aria-checked', 'true');
+      expect(
+        screen.getAllByRole('switch', { name: 'Voice responses' })[0],
+      ).toHaveAttribute('aria-checked', 'true');
+    });
   });
 
   it('autosaves switches only when editing an existing process', async () => {
@@ -175,12 +208,14 @@ describe('process pages', () => {
 
   it('renders stage history and repeat behavior on process details', async () => {
     window.history.replaceState({}, '', '/processes/details?id=process-1');
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(() =>
-        Promise.resolve(new Response(JSON.stringify(process), { status: 200 })),
+    const fetchMock = vi.fn((_input: RequestInfo | URL, init?: RequestInit) =>
+      Promise.resolve(
+        init?.method === 'DELETE'
+          ? new Response(null, { status: 204 })
+          : new Response(JSON.stringify(process), { status: 200 }),
       ),
     );
+    vi.stubGlobal('fetch', fetchMock);
 
     render(<ProcessDetail />);
 
@@ -190,9 +225,27 @@ describe('process pages', () => {
       '/processes/edit?id=process-1',
     );
     expect(screen.getByText('Attempt 1')).toBeVisible();
+    expect(screen.getByText('Attempt 2')).toBeVisible();
+    expect(screen.getByText('Paused')).toBeVisible();
+    expect(screen.getByText('Completed')).toBeVisible();
+    expect(
+      screen.getByRole('link', { name: 'Resume attempt' }),
+    ).toHaveAttribute('href', '/interview?attempt=attempt-1&process=process-1');
+    expect(screen.getByRole('link', { name: 'View attempt' })).toHaveAttribute(
+      'href',
+      '/interview?attempt=attempt-2&process=process-1',
+    );
     expect(
       screen.getByRole('button', { name: 'Repeat interview' }),
     ).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Delete attempt 1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete attempt' }));
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/v1/attempts/attempt-1',
+        expect.objectContaining({ method: 'DELETE' }),
+      ),
+    );
     expect(screen.getByText(/Feedback and interview scores/)).toBeVisible();
   });
 });

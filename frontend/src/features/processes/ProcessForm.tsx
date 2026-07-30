@@ -10,6 +10,7 @@ import { Switch } from '../../components/ui/Switch';
 import { ToastProvider, useToast } from '../../components/ui/Toast';
 import { useAutosave } from '../../hooks/useAutosave';
 import { processApi } from '../../services/process-api';
+import { settingsApi } from '../../services/settings-api';
 import type {
   ContentSource,
   InterviewProcess,
@@ -39,14 +40,12 @@ const toDraft = (process: InterviewProcess): ProcessDraft => ({
   company: process.company_source_url
     ? { kind: 'url', value: process.company_source_url }
     : { kind: 'text', value: process.company_info },
-  stages: process.stages.map(
-    ({ id, stage_type, enabled, configuration }) => ({
-      id,
-      stage_type,
-      enabled,
-      configuration,
-    }),
-  ),
+  stages: process.stages.map(({ id, stage_type, enabled, configuration }) => ({
+    id,
+    stage_type,
+    enabled,
+    configuration,
+  })),
 });
 
 function ProcessFormContent({ mode }: { mode: 'create' | 'edit' }) {
@@ -73,6 +72,33 @@ function ProcessFormContent({ mode }: { mode: 'create' | 'edit' }) {
     onError: () => showToast('Process could not be saved.', 'error'),
     onAlreadySaved: () => showToast('Process is already up to date.'),
   });
+
+  useEffect(() => {
+    if (mode !== 'create') return;
+    settingsApi
+      .get()
+      .then(({ settings }) => {
+        const enabled = (key: string) =>
+          settings.find((setting) => setting.key === key)?.value === 'true';
+        setDraft((current) => ({
+          ...current,
+          stages: current.stages.map((stage) => ({
+            ...stage,
+            configuration: {
+              ...stage.configuration,
+              media: {
+                ...stage.configuration.media,
+                speech_to_text: enabled('stt_enabled'),
+                text_to_speech: enabled('tts_enabled'),
+              },
+            },
+          })),
+        }));
+      })
+      .catch(() => {
+        // Process creation remains available with safe text-only defaults.
+      });
+  }, [mode]);
 
   useEffect(() => {
     if (mode !== 'edit') return;
@@ -242,7 +268,9 @@ function ProcessFormContent({ mode }: { mode: 'create' | 'edit' }) {
           Cancel
         </a>
         {mode === 'edit' && (
-          <span className={`processes__save-status processes__save-status--${saveStatus}`}>
+          <span
+            className={`processes__save-status processes__save-status--${saveStatus}`}
+          >
             {saveStatus === 'saving'
               ? 'Saving…'
               : saveStatus === 'pending'

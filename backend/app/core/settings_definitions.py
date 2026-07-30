@@ -38,10 +38,10 @@ class SettingDefinition:
 SETTING_DEFINITIONS: Final[dict[SettingKey, SettingDefinition]] = {
     SettingKey.API_KEY: SettingDefinition(secret=True),
     SettingKey.CHAT_MODEL: SettingDefinition(default="gpt-4o-mini"),
-    SettingKey.TRANSCRIPTION_MODEL: SettingDefinition(),
-    SettingKey.SPEECH_MODEL: SettingDefinition(),
+    SettingKey.TRANSCRIPTION_MODEL: SettingDefinition(default="gpt-4o-mini-transcribe"),
+    SettingKey.SPEECH_MODEL: SettingDefinition(default="gpt-4o-mini-tts"),
     SettingKey.VISION_MODEL: SettingDefinition(),
-    SettingKey.VOICE: SettingDefinition(),
+    SettingKey.VOICE: SettingDefinition(default="alloy"),
     SettingKey.TTS_ENABLED: SettingDefinition(),
     SettingKey.STT_ENABLED: SettingDefinition(),
     SettingKey.THEME: SettingDefinition(default="system"),

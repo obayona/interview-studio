@@ -63,6 +63,7 @@ Health and capability routes:
 - `GET /health/ready`
 - `GET /api/v1/capabilities`
 - `GET /api/v1/interviews/{attempt_id}/history`
+- `DELETE /api/v1/attempts/{attempt_id}`
 
 Settings routes:
 
@@ -95,6 +96,22 @@ Clients should request interview history before starting a WebSocket session. If
 history is empty, send `session.start` to generate the greeting. If history is
 present, render it and send future `user.text` events directly; this avoids
 generating a duplicate question during checkpoint resume.
+History responses include the current attempt status. Completed attempts are
+read-only in the frontend, while ready, active, and paused attempts can be opened
+from their parent process. Deleting an attempt cascades its transcript, graph
+state, pending writes, and audio artifacts, then recalculates its stage status.
+
+The interview WebSocket also accepts `user.audio.start`, bounded base64
+`user.audio.chunk`, `user.audio.end`, `audio.output.cancel`, `mode.update`,
+`session.pause`, and `session.resume`. Push-to-talk is the reliable input baseline.
+Final transcriptions enter the same canonical text flow as typed answers; receive
+progress and partial transcript events are transient. Assistant text is buffered
+by sentence before OpenAI speech generation and MP3 output is sent in identified,
+sequenced chunks so clients can queue or cancel playback safely.
+Live voice-answer and spoken-reply preferences are stored on the attempt and
+survive reloads. New process stages inherit the current global STT/TTS preferences
+in the frontend. Browser microphone permission and autoplay failures are transient
+runtime conditions and never rewrite those saved preferences.
 
 The CLI alone may read `OPENAI_API_KEY` for development convenience. The backend module does not read
 environment variables; callers inject credentials, models, and checkpointers through
