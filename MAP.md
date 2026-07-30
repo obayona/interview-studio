@@ -110,6 +110,7 @@ Last synchronized: 2026-07-29
 - Frontend dependency installation and scripts use pnpm; `pnpm-lock.yaml` is the authoritative lockfile.
 - Frontend TypeScript path aliases use explicit relative targets and do not set the deprecated `baseUrl` compiler option.
 - The settings page keeps the API response statuses and all editable values in its form state. `APIKeyField` encapsulates configured-key presentation, provider testing, and removal UI state; its input contains only newly typed secret text.
+- The OpenAI settings card uses the bundled `frontend/src/images/openai.svg` brand mark; the shared Font Awesome icon component remains the source for generic interface icons.
 - The frontend settings feature does not request or gate controls with capability state. TTS and STT remain independently editable persisted preferences; runtime consumers enforce actual provider availability.
 - Settings and profile use the same optimistic persistence behavior: controls update locally immediately, changes save after 700 ms of inactivity or when focus leaves, failures produce error toasts, and duplicate saves of the same snapshot are suppressed.
 - `frontend/src/hooks/useAutosave.ts` centralizes shared snapshots, debounce, stale-response handling, duplicate-request suppression, normalization, status, explicit saving, and error callbacks; pages call its stable `saveNow` operation when focus leaves their form boundary.

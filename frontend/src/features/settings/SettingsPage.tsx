@@ -11,6 +11,7 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { ErrorState } from '../../components/ui/States';
 import { Switch } from '../../components/ui/Switch';
 import { ToastProvider, useToast } from '../../components/ui/Toast';
+import openAIIcon from '../../images/openai.svg';
 import { ApiError } from '../../services/api-client';
 import { settingsApi } from '../../services/settings-api';
 import { useAutosave } from '../../hooks/useAutosave';
@@ -342,7 +343,7 @@ function APIKeyField({
     <Card className="settings__provider">
       <div className="settings__card-heading">
         <span className="settings__provider-icon">
-          <Icon name="bolt" />
+          <img src={openAIIcon.src} alt="" />
         </span>
         <div>
           <div className="settings__title-row">
