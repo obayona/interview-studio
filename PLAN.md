@@ -117,7 +117,7 @@ PROMPTS.md
 - Limit redirects, response size, MIME types, and request duration.
 - Extract readable page text and retain source URL and retrieval time.
 - Parse uploaded PDF CVs.
-- Store LinkedIn and portfolio URLs as profile links; do not scrape LinkedIn.
+- Store LinkedIn and portfolio URLs as profile links only; LinkedIn URLs are not profile import sources and must not be scraped.
 - Portfolio/company URLs may be fetched only when the user explicitly requests import/research.
 
 ### Accessibility and UI behavior
@@ -350,7 +350,7 @@ Acceptance:
 - Extract text with a conventional PDF parser first.
 - Interpret the extracted CV text entirely with structured AI through a checkpointer-free LangGraph workflow.
 - Treat CV uploads as transient import input and never persist the file or extracted text.
-- Store LinkedIn and portfolio URLs without LinkedIn scraping.
+- Store LinkedIn and portfolio URLs as links only, without treating them as import sources or scraping LinkedIn.
 
 Acceptance:
 

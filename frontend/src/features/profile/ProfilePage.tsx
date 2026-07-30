@@ -194,9 +194,9 @@ function ProfileForm() {
       if (!(await save(nextDraft))) return;
       setImportOpen(false);
       setSelectedCV(undefined);
-      showToast('CV details imported.');
+      showToast('Profile imported from CV.');
     } catch (requestError) {
-      showToast(messageFor(requestError, 'CV import failed.'), 'error');
+      showToast(messageFor(requestError, 'Profile import failed.'), 'error');
     } finally {
       setCVProcessing(false);
     }
@@ -218,7 +218,7 @@ function ProfileForm() {
         <SaveStatus status={saveStatus} />
         <Button onClick={() => setImportOpen(true)}>
           <Icon name="upload" />
-          Import CV
+          Import profile
         </Button>
         <Button
           variant="primary"
@@ -500,10 +500,10 @@ function ProfileForm() {
         }}
       >
         <div className="ui-dialog__content">
-          <h2>{cvProcessing ? 'Processing your CV' : 'Import CV'}</h2>
+          <h2>{cvProcessing ? 'Importing profile' : 'Import profile'}</h2>
           {cvProcessing ? (
             <div className="profile__processing">
-              <Spinner label="Extracting profile information from CV" />
+              <Spinner label="Importing profile information from CV" />
               <p>
                 Extracting your profile, skills, and work experience with AI.
                 This may take a moment.
@@ -511,6 +511,9 @@ function ProfileForm() {
             </div>
           ) : (
             <>
+              <p>
+                Choose a PDF CV to populate your editable profile information.
+              </p>
               <label className="profile__dropzone">
                 <Icon name="upload" />
                 <strong>{selectedCV?.name ?? 'Choose a PDF CV'}</strong>

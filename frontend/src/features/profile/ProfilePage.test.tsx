@@ -117,7 +117,10 @@ describe('ProfilePage', () => {
 
     const { container } = render(<ProfilePage />);
     await screen.findByLabelText('Name');
-    fireEvent.click(screen.getByRole('button', { name: 'Import CV' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Import profile' }));
+    expect(
+      screen.getByText(/Choose a PDF CV to populate your editable profile/),
+    ).toBeVisible();
     expect(screen.getByText(/The file is not stored/)).toBeVisible();
     const input = container.querySelector<HTMLInputElement>(
       'input[accept="application/pdf,.pdf"]',
@@ -135,7 +138,10 @@ describe('ProfilePage', () => {
     expect(screen.getByText('resume.pdf')).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Import' }));
 
-    expect(await screen.findByText('Processing your CV')).toBeVisible();
+    expect(await screen.findByText('Importing profile')).toBeVisible();
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Importing profile information from CV',
+    );
     expect(
       screen.getByText(/Extracting your profile, skills, and work experience/),
     ).toBeVisible();
@@ -158,9 +164,9 @@ describe('ProfilePage', () => {
       ),
     );
     await waitFor(() =>
-      expect(screen.queryByText('Processing your CV')).toBeNull(),
+      expect(screen.queryByText('Importing profile')).toBeNull(),
     );
     expect(screen.getByLabelText('Name')).toHaveValue('Imported Name');
-    expect(screen.getByText('CV details imported.')).toBeVisible();
+    expect(screen.getByText('Profile imported from CV.')).toBeVisible();
   });
 });

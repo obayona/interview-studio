@@ -71,7 +71,7 @@ Last synchronized: 2026-07-29
 - `frontend/src/styles/`: Ventura Tech-derived design tokens, component styles, responsive layout, dark mode, focus states, and reduced-motion behavior.
 - `frontend/src/services/`: Typed normalized HTTP client, settings API, and versioned interview WebSocket foundation.
 - `frontend/src/features/settings/`: Integrated OpenAI, interaction, theme, model, voice, provider-test, and secret-removal settings UI.
-- `frontend/src/features/profile/`: Prototype-aligned profile editor with autosave, explicit save, avatar management, ordered experience/projects, and modal CV import.
+- `frontend/src/features/profile/`: Prototype-aligned profile editor with autosave, explicit save, avatar management, ordered experience/projects, and modal profile import from a PDF CV.
 - `frontend/src/services/profile-api.ts`: Typed profile aggregate and transient multipart avatar/CV transport.
 - `frontend/src/types/profile.ts`: Profile aggregate, ordered collections, draft, and transient CV suggestion transport types.
 - `frontend/src/pages/`: Working dashboard, profile, processes, process-details, interview, feedback, and settings routes.
@@ -123,10 +123,11 @@ Last synchronized: 2026-07-29
 - AI CV parsing has no heuristic or compatibility fallback and no checkpointer. Missing provider configuration returns an explicit 503, provider failures return an explicit 502, and requests use a bounded timeout/retry policy.
 - AI-extracted experience ordering is retained, positions and IDs are normalized locally, and a role is considered current only when the extracted record has no end date.
 - CV bytes, extracted text, and AI suggestions exist only during the import request. The backend returns suggestions without mutating the profile; the frontend places non-empty suggestions into the editable form.
+- LinkedIn URLs are editable profile links only. They are not profile import inputs; the application does not call LinkedIn APIs or scrape LinkedIn.
 - Profile editing uses a 700 ms debounce, saves again on blur or explicit action, exposes pending/saving/saved/error status, and sequences requests so stale responses never replace newer form state.
 - Experience and project order is the array order submitted by the client; the repository normalizes persisted positions during each atomic replacement.
 - Profile collection editors use each persisted or client-generated item ID as the React list key, preserving component identity when ordered rows move.
-- The profile header places `Import CV` beside `Save profile`. One modal handles file selection and submit, remains non-dismissible with an accessible spinner through AI processing and profile persistence, and closes only after the imported draft saves successfully.
+- The profile header places `Import profile` beside `Save profile`. One modal explains that a PDF CV populates the editable profile, handles file selection and submit, remains non-dismissible with an accessible spinner through AI processing and profile persistence, and closes only after the imported draft saves successfully.
 - The shared React `Dialog` owns only controlled native `<dialog>` mechanics and renders arbitrary children/native dialog properties. Feature-specific titles, content, actions, and cancellation rules are composed by settings and profile features.
 - Frontend test setup does not patch `HTMLDialogElement.prototype`; profile feature tests mock the shared dialog component locally because jsdom does not implement native modal methods.
 
@@ -191,3 +192,4 @@ Last synchronized: 2026-07-29
 - Independent fixture refinement: the web lifespan has no fixture dependency; integration tests explicitly prepare migrated databases and apply the SQL fixtures. Ruff and strict mypy pass for 42 backend source files, all 20 backend tests pass, repeated execution is idempotent, and user-overridden defaults are preserved.
 - Phase 5 migration consolidation: the obsolete migration 003 was removed, migration 002 now creates only the final non-document profile schema, and the development Yoyo ledger was cleaned to contain migrations 001 and 002 only; application startup against that state passed.
 - Unified frontend persistence and header refinement: Prettier, ESLint, Stylelint, and Astro diagnostics pass across 42 checked files; 11 frontend tests pass, including settings switch autosave, explicit-save loading state, profile autosave, CV import, and the global avatar fallback; all 7 production routes build successfully.
+- Profile import terminology refinement: the frontend continues to pass Prettier, ESLint, Stylelint, and Astro diagnostics across 42 files; all 11 tests pass with the renamed profile-import flow and accessible processing status, and all 7 production routes build successfully.
