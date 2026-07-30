@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import TypedDict
 
 from backend.app.core.database import SQLiteManager
@@ -52,6 +53,48 @@ class AttemptRepository:
                 }
             )
         return transcript
+
+    async def mark_started(self, attempt_id: str) -> None:
+        timestamp = datetime.now(UTC).isoformat()
+        async with self._database.transaction() as connection:
+            connection.execute(
+                """
+                UPDATE interview_attempts
+                SET status = 'in_progress',
+                    started_at = COALESCE(started_at, ?),
+                    updated_at = ?
+                WHERE id = ? AND status IN ('ready', 'in_progress')
+                """,
+                (timestamp, timestamp, attempt_id),
+            )
+
+    async def mark_ended(self, attempt_id: str, reason: str) -> None:
+        timestamp = datetime.now(UTC).isoformat()
+        async with self._database.transaction() as connection:
+            attempt = connection.execute(
+                "SELECT stage_id FROM interview_attempts WHERE id = ?",
+                (attempt_id,),
+            ).fetchone()
+            if attempt is None:
+                return
+            connection.execute(
+                """
+                UPDATE interview_attempts
+                SET status = 'completed', ended_at = ?,
+                    termination_reason = ?, updated_at = ?
+                WHERE id = ?
+                """,
+                (timestamp, reason, timestamp, attempt_id),
+            )
+            if attempt["stage_id"] is not None:
+                connection.execute(
+                    """
+                    UPDATE interview_stages
+                    SET status = 'completed', updated_at = ?
+                    WHERE id = ?
+                    """,
+                    (timestamp, attempt["stage_id"]),
+                )
 
 
 def _public_role(role: str) -> str:

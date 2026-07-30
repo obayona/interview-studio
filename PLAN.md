@@ -359,7 +359,7 @@ Acceptance:
 - CV import returns validated structured fields without changing the stored profile.
 - The frontend places imported values in the editable form for review and normal profile saving.
 
-### Phase 6 — Interview Processes
+### Phase 6 — Interview Processes ✅ Completed 2026-07-29
 
 - Add process, stage, and attempt migrations and repositories.
 - Implement list, creation, detail, update, and confirmed deletion.

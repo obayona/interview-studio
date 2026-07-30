@@ -14,9 +14,11 @@ Run the development CLI:
 python -m backend.cli.engine-usage --job "Backend engineer role"
 ```
 
-Run the FastAPI application:
+Prepare the database, then run the FastAPI application:
 
 ```bash
+python -m backend.cli.migrate backend/interview_studio.sqlite3
+python -m backend.cli.load_fixtures backend/interview_studio.sqlite3
 python -m uvicorn backend.app.main:app --reload
 ```
 
@@ -25,13 +27,17 @@ Then open `http://127.0.0.1:8000`. The inline browser harness uses the
 serves health/capability information without credentials; interview events return a
 structured configuration error until `api_key` exists in the `settings` table.
 
-The SQLite database defaults to `backend/interview_studio.sqlite3`. Yoyo migrations
-currently run at startup. Fixtures are executed separately and the web application
-assumes required initial records already exist. Runtime application code never reads
-`.env`; persisted settings are resolved when each interview session is opened.
+The SQLite database defaults to `backend/interview_studio.sqlite3`. Migrations and
+fixtures are independent installation commands; the web application assumes the
+schema and required initial records already exist. Runtime application code never
+reads `.env`; persisted settings are resolved when each interview session is opened.
+
+The migration history is currently development-only and intentionally consolidated.
+Databases created from an earlier migration layout must be recreated before applying
+the current migrations; no compatibility upgrade is maintained yet.
 
 Fixtures are plain Python scripts in `backend/fixtures/` and run in the explicit
-order listed by `backend/fixtures/runner.py`:
+order listed by `backend/cli/load_fixtures.py`:
 
 1. Insert missing non-secret setting defaults such as `chat_model` and `theme`.
 2. Create the singleton `default` developer profile.
@@ -45,12 +51,11 @@ installation invariants rather than creating them during reads or updates.
 After the database schema exists, run fixtures independently:
 
 ```bash
-python -m backend.fixtures.runner backend/interview_studio.sqlite3
+python -m backend.cli.load_fixtures backend/interview_studio.sqlite3
 ```
 
-The Phase 6 installer will run migrations and then this fixture runner before
-launching the web application. At that point migrations will also leave the
-request-serving process.
+Run the migration command before the fixture loader and whenever the application
+version introduces a new migration.
 
 Health and capability routes:
 
@@ -70,6 +75,17 @@ Profile routes:
 - `GET/PATCH /api/v1/profile`
 - `GET/POST/DELETE /api/v1/profile/avatar`
 - `POST /api/v1/profile/cv/import`
+
+Process routes:
+
+- `GET/POST /api/v1/processes`
+- `POST /api/v1/processes/import-preview`
+- `GET/PATCH/DELETE /api/v1/processes/{process_id}`
+- `POST /api/v1/processes/{process_id}/stages/{stage_id}/attempts`
+
+URL imports accept public HTTP(S) HTML or plain-text sources only, enforce bounded
+redirects and response sizes, reject local/private destinations, and return
+normalized text for preview.
 
 Avatar uploads accept validated JPEG, PNG, or WebP images up to 2 MB. CV import
 accepts text-based PDF files up to 10 MB and returns structured AI suggestions.

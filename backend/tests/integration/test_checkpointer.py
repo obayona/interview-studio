@@ -12,6 +12,7 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
 
 from backend.app.core.database import SQLiteManager
+from backend.app.core.migrations import migrate_database
 from backend.app.infrastructure.checkpointer import InterviewSQLiteCheckpointer
 from backend.app.infrastructure.json_codec import UnsupportedCheckpointValueError
 from backend.app.repositories.attempts import AttemptRepository
@@ -20,7 +21,10 @@ from backend.interview_engine.models import InterviewConfiguration
 
 @pytest.fixture
 async def database(tmp_path: Path) -> SQLiteManager:
-    manager = SQLiteManager(tmp_path / "test.sqlite3", Path(__file__).parents[2] / "migrations")
+    database_path = tmp_path / "test.sqlite3"
+    migrations_path = Path(__file__).parents[2] / "migrations"
+    migrate_database(database_path, migrations_path)
+    manager = SQLiteManager(database_path, migrations_path)
     await manager.start()
     now = datetime.now(UTC).isoformat()
     async with manager.transaction() as connection:

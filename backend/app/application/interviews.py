@@ -49,6 +49,7 @@ class InterviewService:
 
     async def start(self, attempt_id: str) -> AsyncIterator[str]:
         thread_id, engine = await self.open(attempt_id)
+        await self._attempts.mark_started(attempt_id)
         state = await self._checkpointer.aget_tuple({"configurable": {"thread_id": thread_id}})
         if state is None:
             async for token in engine.stream_start(thread_id):
@@ -56,6 +57,7 @@ class InterviewService:
 
     async def respond(self, attempt_id: str, text: str) -> AsyncIterator[str]:
         thread_id, engine = await self.open(attempt_id)
+        await self._attempts.mark_started(attempt_id)
         async for token in engine.stream_response(thread_id, text):
             yield token
 
@@ -63,3 +65,4 @@ class InterviewService:
         thread_id, engine = await self.open(attempt_id)
         async for token in engine.stream_end(thread_id):
             yield token
+        await self._attempts.mark_ended(attempt_id, "user_requested")

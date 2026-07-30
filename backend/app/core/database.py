@@ -7,8 +7,6 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, cast
 
-from yoyo import get_backend, read_migrations
-
 
 class SQLiteManager:
     """Own the application's single SQLite connection and transaction lock."""
@@ -21,9 +19,6 @@ class SQLiteManager:
 
     async def start(self) -> None:
         self.database_path.parent.mkdir(parents=True, exist_ok=True)
-        # Yoyo's SQLite backend is synchronous; startup is intentionally gated
-        # until migrations complete before accepting requests.
-        self._migrate()
         connection = sqlite3.connect(self.database_path)
         connection.row_factory = sqlite3.Row
         connection.execute("PRAGMA foreign_keys = ON")
@@ -65,9 +60,3 @@ class SQLiteManager:
         async with self._transaction_lock:
             cursor = self.connection.execute(sql, parameters)
             return list(cursor.fetchall())
-
-    def _migrate(self) -> None:
-        backend = get_backend(f"sqlite:///{self.database_path}")
-        migrations = read_migrations(str(self.migrations_path))
-        with backend.lock():
-            backend.apply_migrations(backend.to_apply(migrations))

@@ -10,7 +10,8 @@ Last synchronized: 2026-07-29
 - Phase 3: Complete and verified on 2026-07-28.
 - Phase 4: Complete and verified on 2026-07-28.
 - Phase 5: Complete and verified on 2026-07-29.
-- Phases 6–12: Not started.
+- Phase 6: Complete and verified on 2026-07-29.
+- Phases 7–12: Not started.
 
 ## Repository baseline
 
@@ -38,13 +39,18 @@ Last synchronized: 2026-07-29
 - `pyproject.toml`: Repository-level Python quality-tool configuration.
 - `backend/README.md`: Environment, dependency, import, and CLI instructions.
 - `backend/README.md` embeds the generated interview graph and documents its regeneration command.
-- `backend/app/core/database.py`: Application-owned asynchronous SQLite manager with serialized explicit transactions, WAL, foreign keys, busy timeout, Yoyo startup migrations, and clean shutdown.
+- `backend/app/core/database.py`: Application-owned asynchronous SQLite manager with serialized explicit transactions, WAL, foreign keys, busy timeout, and clean shutdown.
+- `backend/app/core/migrations.py` and `backend/cli/migrate.py`: Independent Yoyo migration operation for installation and tests; request-serving startup never changes schema.
+- `backend/app/core/fixtures.py` and `backend/cli/load_fixtures.py`: Reusable ordered fixture execution plus its installation command; tests and CLI depend on the core operation rather than on each other.
 - `backend/app/core/config.py`: Application-facing `SettingsService` facade for typed reads, capabilities, CRUD, and provider testing.
 - `backend/app/core/settings_definitions.py`: `SettingKey` enum and definition dictionary from which persistence validation, secret metadata, and defaults are derived.
 - `backend/app/core/errors.py`: Transport-neutral structured application errors.
 - `backend/app/repositories/settings.py`: Parameterized SQLite settings reads.
-- `backend/migrations/001_phase2_core.py`: Reversible Phase 2 schema migration.
+- `backend/migrations/001_phase2_core.py`: Reversible settings foundation migration.
 - `backend/migrations/002_phase5_profile.py`: Reversible developer-profile, ordered link/experience/project, and avatar schema migration; CV documents are intentionally absent.
+- `backend/migrations/003_phase6_processes.py`: Complete interview schema in dependency order: processes, ordered stages, full attempts, canonical messages, graph state, and pending writes.
+- `backend/app/domain/processes.py`, `backend/app/repositories/processes.py`, and `backend/app/application/processes.py`: Validated process aggregate, atomic persistence, safe content import, and repeated-attempt creation.
+- `backend/app/api/processes.py`: Process list/create/detail/update/delete, URL-preview, and stage-attempt routes.
 - `backend/app/infrastructure/json_codec.py`: Versioned strict JSON codec and explicit LangChain message adapter; unsupported and binary values are rejected.
 - `backend/app/infrastructure/checkpointer.py`: Async `BaseCheckpointSaver` implementation with canonical transcript extraction, atomic shallow state upsert, idempotent pending writes, current-only listing, reconstruction, and graph-state deletion.
 - `backend/app/repositories/attempts.py`: Attempt configuration lookup, canonical transcript reads, and idempotent browser-harness bootstrap.
@@ -60,7 +66,7 @@ Last synchronized: 2026-07-29
 - `backend/app/domain/profile.py`: Validated developer-profile aggregate, ordered links, experience, projects, and transient CV suggestions.
 - `backend/app/repositories/profile.py`: Atomic singleton-profile persistence, ordered collection replacement, and avatar BLOB access.
 - `backend/app/application/profiles.py`: Profile orchestration with avatar validation and request-scoped PDF-to-AI import.
-- `backend/fixtures/`: Ordered plain-Python SQL fixtures for non-secret setting defaults, the singleton profile, and the browser harness, plus a minimal transactional runner.
+- `backend/fixtures/`: Ordered plain-Python SQL fixture definitions for non-secret setting defaults, the singleton profile, and the browser harness.
 - `backend/app/api/profile.py`: Profile aggregate, avatar, and transient CV import HTTP routes.
 - `backend/profile_parser/`: Bounded `pypdf` text extraction and checkpointer-free LangGraph structured-AI CV interpretation package.
 - `backend/tests/integration/test_profile.py`: Profile persistence, ordering, avatar validation, transient CV import, and no-document-storage coverage.
@@ -72,6 +78,8 @@ Last synchronized: 2026-07-29
 - `frontend/src/services/`: Typed normalized HTTP client, settings API, and versioned interview WebSocket foundation.
 - `frontend/src/features/settings/`: Integrated OpenAI, interaction, theme, model, voice, provider-test, and secret-removal settings UI.
 - `frontend/src/features/profile/`: Prototype-aligned profile editor with autosave, explicit save, avatar management, ordered experience/projects, and modal profile import from a PDF CV.
+- `frontend/src/features/processes/`: Searchable process list, create/edit form, safe import preview, ordered stage configuration, process detail, attempt history/actions, confirmed deletion, and feedback placeholders.
+- `frontend/src/services/process-api.ts` and `frontend/src/types/process.ts`: Typed process aggregate, content-source, stage-configuration, attempt, and CRUD transport contracts.
 - `frontend/src/services/profile-api.ts`: Typed profile aggregate and transient multipart avatar/CV transport.
 - `frontend/src/types/profile.ts`: Profile aggregate, ordered collections, draft, and transient CV suggestion transport types.
 - `frontend/src/pages/`: Working dashboard, profile, processes, process-details, interview, feedback, and settings routes.
@@ -97,7 +105,7 @@ Last synchronized: 2026-07-29
 - `app.state.settings` is the sole application settings dependency. `SettingsRepository` and `SecretBox` are private construction details of the lifespan and are not exposed through application state.
 - Settings API mappings and repository known-key checks derive from `SETTING_DEFINITIONS`; persistence uses flat enum values such as `api_key` while higher-level classes retain conceptual grouping.
 - `SettingKey` exposes `.value`, `.default`, and `.secret` from the single definition dictionary; `setting_keys()` supplies key-only iterations without a second registry.
-- The browser harness owns a deterministic attempt ID but a generated stable thread ID persisted in SQLite, allowing disconnect/resume without introducing the Phase 6 attempt CRUD early.
+- The browser harness retains its deterministic attempt ID and generated stable thread ID; its nullable `stage_id` keeps it separate from user-created Phase 6 process history.
 - Reconnecting clients fetch canonical history first. A non-empty history resumes immediately and may send `user.text` without `session.start`; an empty or unavailable history causes the harness to send `session.start`.
 - Phase 3 exposes settings status, updates, removal, and provider testing through the `SettingsService` facade and safe HTTP routes.
 - Phase 3 uses a local 256-bit master key at `backend/.secret-key` by default; `AppConfig.secret_path` supports an installation-specific path. The key file is mode `0600` and ignored by git.
@@ -117,7 +125,11 @@ Last synchronized: 2026-07-29
 - Explicit Save buttons remain available, show a disabled `Saving…` state during requests, and report success or an already-current state. Settings has no discard action; switches, selects, model fields, theme, and API-key input all participate in autosave.
 - The global header loads the singleton profile avatar through a reusable React island, links it to `/profile`, falls back to the shared user icon when no avatar is configured or loading fails, and responds to profile update events without requiring a page reload.
 - Phase 5 uses a single local profile with ID `default`; aggregate updates and ordered collection replacement share one SQLite transaction.
-- Direct, idempotent SQL fixture scripts run independently from the web application in explicit order: missing non-secret setting defaults, the singleton profile, then the browser-harness attempt. The web lifespan assumes these installation invariants already exist. Phase 6 will also move migration invocation from the web lifespan into the installer.
+- Migrations and direct, idempotent SQL fixtures run independently from the web application. The web lifespan assumes the schema and installation records already exist.
+- Phase 6 process writes are aggregate-oriented and transactional. Ordered stage configuration is replaced freely before attempts exist; after history exists, stage identities remain stable while configuration, order, and enabled state may change for future attempts.
+- URL-based job/company input resolves only public HTTP(S) hosts, revalidates bounded redirects, accepts HTML/plain text up to 1 MB, strips executable markup, and returns normalized text for preview before persistence.
+- Starting an enabled stage snapshots the current candidate profile, process context, stage type, and complete engine configuration into a new attempt with a monotonically increasing stage-local number; prior attempts are never overwritten.
+- Opening or responding in an attempt transitions it to `in_progress` and records its first start time. A successfully streamed explicit end marks the attempt and owning stage completed with the `user_requested` termination reason.
 - Avatar uploads are limited to 2 MB, validated by MIME type, decoded format, and dimensions, and stored with metadata as a SQLite BLOB.
 - CV intake accepts text-based PDFs up to 10 MB and 30 pages. `pypdf` only converts documents to bounded plain text; a fresh structured-output OpenAI/LangGraph parser interprets the complete profile using the current database key and chat model for each upload.
 - AI CV parsing has no heuristic or compatibility fallback and no checkpointer. Missing provider configuration returns an explicit 503, provider failures return an explicit 502, and requests use a bounded timeout/retry policy.
@@ -130,20 +142,23 @@ Last synchronized: 2026-07-29
 - The profile header places `Import profile` beside `Save profile`. One modal explains that a PDF CV populates the editable profile, handles file selection and submit, remains non-dismissible with an accessible spinner through AI processing and profile persistence, and closes only after the imported draft saves successfully.
 - The shared React `Dialog` owns only controlled native `<dialog>` mechanics and renders arbitrary children/native dialog properties. Feature-specific titles, content, actions, and cancellation rules are composed by settings and profile features.
 - Frontend test setup does not patch `HTMLDialogElement.prototype`; profile feature tests mock the shared dialog component locally because jsdom does not implement native modal methods.
+- Process list, creation, and detail pages share the `process-page-title` Astro view-transition identity. The persistent application shell stays mounted while the heading performs a lightweight native handoff; reduced-motion behavior remains governed by the global transition policy.
 
 ## Interfaces, routes, and persistence
 
 - Public backend interfaces: `backend.interview_engine.InterviewEngineBuilder`, `InterviewEngine`, typed configuration models, and enums.
 - Engine operations: `stream_start`, `stream_response`, `stream_end`, and `get_state`.
-- HTTP routes: `GET /`, `GET /health/live`, `GET /health/ready`, `GET /api/v1/capabilities`, `GET /api/v1/interviews/{attempt_id}/history`, `GET/PATCH /api/v1/settings`, `DELETE /api/v1/settings/{key}`, `POST /api/v1/settings/test-provider`, `GET/PATCH /api/v1/profile`, `GET/POST/DELETE /api/v1/profile/avatar`, and `POST /api/v1/profile/cv/import`.
+- HTTP routes: `GET /`, health/readiness/capabilities, interview history, settings CRUD/provider test, profile/avatar/CV import, process CRUD/import preview, and per-stage attempt creation under `/api/v1/processes`.
 - WebSocket route: `/api/v1/interviews/{attempt_id}/ws`.
 - Implemented client WebSocket events: `session.start`, `user.text`, `session.end`, and `ping`.
 - Implemented server WebSocket events: `session.ready`, `assistant.text.delta`, `assistant.text.completed`, `error`, and `pong`.
-- Database entities: `settings`, minimal Phase 2 `interview_attempts`, canonical `interview_messages`, shallow `interview_graph_state`, temporary `interview_graph_writes`, singleton `developer_profiles`, ordered `profile_links`, ordered `work_experiences`, and ordered `projects`.
-- Migration `001_phase2_core` creates only application-owned tables; it intentionally does not create LangGraph standard checkpoint/blob tables.
+- Database entities: `settings`, `interview_processes`, ordered `interview_stages`, numbered `interview_attempts`, canonical `interview_messages`, shallow `interview_graph_state`, temporary `interview_graph_writes`, singleton `developer_profiles`, ordered `profile_links`, ordered `work_experiences`, and ordered `projects`.
+- Migration `001_phase2_core` creates only settings. Interview persistence is consolidated in migration 003 so attempts are created with their final process-stage relationship instead of being altered later.
 - Phase 3 requires no schema migration: the existing key/value `settings` table supports the complete known-key registry and encrypted values.
 - Migration `002_phase5_profile` creates only the final profile schema without CV-document persistence. Collection ordering is protected by per-profile unique positions.
-- Frontend routes: `/`, `/profile`, `/processes`, `/processes/details`, `/interview`, `/feedback`, and `/settings`.
+- Migration `003_phase6_processes` creates the complete interview persistence graph from parent to child. Attempts have nullable stage ownership for the browser harness, immutable per-stage numbering, timing, and termination metadata from initial creation; no follow-up table alteration is required.
+- Migration history is intentionally development-only. Databases produced by the superseded pre-consolidation migration layout must be recreated; there is no compatibility upgrade path.
+- Frontend routes: `/`, `/profile`, `/processes`, `/processes/new`, `/processes/details`, `/interview`, `/feedback`, and `/settings`.
 
 ## Known constraints
 
@@ -151,7 +166,7 @@ Last synchronized: 2026-07-29
 - `PHASE_PROMPT.md` has a pre-existing user modification and must not be overwritten.
 - Natural voice interruption is not implemented in Phase 1. The media ports preserve the future boundary; push-to-talk is the reliable Phase 7 baseline and browser VAD/barge-in is a higher-complexity progressive enhancement.
 - Phase 2 exposes only the protocol subset required for text interview testing. Audio, mode changes, pause/resume controls, report events, and canvas events remain assigned to later phases.
-- `interview_attempts` contains the minimal ownership/configuration fields required by the Phase 2 checkpointer and browser harness. Full process, stage, attempt lifecycle, and attempt repository behavior remain Phase 6.
+- The browser-harness attempt intentionally has no owning process stage. User-created attempts always belong to a stage and receive stage-local immutable attempt numbers.
 - Phase 5 CV extraction supports text-based PDFs. Scanned/image-only and password-protected PDFs return a validation error instead of invoking OCR.
 
 ## Verification
@@ -193,3 +208,14 @@ Last synchronized: 2026-07-29
 - Phase 5 migration consolidation: the obsolete migration 003 was removed, migration 002 now creates only the final non-document profile schema, and the development Yoyo ledger was cleaned to contain migrations 001 and 002 only; application startup against that state passed.
 - Unified frontend persistence and header refinement: Prettier, ESLint, Stylelint, and Astro diagnostics pass across 42 checked files; 11 frontend tests pass, including settings switch autosave, explicit-save loading state, profile autosave, CV import, and the global avatar fallback; all 7 production routes build successfully.
 - Profile import terminology refinement: the frontend continues to pass Prettier, ESLint, Stylelint, and Astro diagnostics across 42 files; all 11 tests pass with the renamed profile-import flow and accessible processing status, and all 7 production routes build successfully.
+- Phase 6 migration apply and complete rollback: Passed against a fresh temporary SQLite database.
+- Phase 6 Ruff formatting and lint: Passed for 66 backend files.
+- Phase 6 strict mypy: Passed for 48 backend application, CLI, engine, and profile-parser source files.
+- Phase 6 Pytest: 23 tests passed, including process CRUD, persisted stage configuration, skipped-stage protection, safe text/URL normalization, independent starts, repeated numbered attempts, reordering with history, cascaded deletion, and SSRF rejection.
+- Phase 6 frontend Prettier, ESLint, and Stylelint: Passed.
+- Phase 6 Astro diagnostics: 50 files checked with zero errors, warnings, or hints.
+- Phase 6 Vitest: 14 tests passed, including process list navigation/progress, ordered default stages, skipped-stage visibility, attempt history, repeat actions, and axe-core accessibility coverage.
+- Phase 6 production build: All 8 static routes generated successfully.
+- Phase 6 dependency check: Python reports no broken requirements.
+- Fixture-loader layering refinement: reusable execution lives in `backend.app.core.fixtures`; both the CLI wrapper and integration preparation import that core operation. Ruff, strict mypy, and all 23 backend tests pass.
+- Interview migration consolidation: fresh apply and complete rollback pass with migration 001 limited to settings and migration 003 creating processes before stages, final-form attempts, messages, graph state, and writes; all 23 backend tests remain passing.

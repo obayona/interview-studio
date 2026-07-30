@@ -118,3 +118,21 @@ Phase 4 completed and verified on 2026-07-28.
 - [x] Mark Phase 5 complete in `PLAN.md`, `TASK.md`, and `MAP.md`.
 
 Phase 5 completed and verified on 2026-07-29.
+
+## Phase 6 — Interview Processes
+
+- [x] Query `MAP.md` before starting and reconcile it with the repository.
+- [x] Add process, stage, and attempt migrations and repositories.
+- [x] Implement list, creation, detail, update, and confirmed deletion.
+- [x] Accept pasted or safely fetched job and company information with content preview.
+- [x] Provide ordered configurable default stages and preserve skipped stages.
+- [x] Persist all interview-engine configuration supported per stage.
+- [x] Start enabled stages independently and store repetitions as numbered attempts.
+- [x] Build the process list, creation, and detail pages with feedback placeholders.
+- [x] Add a simple native list-to-detail title transition.
+- [x] Add backend and frontend process tests.
+- [x] Run migration, formatting, linting, typing, tests, build, and accessibility verification.
+- [x] Synchronize `MAP.md` with the final implemented system.
+- [x] Mark Phase 6 complete in `PLAN.md`, `TASK.md`, and `MAP.md`.
+
+Phase 6 completed and verified on 2026-07-29.

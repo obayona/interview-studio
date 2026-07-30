@@ -12,10 +12,12 @@ from starlette.middleware.base import RequestResponseEndpoint
 
 from backend.app.api.index import INDEX_HTML
 from backend.app.api.interviews import router as interviews_router
+from backend.app.api.processes import router as processes_router
 from backend.app.api.profile import router as profile_router
 from backend.app.api.settings import router as settings_router
 from backend.app.api.websocket import router as websocket_router
 from backend.app.application.interviews import InterviewService
+from backend.app.application.processes import ProcessService
 from backend.app.application.profiles import ProfileService
 from backend.app.core.config import AppConfig, SettingsService
 from backend.app.core.database import SQLiteManager
@@ -23,6 +25,7 @@ from backend.app.core.errors import ApplicationError
 from backend.app.core.secrets import SecretBox
 from backend.app.infrastructure.checkpointer import InterviewSQLiteCheckpointer
 from backend.app.repositories.attempts import AttemptRepository
+from backend.app.repositories.processes import ProcessRepository
 from backend.app.repositories.profile import ProfileRepository
 from backend.app.repositories.settings import SettingsRepository
 
@@ -50,12 +53,14 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
         app.state.attempts = attempts
         app.state.interviews = InterviewService(attempts, settings, checkpointer)
         app.state.profile = ProfileService(profiles, settings)
+        app.state.processes = ProcessService(ProcessRepository(database), profiles)
         yield
         await database.close()
 
     app = FastAPI(title="Interview Studio", version="0.2.0", lifespan=lifespan)
     app.include_router(interviews_router)
     app.include_router(profile_router)
+    app.include_router(processes_router)
     app.include_router(settings_router)
     app.include_router(websocket_router)
 
