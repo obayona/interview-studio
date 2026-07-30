@@ -62,6 +62,7 @@ class SettingsRepository:
         return [
             {
                 "key": key.value,
+                "options": list(definition.options),
                 **configured.get(
                     key.value,
                     {"configured": False, "value": definition.default or None},

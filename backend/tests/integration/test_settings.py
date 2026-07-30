@@ -27,10 +27,17 @@ async def test_settings_are_validated_masked_encrypted_and_live(tmp_path: Path) 
             initial_by_key = {item["key"]: item for item in initial.json()["settings"]}
             assert initial_by_key["api_key"]["configured"] is False
             assert initial_by_key["chat_model"]["value"] == "gpt-4o-mini"
+            assert "gpt-4.1" in initial_by_key["chat_model"]["options"]
+            assert initial_by_key["voice"]["value"] == "marin"
+            assert "marin" in initial_by_key["voice"]["options"]
             assert initial_by_key["theme"]["value"] == "system"
 
             invalid = await client.patch("/api/v1/settings", json={"voice": "not-a-voice"})
             assert invalid.status_code == 422
+            invalid_model = await client.patch(
+                "/api/v1/settings", json={"speech_model": "not-a-model"}
+            )
+            assert invalid_model.status_code == 422
 
             updated = await client.patch(
                 "/api/v1/settings",
@@ -88,4 +95,6 @@ def test_secret_box_is_authenticated_and_versioned(tmp_path: Path) -> None:
 def test_setting_enum_exposes_key_and_metadata_from_one_registry() -> None:
     assert SettingKey.CHAT_MODEL.value == "chat_model"
     assert SettingKey.CHAT_MODEL.default == "gpt-4o-mini"
+    assert SettingKey.VOICE.default == "marin"
+    assert "gpt-4o-transcribe" in SettingKey.TRANSCRIPTION_MODEL.options
     assert "api_key" in setting_keys()

@@ -28,23 +28,67 @@ class SettingKey(StrEnum):
     def secret(self) -> bool:
         return self.definition.secret
 
+    @property
+    def options(self) -> tuple[str, ...]:
+        return self.definition.options
+
 
 @dataclass(frozen=True)
 class SettingDefinition:
     secret: bool = False
     default: str = ""
+    options: tuple[str, ...] = ()
 
 
 SETTING_DEFINITIONS: Final[dict[SettingKey, SettingDefinition]] = {
     SettingKey.API_KEY: SettingDefinition(secret=True),
-    SettingKey.CHAT_MODEL: SettingDefinition(default="gpt-4o-mini"),
-    SettingKey.TRANSCRIPTION_MODEL: SettingDefinition(default="gpt-4o-mini-transcribe"),
-    SettingKey.SPEECH_MODEL: SettingDefinition(default="gpt-4o-mini-tts"),
-    SettingKey.VISION_MODEL: SettingDefinition(),
-    SettingKey.VOICE: SettingDefinition(default="alloy"),
+    SettingKey.CHAT_MODEL: SettingDefinition(
+        default="gpt-4o-mini",
+        options=(
+            "gpt-4o-mini",
+            "gpt-4o",
+            "gpt-4.1-mini",
+            "gpt-4.1",
+            "gpt-5-mini",
+            "gpt-5",
+        ),
+    ),
+    SettingKey.TRANSCRIPTION_MODEL: SettingDefinition(
+        default="gpt-4o-mini-transcribe",
+        options=("gpt-4o-mini-transcribe", "gpt-4o-transcribe", "whisper-1"),
+    ),
+    SettingKey.SPEECH_MODEL: SettingDefinition(
+        default="gpt-4o-mini-tts",
+        options=("gpt-4o-mini-tts", "tts-1", "tts-1-hd"),
+    ),
+    SettingKey.VISION_MODEL: SettingDefinition(
+        default="gpt-4o-mini",
+        options=("gpt-4o-mini", "gpt-4o", "gpt-4.1-mini", "gpt-4.1"),
+    ),
+    SettingKey.VOICE: SettingDefinition(
+        default="marin",
+        options=(
+            "marin",
+            "cedar",
+            "alloy",
+            "ash",
+            "ballad",
+            "coral",
+            "echo",
+            "fable",
+            "nova",
+            "onyx",
+            "sage",
+            "shimmer",
+            "verse",
+        ),
+    ),
     SettingKey.TTS_ENABLED: SettingDefinition(),
     SettingKey.STT_ENABLED: SettingDefinition(),
-    SettingKey.THEME: SettingDefinition(default="system"),
+    SettingKey.THEME: SettingDefinition(
+        default="system",
+        options=("system", "light", "dark"),
+    ),
 }
 
 

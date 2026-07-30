@@ -11,6 +11,7 @@ export interface SettingStatus {
   key: string;
   configured: boolean;
   value?: string | null;
+  options?: string[];
   masked_suffix?: string | null;
   updated_at?: string;
 }

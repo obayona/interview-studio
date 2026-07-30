@@ -21,6 +21,9 @@ import './settings.css';
 const statusValue = (items: SettingStatus[], key: string, fallback = '') =>
   items.find((item) => item.key === key)?.value ?? fallback;
 
+const statusOptions = (items: SettingStatus[], key: string) =>
+  items.find((item) => item.key === key)?.options ?? [];
+
 const settingsToForm = (settings: SettingStatus[]): SettingsUpdate => ({
   api_key: '',
   chat_model: statusValue(settings, 'chat_model', 'gpt-4o-mini'),
@@ -31,7 +34,7 @@ const settingsToForm = (settings: SettingStatus[]): SettingsUpdate => ({
   ),
   speech_model: statusValue(settings, 'speech_model', 'gpt-4o-mini-tts'),
   vision_model: statusValue(settings, 'vision_model', 'gpt-4o-mini'),
-  voice: statusValue(settings, 'voice', 'alloy'),
+  voice: statusValue(settings, 'voice', 'marin'),
   tts_enabled: statusValue(settings, 'tts_enabled') === 'true',
   stt_enabled: statusValue(settings, 'stt_enabled') === 'true',
   theme: (statusValue(settings, 'theme', 'system') ||
@@ -47,7 +50,7 @@ function SettingsForm() {
     transcription_model: 'gpt-4o-mini-transcribe',
     speech_model: 'gpt-4o-mini-tts',
     vision_model: 'gpt-4o-mini',
-    voice: 'alloy',
+    voice: 'marin',
     tts_enabled: false,
     stt_enabled: false,
     theme: 'system',
@@ -218,24 +221,28 @@ function SettingsForm() {
             label="Chat model"
             name="chat_model"
             value={form.chat_model}
+            options={statusOptions(statuses, 'chat_model')}
             onChange={(value) => update('chat_model', value)}
           />
           <ModelField
             label="Transcription model"
             name="transcription_model"
             value={form.transcription_model}
+            options={statusOptions(statuses, 'transcription_model')}
             onChange={(value) => update('transcription_model', value)}
           />
           <ModelField
             label="Speech model"
             name="speech_model"
             value={form.speech_model}
+            options={statusOptions(statuses, 'speech_model')}
             onChange={(value) => update('speech_model', value)}
           />
           <ModelField
             label="Vision model"
             name="vision_model"
             value={form.vision_model}
+            options={statusOptions(statuses, 'vision_model')}
             onChange={(value) => update('vision_model', value)}
           />
           <FormField label="Voice" htmlFor="voice">
@@ -244,19 +251,7 @@ function SettingsForm() {
               value={form.voice}
               onChange={(event) => update('voice', event.target.value)}
             >
-              {[
-                'alloy',
-                'ash',
-                'ballad',
-                'coral',
-                'echo',
-                'fable',
-                'nova',
-                'onyx',
-                'sage',
-                'shimmer',
-                'verse',
-              ].map((voice) => (
+              {statusOptions(statuses, 'voice').map((voice) => (
                 <option key={voice} value={voice}>
                   {voice}
                 </option>
@@ -434,20 +429,28 @@ function ModelField({
   label,
   name,
   value,
+  options,
   onChange,
 }: {
   label: string;
   name: keyof SettingsUpdate;
   value?: string;
+  options: string[];
   onChange: (value: string) => void;
 }) {
   return (
     <FormField label={label} htmlFor={name}>
-      <Input
+      <Select
         id={name}
         value={value ?? ''}
         onChange={(event) => onChange(event.target.value)}
-      />
+      >
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </Select>
     </FormField>
   );
 }

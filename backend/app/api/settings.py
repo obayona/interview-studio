@@ -3,26 +3,13 @@ from __future__ import annotations
 from typing import cast
 
 from fastapi import APIRouter, Request
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
 
 from backend.app.core.config import SettingsService
 from backend.app.core.errors import ApplicationError
 from backend.app.core.settings_definitions import SettingKey
 
 router = APIRouter(prefix="/api/v1/settings", tags=["settings"])
-VOICES = {
-    "alloy",
-    "ash",
-    "ballad",
-    "coral",
-    "echo",
-    "fable",
-    "nova",
-    "onyx",
-    "sage",
-    "shimmer",
-    "verse",
-}
 
 
 class SettingsUpdate(BaseModel):
@@ -38,27 +25,30 @@ class SettingsUpdate(BaseModel):
     stt_enabled: bool | None = None
     theme: str | None = Field(default=None, max_length=20)
 
-    @field_validator("chat_model", "transcription_model", "speech_model", "vision_model")
+    @field_validator(
+        "chat_model",
+        "transcription_model",
+        "speech_model",
+        "vision_model",
+        "voice",
+    )
     @classmethod
-    def validate_model_name(cls, value: str | None) -> str | None:
-        if value is not None and (
-            not value.strip() or any(character.isspace() for character in value)
-        ):
-            raise ValueError("Model names must be non-empty and contain no whitespace")
-        return value.strip() if value else value
-
-    @field_validator("voice")
-    @classmethod
-    def validate_voice(cls, value: str | None) -> str | None:
-        if value is not None and value not in VOICES:
-            raise ValueError(f"Voice must be one of: {', '.join(sorted(VOICES))}")
-        return value
+    def validate_option(cls, value: str | None, info: ValidationInfo) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        if info.field_name is None:
+            raise ValueError("Setting field name is unavailable")
+        key = SettingKey(info.field_name)
+        if normalized not in key.options:
+            raise ValueError(f"{info.field_name} must be one of: {', '.join(key.options)}")
+        return normalized
 
     @field_validator("theme")
     @classmethod
     def validate_theme(cls, value: str | None) -> str | None:
-        if value is not None and value not in {"system", "light", "dark"}:
-            raise ValueError("Theme must be system, light, or dark")
+        if value is not None and value not in SettingKey.THEME.options:
+            raise ValueError(f"Theme must be one of: {', '.join(SettingKey.THEME.options)}")
         return value
 
 

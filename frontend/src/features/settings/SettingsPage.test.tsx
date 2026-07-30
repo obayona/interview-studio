@@ -22,7 +22,40 @@ describe('SettingsPage', () => {
           JSON.stringify({
             settings: [
               { key: 'api_key', configured: false, value: null },
-              { key: 'chat_model', configured: false, value: 'gpt-4o-mini' },
+              {
+                key: 'chat_model',
+                configured: false,
+                value: 'gpt-4o-mini',
+                options: ['gpt-4o-mini', 'gpt-4.1'],
+              },
+              {
+                key: 'transcription_model',
+                configured: false,
+                value: 'gpt-4o-mini-transcribe',
+                options: [
+                  'gpt-4o-mini-transcribe',
+                  'gpt-4o-transcribe',
+                  'whisper-1',
+                ],
+              },
+              {
+                key: 'speech_model',
+                configured: false,
+                value: 'gpt-4o-mini-tts',
+                options: ['gpt-4o-mini-tts', 'tts-1'],
+              },
+              {
+                key: 'vision_model',
+                configured: false,
+                value: 'gpt-4o-mini',
+                options: ['gpt-4o-mini', 'gpt-4.1'],
+              },
+              {
+                key: 'voice',
+                configured: false,
+                value: 'marin',
+                options: ['marin', 'cedar', 'alloy'],
+              },
               { key: 'theme', configured: false, value: 'system' },
             ],
           }),
@@ -46,6 +79,15 @@ describe('SettingsPage', () => {
       '/api/v1/settings',
       expect.anything(),
     );
+    fireEvent.click(
+      screen.getByRole('button', { name: /Advanced model parameters/ }),
+    );
+    expect(screen.getByLabelText('Chat model')).toHaveValue('gpt-4o-mini');
+    expect(screen.getByLabelText('Chat model').tagName).toBe('SELECT');
+    expect(screen.getByLabelText('Transcription model').tagName).toBe('SELECT');
+    expect(screen.getByLabelText('Speech model').tagName).toBe('SELECT');
+    expect(screen.getByLabelText('Vision model').tagName).toBe('SELECT');
+    expect(screen.getByLabelText('Voice')).toHaveValue('marin');
     const accessibility = await axe.run(container, {
       rules: { 'color-contrast': { enabled: false } },
     });

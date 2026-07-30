@@ -33,7 +33,7 @@ class AISettings(BaseModel):
     chat_model: str = "gpt-4o-mini"
     transcription_model: str = "gpt-4o-mini-transcribe"
     speech_model: str = "gpt-4o-mini-tts"
-    voice: str = "alloy"
+    voice: str = "marin"
     stt_enabled: bool = False
     tts_enabled: bool = False
 
