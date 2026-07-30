@@ -36,7 +36,6 @@ class InterviewSession:
             raise AttemptNotFoundError(self.attempt_id)
         available = await self.media_capabilities()
         return {
-            "speech_to_text": preferences["speech_to_text"] and available["speech_to_text"],
             "text_to_speech": preferences["text_to_speech"] and available["text_to_speech"],
         }
 

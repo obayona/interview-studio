@@ -156,7 +156,7 @@ Create one migration per coherent schema change and supply reversible rollback l
 - `projects`: name, role, description, technologies, URL, repository URL, and ordering.
 - `interview_processes`: title, company/job inputs, normalized research, target role, overall status, and timestamps.
 - `interview_stages`: process, type, order, enabled flag, configuration JSON, and status.
-- `interview_attempts`: stage, attempt number, status, timing, effective configuration, non-null STT/TTS preferences initialized from global gates, unique LangGraph thread ID, and termination reason.
+- `interview_attempts`: stage, attempt number, status, timing, effective configuration, a non-null TTS preference initialized from its global gate, unique LangGraph thread ID, and termination reason. STT is an action gated globally rather than a persisted attempt preference.
 - `interview_messages`: canonical completed transcript messages with attempt, stable LangGraph message ID, sequence, role, message type, text content, timing, and optional provider metadata. Token deltas, partial STT results, graph metadata, and pending writes are not stored here.
 - `interview_graph_state`: one shallow checkpoint row per attempt/thread and namespace, containing checkpoint ID, non-message state JSON, channel versions JSON, versions-seen JSON, updated-channels JSON, checkpoint metadata JSON, and timestamps.
 - `interview_graph_writes`: temporary pending graph writes containing attempt, checkpoint, task ID/path, write index, channel, JSON value, and timestamp. Obsolete writes are removed after a newer checkpoint becomes authoritative.
@@ -256,7 +256,7 @@ Acceptance:
 ### Phase 1 — Interview Engine ✅ Completed 2026-07-28
 
 - Build `backend.interview_engine` as a normal backend package importable from the repository root without installation or `sys.path` changes.
-- Define typed inputs for the candidate, job, company, interview type, interviewer, difficulty, instructions, limits, and language. STT/TTS preferences belong to attempts rather than engine or stage configuration.
+- Define typed inputs for the candidate, job, company, interview type, interviewer, difficulty, instructions, limits, and language. TTS preference belongs to the attempt; STT is an immediate recording action rather than engine, stage, or attempt configuration.
 - Define LangGraph state for conversation, topic coverage, goals, question count, time, limits, follow-up context, completion, and termination reason.
 - Generate the greeting, select topics, ask adaptive follow-ups, provide transitions, decide whether to continue, and close professionally.
 - Keep the external interview loop outside the package.

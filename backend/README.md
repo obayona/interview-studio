@@ -108,10 +108,10 @@ Final transcriptions enter the same canonical text flow as typed answers; receiv
 progress and partial transcript events are transient. Assistant text is buffered
 by sentence before OpenAI speech generation and MP3 output is sent in identified,
 sequenced chunks so clients can queue or cancel playback safely.
-Live voice-answer and spoken-reply preferences are stored on the attempt and
-survive reloads. New process stages inherit the current global STT/TTS preferences
-in the frontend. Browser microphone permission and autoplay failures are transient
-runtime conditions and never rewrite those saved preferences.
+The spoken-reply preference is stored on the attempt and survives reloads. Speech
+input is a direct push-to-talk action gated by the global STT setting, API key,
+and transcription model; it is not an attempt preference. Browser microphone
+permission and autoplay failures remain transient runtime conditions.
 
 The CLI alone may read `OPENAI_API_KEY` for development convenience. The backend module does not read
 environment variables; callers inject credentials, models, and checkpointers through

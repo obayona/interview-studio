@@ -48,8 +48,6 @@ steps = [
             thread_id TEXT NOT NULL UNIQUE,
             status TEXT NOT NULL DEFAULT 'ready',
             configuration_json TEXT NOT NULL,
-            current_stt_enabled INTEGER NOT NULL DEFAULT 0
-                CHECK (current_stt_enabled IN (0, 1)),
             current_tts_enabled INTEGER NOT NULL DEFAULT 0
                 CHECK (current_tts_enabled IN (0, 1)),
             started_at TEXT,

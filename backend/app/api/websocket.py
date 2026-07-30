@@ -44,6 +44,7 @@ async def interview_websocket(websocket: WebSocket, attempt_id: str) -> None:
     session = await service.open_session(attempt_id)
     send_lock = asyncio.Lock()
     modes = await session.media_modes()
+    capabilities = await session.media_capabilities()
     audio_input = bytearray()
     input_media_type = "audio/webm"
     output_sequence = 0
@@ -175,7 +176,10 @@ async def interview_websocket(websocket: WebSocket, attempt_id: str) -> None:
             payload = incoming.get("payload", {})
             try:
                 if event_type == "session.start":
-                    await send("session.ready", {"modes": modes})
+                    await send(
+                        "session.ready",
+                        {"modes": modes, "capabilities": capabilities},
+                    )
                     await send("interview.state", {"status": "connecting"})
                     await start_turn(session.start())
                 elif event_type == "user.text":
@@ -185,8 +189,9 @@ async def interview_websocket(websocket: WebSocket, attempt_id: str) -> None:
                         raise ValueError("Answer text cannot be empty")
                     await start_turn(session.respond(text))
                 elif event_type == "user.audio.start":
-                    if not modes["speech_to_text"]:
-                        raise ValueError("Speech-to-text is not enabled")
+                    capabilities = await session.media_capabilities()
+                    if not capabilities["speech_to_text"]:
+                        raise ValueError("Speech-to-text is not available")
                     await cancel_audio()
                     audio_input.clear()
                     input_media_type = str(payload.get("media_type", "audio/webm"))
@@ -219,36 +224,39 @@ async def interview_websocket(websocket: WebSocket, attempt_id: str) -> None:
                 elif event_type == "audio.output.cancel":
                     await cancel_audio()
                 elif event_type == "mode.update":
-                    available = await session.media_capabilities()
-                    for key in ("speech_to_text", "text_to_speech"):
-                        if key in payload:
-                            requested = bool(payload[key])
-                            await session.set_media_preference(key, requested)
-                            modes[key] = requested and available[key]
-                            if requested and not available[key]:
-                                label = (
-                                    "Voice answers" if key == "speech_to_text" else "Spoken replies"
-                                )
-                                await send(
-                                    "warning",
-                                    {
-                                        "code": f"{key}_unavailable",
-                                        "message": (
-                                            f"{label} is unavailable. Enable it in "
-                                            "Settings and verify the OpenAI API key."
-                                        ),
-                                    },
-                                )
+                    capabilities = await session.media_capabilities()
+                    if "text_to_speech" in payload:
+                        requested = bool(payload["text_to_speech"])
+                        await session.set_media_preference("text_to_speech", requested)
+                        modes["text_to_speech"] = requested and capabilities["text_to_speech"]
+                        if requested and not capabilities["text_to_speech"]:
+                            await send(
+                                "warning",
+                                {
+                                    "code": "text_to_speech_unavailable",
+                                    "message": (
+                                        "Spoken replies are unavailable. Enable them in "
+                                        "Settings and verify the OpenAI API key."
+                                    ),
+                                },
+                            )
                     if not modes["text_to_speech"]:
                         await cancel_audio()
-                    await send("mode.updated", {"modes": modes})
+                    await send(
+                        "mode.updated",
+                        {"modes": modes, "capabilities": capabilities},
+                    )
                 elif event_type == "session.pause":
                     await cancel_audio()
                     await session.pause()
                     await send("interview.state", {"status": "paused"})
                 elif event_type == "session.resume":
                     await session.resume()
-                    await send("mode.updated", {"modes": modes})
+                    capabilities = await session.media_capabilities()
+                    await send(
+                        "mode.updated",
+                        {"modes": modes, "capabilities": capabilities},
+                    )
                     await send("interview.state", {"status": "ready_for_answer"})
                 elif event_type == "session.end":
                     await cancel_audio()

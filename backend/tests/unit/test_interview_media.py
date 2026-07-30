@@ -27,7 +27,7 @@ class Attempts:
         self.ended_reason = reason
 
     async def media_preferences(self, attempt_id: str) -> dict[str, bool] | None:
-        return {"speech_to_text": True, "text_to_speech": True}
+        return {"text_to_speech": True}
 
 
 class Settings:
@@ -68,7 +68,6 @@ async def test_media_modes_require_attempt_and_global_enablement() -> None:
     )
 
     assert await session.media_modes() == {
-        "speech_to_text": True,
         "text_to_speech": False,
     }
     assert await session.media_capabilities() == {

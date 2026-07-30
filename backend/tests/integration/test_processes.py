@@ -87,15 +87,13 @@ async def test_process_crud_stage_configuration_and_repeated_attempts(
             assert first.json()["id"] != second.json()["id"]
 
             assert await app.state.attempts.media_preferences(first.json()["id"]) == {
-                "speech_to_text": True,
                 "text_to_speech": True,
             }
             await app.state.attempts.set_media_preference(
-                first.json()["id"], "speech_to_text", False
+                first.json()["id"], "text_to_speech", False
             )
             assert await app.state.attempts.media_preferences(first.json()["id"]) == {
-                "speech_to_text": False,
-                "text_to_speech": True,
+                "text_to_speech": False,
             }
             await app.state.attempts.mark_started(first.json()["id"])
             await app.state.attempts.mark_paused(first.json()["id"])

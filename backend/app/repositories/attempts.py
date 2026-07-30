@@ -135,29 +135,23 @@ class AttemptRepository:
     async def media_preferences(self, attempt_id: str) -> dict[str, bool] | None:
         row = await self._database.fetchone(
             """
-            SELECT current_stt_enabled, current_tts_enabled
+            SELECT current_tts_enabled
             FROM interview_attempts WHERE id = ?
             """,
             (attempt_id,),
         )
         if row is None:
             return None
-        return {
-            "speech_to_text": bool(row["current_stt_enabled"]),
-            "text_to_speech": bool(row["current_tts_enabled"]),
-        }
+        return {"text_to_speech": bool(row["current_tts_enabled"])}
 
     async def set_media_preference(self, attempt_id: str, key: str, value: bool) -> None:
-        column = {
-            "speech_to_text": "current_stt_enabled",
-            "text_to_speech": "current_tts_enabled",
-        }.get(key)
-        if column is None:
+        if key != "text_to_speech":
             raise ValueError(f"Unsupported media preference: {key}")
         timestamp = datetime.now(UTC).isoformat()
         async with self._database.transaction() as connection:
             connection.execute(
-                f"UPDATE interview_attempts SET {column} = ?, updated_at = ? WHERE id = ?",
+                "UPDATE interview_attempts "
+                "SET current_tts_enabled = ?, updated_at = ? WHERE id = ?",
                 (int(value), timestamp, attempt_id),
             )
 

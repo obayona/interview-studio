@@ -213,7 +213,6 @@ class ProcessService:
             process_id,
             stage_id,
             configuration.model_dump_json(),
-            speech_to_text=ai.stt_enabled,
             text_to_speech=ai.tts_enabled,
         )
         if created is None:

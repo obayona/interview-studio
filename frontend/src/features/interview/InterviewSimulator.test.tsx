@@ -54,7 +54,8 @@ describe('InterviewSimulator', () => {
       emit?.({
         type: 'session.ready',
         payload: {
-          modes: { speech_to_text: false, text_to_speech: true },
+          modes: { text_to_speech: true },
+          capabilities: { speech_to_text: true },
         },
       });
       emit?.({
@@ -100,6 +101,42 @@ describe('InterviewSimulator', () => {
     expect(send).toHaveBeenCalledWith('mode.update', {
       text_to_speech: false,
     });
+
+    act(() => {
+      emit?.({
+        type: 'mode.updated',
+        payload: {
+          modes: { text_to_speech: false },
+          capabilities: { speech_to_text: true },
+        },
+      });
+      emit?.({
+        type: 'interview.state',
+        payload: { status: 'ready_for_answer' },
+      });
+    });
+    expect(
+      screen.getByRole('button', { name: 'Start voice answer' }),
+    ).toHaveAttribute('title', 'Start voice answer');
+    expect(screen.getByText('Voice input ready')).toBeVisible();
+    expect(
+      screen.getByText('Click the microphone to start a voice answer'),
+    ).toBeVisible();
+    act(() => {
+      emit?.({
+        type: 'interview.state',
+        payload: { status: 'listening' },
+      });
+    });
+    expect(screen.getByText('Microphone live')).toBeVisible();
+    expect(
+      screen.getByText('Click the microphone again to stop and send'),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('button', {
+        name: 'Stop recording and send voice answer',
+      }),
+    ).toBeVisible();
 
     act(() => {
       emit?.({

@@ -17,7 +17,8 @@ import {
 } from '../../services/interview-socket';
 import './interview.css';
 
-type Modes = { speech_to_text: boolean; text_to_speech: boolean };
+type Modes = { text_to_speech: boolean };
+type Capabilities = { speech_to_text: boolean };
 type Status =
   | 'connecting'
   | 'ready_for_answer'
@@ -60,9 +61,12 @@ function InterviewSimulatorContent() {
   const [streamingText, setStreamingText] = useState('');
   const [partialText, setPartialText] = useState('');
   const [modes, setModes] = useState<Modes>({
-    speech_to_text: false,
     text_to_speech: false,
   });
+  const [capabilities, setCapabilities] = useState<Capabilities>({
+    speech_to_text: false,
+  });
+  const [requestingMicrophone, setRequestingMicrophone] = useState(false);
   const [status, setStatus] = useState<Status>('connecting');
   const [error, setError] = useState<string>();
   const [connected, setConnected] = useState(false);
@@ -113,6 +117,9 @@ function InterviewSimulatorContent() {
       const payload = event.payload as Record<string, unknown>;
       if (event.type === 'session.ready' || event.type === 'mode.updated') {
         setModes(payload.modes as Modes);
+        if (payload.capabilities) {
+          setCapabilities(payload.capabilities as Capabilities);
+        }
       } else if (event.type === 'assistant.text.delta') {
         setStreamingText((current) => current + String(payload.text ?? ''));
       } else if (event.type === 'assistant.text.completed') {
@@ -265,6 +272,7 @@ function InterviewSimulatorContent() {
   };
 
   const startRecording = async () => {
+    setRequestingMicrophone(true);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       stopPlayback();
@@ -297,13 +305,17 @@ function InterviewSimulatorContent() {
       setStatus('listening');
     } catch {
       showToast('Microphone permission is required for push-to-talk.', 'error');
+    } finally {
+      setRequestingMicrophone(false);
     }
   };
 
   const stopRecording = () => recorder.current?.stop();
-  const updateMode = (key: keyof Modes) => {
-    if (key === 'text_to_speech' && modes.text_to_speech) stopPlayback();
-    socket.current.send('mode.update', { [key]: !modes[key] });
+  const updateSpeechOutput = () => {
+    if (modes.text_to_speech) stopPlayback();
+    socket.current.send('mode.update', {
+      text_to_speech: !modes.text_to_speech,
+    });
   };
   const interviewerIsStreaming = Boolean(streamingText);
   const openNavigation = () => {
@@ -395,6 +407,45 @@ function InterviewSimulatorContent() {
             <strong>Interviewer</strong>
             <span>{interviewerIsStreaming ? 'Responding…' : 'Ready'}</span>
           </div>
+          {capabilities.speech_to_text &&
+            (requestingMicrophone ||
+              ['ready_for_answer', 'listening', 'transcribing'].includes(
+                status,
+              )) && (
+              <div
+                className={`interview__candidate-speaking ${
+                  status === 'listening' ? 'is-listening' : ''
+                }`}
+                role="status"
+                aria-live="polite"
+              >
+                <span className="interview__candidate-speaking-portrait">
+                  {candidate.avatarUrl ? (
+                    <img src={candidate.avatarUrl} alt="" />
+                  ) : (
+                    <Icon name="user" />
+                  )}
+                </span>
+                <strong>
+                  {requestingMicrophone
+                    ? 'Waiting for permission'
+                    : status === 'listening'
+                      ? 'Microphone live'
+                      : status === 'transcribing'
+                        ? 'Transcribing…'
+                        : 'Voice input ready'}
+                </strong>
+                <span>
+                  {requestingMicrophone
+                    ? 'Allow microphone access in your browser'
+                    : status === 'listening'
+                      ? 'Click the microphone again to stop and send'
+                      : status === 'transcribing'
+                        ? 'Preparing your voice answer'
+                        : 'Click the microphone to start a voice answer'}
+                </span>
+              </div>
+            )}
         </section>
 
         {chatVisible && (
@@ -479,16 +530,49 @@ function InterviewSimulatorContent() {
           {status !== 'completed' && (
             <>
               <Button
-                className={`interview__control ui-button--icon ${
-                  modes.speech_to_text ? 'is-active' : ''
+                className={`interview__control interview__talk ui-button--icon ${
+                  status === 'listening' ? 'is-listening is-active' : ''
                 }`}
-                aria-pressed={modes.speech_to_text}
-                aria-label="Voice answers"
-                title="Voice answers"
-                onClick={() => updateMode('speech_to_text')}
+                aria-pressed={status === 'listening'}
+                aria-label={
+                  requestingMicrophone
+                    ? 'Requesting microphone permission'
+                    : status === 'listening'
+                      ? 'Stop recording and send voice answer'
+                      : status === 'transcribing'
+                        ? 'Transcribing voice answer'
+                        : 'Start voice answer'
+                }
+                title={
+                  !capabilities.speech_to_text
+                    ? 'Enable speech input in Settings'
+                    : status === 'listening'
+                      ? 'Stop recording and send voice answer'
+                      : status === 'transcribing'
+                        ? 'Transcribing voice answer'
+                        : 'Start voice answer'
+                }
+                disabled={
+                  requestingMicrophone ||
+                  !capabilities.speech_to_text ||
+                  !connected ||
+                  !['ready_for_answer', 'listening'].includes(status)
+                }
+                onClick={
+                  status === 'listening'
+                    ? stopRecording
+                    : () => void startRecording()
+                }
               >
                 <Icon
-                  name={modes.speech_to_text ? 'microphone' : 'microphoneOff'}
+                  name={
+                    requestingMicrophone || status === 'transcribing'
+                      ? 'spinner'
+                      : status === 'listening'
+                        ? 'microphoneOff'
+                        : 'microphone'
+                  }
+                  spin={requestingMicrophone || status === 'transcribing'}
                 />
               </Button>
               <Button
@@ -498,38 +582,10 @@ function InterviewSimulatorContent() {
                 aria-pressed={modes.text_to_speech}
                 aria-label="Spoken replies"
                 title="Spoken replies"
-                onClick={() => updateMode('text_to_speech')}
+                onClick={updateSpeechOutput}
               >
                 <Icon name={modes.text_to_speech ? 'volume' : 'volumeOff'} />
               </Button>
-              {modes.speech_to_text && (
-                <Button
-                  className={`interview__control interview__talk ui-button--icon ${
-                    status === 'listening' ? 'is-listening is-active' : ''
-                  }`}
-                  aria-label={
-                    status === 'listening' ? 'Stop and send' : 'Push to talk'
-                  }
-                  title={
-                    status === 'listening' ? 'Stop and send' : 'Push to talk'
-                  }
-                  disabled={
-                    !connected ||
-                    !['ready_for_answer', 'listening'].includes(status)
-                  }
-                  onClick={
-                    status === 'listening'
-                      ? stopRecording
-                      : () => void startRecording()
-                  }
-                >
-                  <Icon
-                    name={
-                      status === 'listening' ? 'microphoneOff' : 'microphone'
-                    }
-                  />
-                </Button>
-              )}
               <Button
                 className={`interview__control ui-button--icon ${
                   status === 'paused' ? 'is-active' : ''
