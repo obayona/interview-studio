@@ -67,9 +67,7 @@ describe('InterviewSimulator', () => {
       });
     });
 
-    expect(screen.getAllByLabelText('Interviewer is responding')).toHaveLength(
-      2,
-    );
+    expect(screen.getByLabelText('Interviewer is responding')).toBeVisible();
 
     act(() => {
       emit?.({
@@ -83,6 +81,13 @@ describe('InterviewSimulator', () => {
     expect(
       await screen.findByText('Tell me about your experience.'),
     ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Hide transcript' }));
+    expect(screen.queryByLabelText('Transcript')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Your answer')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Show transcript' }));
+    expect(screen.getByLabelText('Transcript')).toBeVisible();
+    expect(screen.getByLabelText('Your answer')).toBeVisible();
+
     fireEvent.change(screen.getByLabelText('Your answer'), {
       target: { value: 'I build reliable systems.' },
     });

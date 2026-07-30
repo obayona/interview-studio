@@ -20,6 +20,15 @@ const links: Array<{ href: string; label: string; icon: IconName }> = [
 ---
 
 <aside class="app-shell__sidebar" id="primary-navigation" transition:persist>
+  <button
+    class="app-shell__sidebar-close ui-button ui-button--icon"
+    type="button"
+    aria-label="Close navigation"
+    title="Close navigation"
+    data-menu-close
+  >
+    <Icon name="close" />
+  </button>
   <h1 class="app-shell__brand">Interview Studio</h1>
   <p class="app-shell__tagline">Technical simulator</p>
   <nav class="app-shell__nav" aria-label="Primary navigation">

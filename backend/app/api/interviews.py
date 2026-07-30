@@ -20,6 +20,7 @@ async def interview_history(request: Request, attempt_id: str) -> dict[str, obje
     return {
         "attempt_id": attempt_id,
         "status": await attempts.status(attempt_id),
+        "context": await attempts.context(attempt_id),
         "messages": messages,
     }
 

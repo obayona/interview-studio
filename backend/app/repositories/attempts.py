@@ -16,6 +16,23 @@ class TranscriptMessage(TypedDict):
     created_at: str
 
 
+class AttemptContext(TypedDict):
+    process_title: str
+    company_name: str
+    target_role: str
+    stage_type: str
+    attempt_number: int
+    company_info: str
+    job_listing: str
+    difficulty: str
+    interviewer_profile: str
+    language: str
+    configured_topics: list[str]
+    topics_covered: list[str]
+    max_questions: int
+    max_duration_minutes: int
+
+
 class AttemptRepository:
     def __init__(self, database: SQLiteManager) -> None:
         self._database = database
@@ -60,6 +77,60 @@ class AttemptRepository:
             (attempt_id,),
         )
         return None if row is None else str(row["status"])
+
+    async def context(self, attempt_id: str) -> AttemptContext | None:
+        row = await self._database.fetchone(
+            """
+            SELECT a.attempt_number, a.configuration_json,
+                   COALESCE(s.stage_type, '') AS stage_type,
+                   COALESCE(p.title, '') AS process_title,
+                   COALESCE(p.company_name, '') AS company_name,
+                   COALESCE(p.target_role, '') AS target_role,
+                   gs.state_json
+            FROM interview_attempts a
+            LEFT JOIN interview_stages s ON s.id = a.stage_id
+            LEFT JOIN interview_processes p ON p.id = s.process_id
+            LEFT JOIN interview_graph_state gs ON gs.attempt_id = a.id
+            WHERE a.id = ?
+            """,
+            (attempt_id,),
+        )
+        if row is None:
+            return None
+        configuration = InterviewConfiguration.model_validate_json(str(row["configuration_json"]))
+        graph_state: dict[str, object] = {}
+        if row["state_json"] is not None:
+            value = StrictJsonCodec().loads(str(row["state_json"]))
+            if isinstance(value, dict):
+                graph_state = value
+        graph_topics = graph_state.get("topics", [])
+        graph_topics_covered = graph_state.get("topics_covered", [])
+        configured_topics = list(configuration.topics) or (
+            [str(topic) for topic in graph_topics if isinstance(topic, str)]
+            if isinstance(graph_topics, list)
+            else []
+        )
+        topics_covered = (
+            [str(topic) for topic in graph_topics_covered if isinstance(topic, str)]
+            if isinstance(graph_topics_covered, list)
+            else []
+        )
+        return {
+            "process_title": str(row["process_title"]),
+            "company_name": str(row["company_name"]),
+            "target_role": str(row["target_role"]),
+            "stage_type": str(row["stage_type"] or configuration.interview_type.value),
+            "attempt_number": int(row["attempt_number"]),
+            "company_info": configuration.company_info,
+            "job_listing": configuration.job_listing,
+            "difficulty": configuration.difficulty.value,
+            "interviewer_profile": configuration.interviewer_profile.value,
+            "language": configuration.language,
+            "configured_topics": configured_topics,
+            "topics_covered": topics_covered,
+            "max_questions": configuration.limits.max_questions,
+            "max_duration_minutes": configuration.limits.max_duration_minutes,
+        }
 
     async def media_preferences(self, attempt_id: str) -> dict[str, bool | None] | None:
         row = await self._database.fetchone(

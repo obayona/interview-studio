@@ -32,11 +32,10 @@ async def test_prepared_database_boots_without_credentials(tmp_path: Path) -> No
             assert response.json()["interview"]["available"] is False
             assert "WebSocket" in (await client.get("/")).text
             history = await client.get("/api/v1/interviews/browser-harness/history")
-            assert history.json() == {
-                "attempt_id": "browser-harness",
-                "status": "ready",
-                "messages": [],
-            }
+            assert history.json()["attempt_id"] == "browser-harness"
+            assert history.json()["status"] == "ready"
+            assert history.json()["messages"] == []
+            assert history.json()["context"]["target_role"] == ""
             missing = await client.get("/api/v1/interviews/missing/history")
             assert missing.status_code == 404
             assert missing.json()["code"] == "attempt_not_found"

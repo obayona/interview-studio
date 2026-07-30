@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '../../components/ui/Button';
+import { Dialog } from '../../components/ui/Dialog';
 import { Icon } from '../../components/ui/Icon';
 import { ErrorState } from '../../components/ui/States';
 import { ToastProvider, useToast } from '../../components/ui/Toast';
 import interviewerImage from '../../images/interviewer.png';
 import {
   interviewApi,
+  type InterviewContext,
   type TranscriptMessage,
 } from '../../services/interview-api';
 import { profileApi } from '../../services/profile-api';
@@ -50,6 +52,9 @@ function InterviewSimulatorContent() {
     name: string;
     avatarUrl?: string;
   }>({ name: 'Candidate' });
+  const [interviewContext, setInterviewContext] = useState<InterviewContext>();
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [chatVisible, setChatVisible] = useState(true);
   const [messages, setMessages] = useState<TranscriptMessage[]>([]);
   const [draft, setDraft] = useState('');
   const [streamingText, setStreamingText] = useState('');
@@ -170,6 +175,7 @@ function InterviewSimulatorContent() {
       try {
         const history = await interviewApi.history(id);
         setMessages(history.messages);
+        setInterviewContext(history.context);
         await socket.current.connect(id, handleEvent, () => {
           setConnected(false);
           if (!intentionalClose.current) {
@@ -367,174 +373,301 @@ function InterviewSimulatorContent() {
             <Icon name="user" />
           )}
         </span>
-        <span
-          className={`interview__mobile-speaking ${
-            interviewerIsStreaming ? 'is-streaming' : ''
-          }`}
-          role="status"
-          aria-label={
-            interviewerIsStreaming
-              ? 'Interviewer is responding'
-              : 'Interviewer is waiting'
-          }
-        >
-          <svg viewBox="0 0 48 36" aria-hidden="true">
-            <path d="M8 3h32a5 5 0 0 1 5 5v16a5 5 0 0 1-5 5H22l-8 5v-5H8a5 5 0 0 1-5-5V8a5 5 0 0 1 5-5Z" />
-            <circle cx="16" cy="16" r="2.5" />
-            <circle cx="24" cy="16" r="2.5" />
-            <circle cx="32" cy="16" r="2.5" />
-          </svg>
-        </span>
       </header>
 
-      <aside
-        className={`interview__interviewer ${
-          interviewerIsStreaming ? 'is-streaming' : ''
-        }`}
-        aria-label={
-          interviewerIsStreaming ? 'Interviewer is responding' : 'Interviewer'
-        }
+      <div
+        className={`interview__meeting ${chatVisible ? 'is-chat-visible' : ''}`}
       >
-        <div className="interview__interviewer-portrait">
-          <img src={interviewerImage.src} alt="AI interviewer" />
-        </div>
-        <strong>Interviewer</strong>
-        <span>{interviewerIsStreaming ? 'Responding…' : 'Ready'}</span>
-      </aside>
-
-      <div className="interview__conversation" aria-live="polite">
-        {messages.length === 0 && !streamingText && (
-          <div className="interview__welcome">
-            <h2>Your interviewer is getting ready</h2>
-            <p>The first question will appear here.</p>
-          </div>
-        )}
-        {messages.map((message) => (
-          <article
-            className={`interview__message interview__message--${message.role}`}
-            key={message.id}
+        <section className="interview__stage" aria-label="Interviewer">
+          <div
+            className={`interview__interviewer ${
+              interviewerIsStreaming ? 'is-streaming' : ''
+            }`}
+            aria-label={
+              interviewerIsStreaming
+                ? 'Interviewer is responding'
+                : 'Interviewer'
+            }
           >
-            <span>{message.role === 'assistant' ? 'Interviewer' : 'You'}</span>
-            <div className="interview__bubble">
-              <p>{message.text}</p>
+            <div className="interview__interviewer-portrait">
+              <img src={interviewerImage.src} alt="AI interviewer" />
             </div>
-          </article>
-        ))}
-        {(streamingText || partialText) && (
-          <article className="interview__message interview__message--assistant">
-            <span>{partialText ? 'You' : 'Interviewer'}</span>
-            <div className="interview__bubble">
-              <p>{partialText || streamingText}</p>
+            <strong>Interviewer</strong>
+            <span>{interviewerIsStreaming ? 'Responding…' : 'Ready'}</span>
+          </div>
+        </section>
+
+        {chatVisible && (
+          <section className="interview__chat" aria-label="Transcript">
+            <div className="interview__conversation" aria-live="polite">
+              {messages.length === 0 && !streamingText && (
+                <div className="interview__welcome">
+                  <h2>Your interviewer is getting ready</h2>
+                  <p>The first question will appear here.</p>
+                </div>
+              )}
+              {messages.map((message) => (
+                <article
+                  className={`interview__message interview__message--${message.role}`}
+                  key={message.id}
+                >
+                  <span>
+                    {message.role === 'assistant' ? 'Interviewer' : 'You'}
+                  </span>
+                  <div className="interview__bubble">
+                    <p>{message.text}</p>
+                  </div>
+                </article>
+              ))}
+              {(streamingText || partialText) && (
+                <article className="interview__message interview__message--assistant">
+                  <span>{partialText ? 'You' : 'Interviewer'}</span>
+                  <div className="interview__bubble">
+                    <p>{partialText || streamingText}</p>
+                  </div>
+                </article>
+              )}
+              <div ref={transcriptEnd} />
             </div>
-          </article>
+            {status !== 'completed' && (
+              <div className="interview__answer">
+                <label className="sr-only" htmlFor="interview-answer">
+                  Your answer
+                </label>
+                <textarea
+                  id="interview-answer"
+                  value={draft}
+                  onChange={(event) => setDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && !event.shiftKey) {
+                      event.preventDefault();
+                      submit();
+                    }
+                  }}
+                  placeholder="Type your answer…"
+                  disabled={!connected || status !== 'ready_for_answer'}
+                />
+                <Button
+                  className="ui-button--icon"
+                  variant="primary"
+                  aria-label="Send answer"
+                  title="Send answer"
+                  disabled={!draft.trim() || status !== 'ready_for_answer'}
+                  onClick={submit}
+                >
+                  <Icon name="send" />
+                </Button>
+              </div>
+            )}
+          </section>
         )}
-        <div ref={transcriptEnd} />
       </div>
 
-      {status !== 'completed' && (
-        <footer className="interview__controls">
-          <div className="interview__button-bar">
-            <Button
-              className="ui-button--icon"
-              aria-pressed={modes.speech_to_text}
-              aria-label="Voice answers"
-              title="Voice answers"
-              onClick={() => updateMode('speech_to_text')}
-            >
-              <Icon
-                name={modes.speech_to_text ? 'microphone' : 'microphoneOff'}
-              />
-            </Button>
-            <Button
-              className="ui-button--icon"
-              aria-pressed={modes.text_to_speech}
-              aria-label="Spoken replies"
-              title="Spoken replies"
-              onClick={() => updateMode('text_to_speech')}
-            >
-              <Icon name={modes.text_to_speech ? 'volume' : 'volumeOff'} />
-            </Button>
-            {modes.speech_to_text && (
+      <footer className="interview__controls">
+        <div className="interview__identity">
+          <strong>
+            {interviewContext?.process_title || 'Practice interview'}
+          </strong>
+          <span>
+            Attempt{' '}
+            {interviewContext?.attempt_number
+              ? `#${interviewContext.attempt_number}`
+              : ''}
+          </span>
+        </div>
+        <div className="interview__button-bar interview__button-bar--session">
+          {status !== 'completed' && (
+            <>
               <Button
-                className={
-                  status === 'listening'
-                    ? 'interview__talk ui-button--icon is-listening'
-                    : 'interview__talk ui-button--icon'
-                }
-                variant="primary"
-                aria-label={
-                  status === 'listening' ? 'Stop and send' : 'Push to talk'
-                }
-                title={
-                  status === 'listening' ? 'Stop and send' : 'Push to talk'
-                }
-                disabled={
-                  !connected ||
-                  !['ready_for_answer', 'listening'].includes(status)
-                }
-                onClick={
-                  status === 'listening'
-                    ? stopRecording
-                    : () => void startRecording()
-                }
+                className={`interview__control ui-button--icon ${
+                  modes.speech_to_text ? 'is-active' : ''
+                }`}
+                aria-pressed={modes.speech_to_text}
+                aria-label="Voice answers"
+                title="Voice answers"
+                onClick={() => updateMode('speech_to_text')}
               >
                 <Icon
-                  name={status === 'listening' ? 'microphoneOff' : 'microphone'}
+                  name={modes.speech_to_text ? 'microphone' : 'microphoneOff'}
                 />
               </Button>
-            )}
+              <Button
+                className={`interview__control ui-button--icon ${
+                  modes.text_to_speech ? 'is-active' : ''
+                }`}
+                aria-pressed={modes.text_to_speech}
+                aria-label="Spoken replies"
+                title="Spoken replies"
+                onClick={() => updateMode('text_to_speech')}
+              >
+                <Icon name={modes.text_to_speech ? 'volume' : 'volumeOff'} />
+              </Button>
+              {modes.speech_to_text && (
+                <Button
+                  className={`interview__control interview__talk ui-button--icon ${
+                    status === 'listening' ? 'is-listening is-active' : ''
+                  }`}
+                  aria-label={
+                    status === 'listening' ? 'Stop and send' : 'Push to talk'
+                  }
+                  title={
+                    status === 'listening' ? 'Stop and send' : 'Push to talk'
+                  }
+                  disabled={
+                    !connected ||
+                    !['ready_for_answer', 'listening'].includes(status)
+                  }
+                  onClick={
+                    status === 'listening'
+                      ? stopRecording
+                      : () => void startRecording()
+                  }
+                >
+                  <Icon
+                    name={
+                      status === 'listening' ? 'microphoneOff' : 'microphone'
+                    }
+                  />
+                </Button>
+              )}
+              <Button
+                className={`interview__control ui-button--icon ${
+                  status === 'paused' ? 'is-active' : ''
+                }`}
+                aria-pressed={status === 'paused'}
+                aria-label={status === 'paused' ? 'Resume' : 'Pause'}
+                title={status === 'paused' ? 'Resume' : 'Pause'}
+                onClick={() => {
+                  const next =
+                    status === 'paused' ? 'session.resume' : 'session.pause';
+                  socket.current.send(next);
+                }}
+              >
+                <Icon name={status === 'paused' ? 'resume' : 'pause'} />
+              </Button>
+              <Button
+                className="interview__control ui-button--icon"
+                variant="danger"
+                aria-label="End session"
+                title="End session"
+                onClick={() => socket.current.send('session.end')}
+              >
+                <Icon name="hangup" />
+              </Button>
+            </>
+          )}
+        </div>
+        <div className="interview__button-bar interview__button-bar--context">
+          <Button
+            className={`interview__control ui-button--icon ${
+              chatVisible ? 'is-active' : ''
+            }`}
+            aria-pressed={chatVisible}
+            aria-label={chatVisible ? 'Hide transcript' : 'Show transcript'}
+            title={chatVisible ? 'Hide transcript' : 'Show transcript'}
+            onClick={() => setChatVisible((visible) => !visible)}
+          >
+            <Icon name="interview" />
+          </Button>
+          <Button
+            className={`interview__control ui-button--icon ${
+              detailsOpen ? 'is-active' : ''
+            }`}
+            aria-pressed={detailsOpen}
+            aria-label="Interview details"
+            title="Interview details"
+            onClick={() => setDetailsOpen(true)}
+          >
+            <Icon name="info" />
+          </Button>
+        </div>
+      </footer>
+
+      <Dialog
+        className="interview__details-dialog"
+        open={detailsOpen}
+        onClose={() => setDetailsOpen(false)}
+      >
+        <div className="ui-dialog__content interview__details">
+          <div className="interview__details-heading">
+            <div>
+              <p className="interview__details-eyebrow">Interview context</p>
+              <h2>{interviewContext?.process_title || 'Practice interview'}</h2>
+            </div>
             <Button
               className="ui-button--icon"
-              aria-label={status === 'paused' ? 'Resume' : 'Pause'}
-              title={status === 'paused' ? 'Resume' : 'Pause'}
-              onClick={() => {
-                const next =
-                  status === 'paused' ? 'session.resume' : 'session.pause';
-                socket.current.send(next);
-              }}
+              aria-label="Close interview details"
+              title="Close interview details"
+              onClick={() => setDetailsOpen(false)}
             >
-              <Icon name={status === 'paused' ? 'resume' : 'pause'} />
-            </Button>
-            <Button
-              className="ui-button--icon"
-              variant="danger"
-              aria-label="End session"
-              title="End session"
-              onClick={() => socket.current.send('session.end')}
-            >
-              <Icon name="stop" />
+              <Icon name="close" />
             </Button>
           </div>
-          <div className="interview__answer">
-            <label className="sr-only" htmlFor="interview-answer">
-              Your answer
-            </label>
-            <textarea
-              id="interview-answer"
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' && !event.shiftKey) {
-                  event.preventDefault();
-                  submit();
-                }
-              }}
-              placeholder="Type your answer…"
-              disabled={!connected || status !== 'ready_for_answer'}
-            />
-            <Button
-              className="ui-button--icon"
-              variant="primary"
-              aria-label="Send answer"
-              title="Send answer"
-              disabled={!draft.trim() || status !== 'ready_for_answer'}
-              onClick={submit}
-            >
-              <Icon name="send" />
-            </Button>
-          </div>
-        </footer>
-      )}
+          {interviewContext && (
+            <>
+              <dl className="interview__details-grid">
+                <div>
+                  <dt>Company</dt>
+                  <dd>{interviewContext.company_name || 'Not specified'}</dd>
+                </div>
+                <div>
+                  <dt>Target role</dt>
+                  <dd>{interviewContext.target_role || 'Not specified'}</dd>
+                </div>
+                <div>
+                  <dt>Stage</dt>
+                  <dd>{interviewContext.stage_type.replaceAll('_', ' ')}</dd>
+                </div>
+                <div>
+                  <dt>Difficulty</dt>
+                  <dd>{interviewContext.difficulty}</dd>
+                </div>
+                <div>
+                  <dt>Interviewer</dt>
+                  <dd>
+                    {interviewContext.interviewer_profile.replaceAll('_', ' ')}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Limits</dt>
+                  <dd>
+                    {interviewContext.max_questions} questions ·{' '}
+                    {interviewContext.max_duration_minutes} minutes
+                  </dd>
+                </div>
+              </dl>
+              {interviewContext.topics_covered.length > 0 && (
+                <section>
+                  <h3>Topics covered</h3>
+                  <ul className="interview__topic-list">
+                    {interviewContext.topics_covered.map((topic) => (
+                      <li key={topic}>{topic}</li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+              {interviewContext.configured_topics.length > 0 && (
+                <section>
+                  <h3>Planned topics</h3>
+                  <p>{interviewContext.configured_topics.join(', ')}</p>
+                </section>
+              )}
+              {interviewContext.company_info && (
+                <section>
+                  <h3>Company information</h3>
+                  <p>{interviewContext.company_info}</p>
+                </section>
+              )}
+              {interviewContext.job_listing && (
+                <section>
+                  <h3>Role information</h3>
+                  <p>{interviewContext.job_listing}</p>
+                </section>
+              )}
+            </>
+          )}
+        </div>
+      </Dialog>
     </section>
   );
 }

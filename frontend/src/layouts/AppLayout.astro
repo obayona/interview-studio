@@ -34,7 +34,10 @@ const {
     </script>
   </head>
   <body data-active-section={activeSection}>
-    <div class="app-shell" data-menu-open="false">
+    <div
+      class:list={['app-shell', { 'app-shell--focused': focused }]}
+      data-menu-open="false"
+    >
       <Sidebar activeSection={activeSection} />
       {!focused && <Header />}
       <main
@@ -55,12 +58,18 @@ const {
         );
         const button =
           document.querySelector<HTMLButtonElement>('[data-menu-toggle]');
+        const closeButton =
+          document.querySelector<HTMLButtonElement>('[data-menu-close]');
 
         const syncMenu = (open = shell?.dataset.menuOpen === 'true') => {
           const mobile = window.matchMedia('(width <= 760px)').matches;
-          const visible = !mobile || open;
-          if (shell) shell.dataset.menuOpen = String(mobile && open);
-          button?.setAttribute('aria-expanded', String(mobile && open));
+          const overlayNavigation = mobile;
+          const visible = !overlayNavigation || open;
+          if (shell) shell.dataset.menuOpen = String(overlayNavigation && open);
+          button?.setAttribute(
+            'aria-expanded',
+            String(overlayNavigation && open),
+          );
           if (sidebar) {
             sidebar.inert = !visible;
             sidebar.setAttribute('aria-hidden', String(!visible));
@@ -76,6 +85,10 @@ const {
           document.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') syncMenu(false);
           });
+        }
+        if (closeButton && closeButton.dataset.menuBound !== 'true') {
+          closeButton.dataset.menuBound = 'true';
+          closeButton.addEventListener('click', () => syncMenu(false));
         }
 
         document

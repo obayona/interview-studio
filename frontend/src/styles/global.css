@@ -67,6 +67,13 @@ a {
   letter-spacing: -0.04em;
 }
 
+.app-shell__sidebar-close {
+  display: none;
+  position: absolute;
+  top: 1.2rem;
+  right: 1.2rem;
+}
+
 .app-shell__tagline {
   margin: 0 0 2.4rem;
   color: var(--color-text-muted);
@@ -252,6 +259,10 @@ a {
     width: min(30rem, 86vw);
     transform: translateX(-105%);
     transition: transform var(--transition-fast);
+  }
+
+  .app-shell__sidebar-close {
+    display: inline-flex;
   }
 
   .app-shell[data-menu-open='true'] .app-shell__sidebar {
