@@ -125,21 +125,11 @@ a {
   backdrop-filter: blur(2rem) saturate(180%);
 }
 
-.app-shell__search {
-  flex: 1;
-  min-width: 0;
-  width: min(32rem, 45vw);
-  padding: 1rem 1.4rem;
-  border: 0;
-  border-radius: var(--radius-md);
-  color: var(--color-text);
-  background: var(--color-surface-high);
-}
-
 .app-shell__header-actions {
   display: flex;
   align-items: center;
   gap: 1rem;
+  margin-inline-start: auto;
 }
 
 .app-shell__avatar {
@@ -292,10 +282,6 @@ a {
 @media (width <= 480px) {
   .app-shell__start-interview {
     display: none;
-  }
-
-  .app-shell__search {
-    width: auto;
   }
 }
 

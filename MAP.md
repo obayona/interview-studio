@@ -83,6 +83,7 @@ Last synchronized: 2026-07-30
 - `backend/tests/integration/test_profile.py`: Profile persistence, ordering, avatar validation, transient CV import, and no-document-storage coverage.
 - `frontend/`: Astro 7 and React 19 SPA-style frontend managed with pnpm 11, with strict TypeScript, ESLint, Prettier, Stylelint, and Vitest tooling.
 - `frontend/src/layouts/AppLayout.astro`: Persistent shell with sidebar, optional standard header, explicit active-section routing, focused-page spacing, responsive navigation, and Astro client transitions.
+- The standard global header contains navigation access, the Start Interview action, and the profile avatar. The unsupported disabled global-search placeholder and its styles are absent; process filtering remains local to the Processes page.
 - `frontend/src/components/layout/HeaderAvatar.tsx`: Global profile link that loads the current avatar, uses a user-icon fallback, and reacts to profile updates without a page reload.
 - `frontend/src/components/ui/`: Reusable Font Awesome icon, button, form, input, select, switch, card, badge, toast, dialog, spinner, skeleton, empty-state, and error-state components.
 - The shared spinner owns its rotation animation in bundled component CSS instead of depending on Font Awesome runtime style injection; global reduced-motion behavior still shortens animation as configured.
