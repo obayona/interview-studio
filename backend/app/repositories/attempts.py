@@ -90,8 +90,8 @@ class AttemptRepository:
                    COALESCE(p.target_role, '') AS target_role,
                    gs.state_json
             FROM interview_attempts a
-            LEFT JOIN interview_stages s ON s.id = a.stage_id
-            LEFT JOIN interview_processes p ON p.id = s.process_id
+            JOIN interview_stages s ON s.id = a.stage_id
+            JOIN interview_processes p ON p.id = s.process_id
             LEFT JOIN interview_graph_state gs ON gs.attempt_id = a.id
             WHERE a.id = ?
             """,
@@ -202,15 +202,14 @@ class AttemptRepository:
                 """,
                 (timestamp, reason, timestamp, attempt_id),
             )
-            if attempt["stage_id"] is not None:
-                connection.execute(
-                    """
-                    UPDATE interview_stages
-                    SET status = 'completed', updated_at = ?
-                    WHERE id = ?
-                    """,
-                    (timestamp, attempt["stage_id"]),
-                )
+            connection.execute(
+                """
+                UPDATE interview_stages
+                SET status = 'completed', updated_at = ?
+                WHERE id = ?
+                """,
+                (timestamp, attempt["stage_id"]),
+            )
 
     async def delete(self, attempt_id: str) -> bool:
         timestamp = datetime.now(UTC).isoformat()
@@ -219,7 +218,7 @@ class AttemptRepository:
                 """
                 SELECT a.stage_id, s.process_id
                 FROM interview_attempts a
-                LEFT JOIN interview_stages s ON s.id = a.stage_id
+                JOIN interview_stages s ON s.id = a.stage_id
                 WHERE a.id = ?
                 """,
                 (attempt_id,),
@@ -228,9 +227,8 @@ class AttemptRepository:
                 return False
             connection.execute("DELETE FROM interview_attempts WHERE id = ?", (attempt_id,))
             stage_id = attempt["stage_id"]
-            if stage_id is not None:
-                remaining = connection.execute(
-                    """
+            remaining = connection.execute(
+                """
                     SELECT
                         COUNT(*) AS attempt_count,
                         MAX(CASE WHEN status = 'completed' THEN 1 ELSE 0 END)
@@ -238,36 +236,35 @@ class AttemptRepository:
                     FROM interview_attempts
                     WHERE stage_id = ?
                     """,
-                    (stage_id,),
-                ).fetchone()
-                stage = connection.execute(
-                    "SELECT enabled FROM interview_stages WHERE id = ?",
-                    (stage_id,),
-                ).fetchone()
-                if remaining is not None and stage is not None:
-                    if int(remaining["has_completed"] or 0):
-                        status = "completed"
-                    elif int(remaining["attempt_count"]):
-                        status = "in_progress"
-                    else:
-                        status = "not_started" if bool(stage["enabled"]) else "skipped"
-                    connection.execute(
-                        """
-                        UPDATE interview_stages
-                        SET status = ?, updated_at = ?
-                        WHERE id = ?
-                        """,
-                        (status, timestamp, stage_id),
-                    )
-                if attempt["process_id"] is not None:
-                    connection.execute(
-                        """
-                        UPDATE interview_processes
-                        SET updated_at = ?
-                        WHERE id = ?
-                        """,
-                        (timestamp, attempt["process_id"]),
-                    )
+                (stage_id,),
+            ).fetchone()
+            stage = connection.execute(
+                "SELECT enabled FROM interview_stages WHERE id = ?",
+                (stage_id,),
+            ).fetchone()
+            if remaining is not None and stage is not None:
+                if int(remaining["has_completed"] or 0):
+                    status = "completed"
+                elif int(remaining["attempt_count"]):
+                    status = "in_progress"
+                else:
+                    status = "not_started" if bool(stage["enabled"]) else "skipped"
+                connection.execute(
+                    """
+                    UPDATE interview_stages
+                    SET status = ?, updated_at = ?
+                    WHERE id = ?
+                    """,
+                    (status, timestamp, stage_id),
+                )
+            connection.execute(
+                """
+                UPDATE interview_processes
+                SET updated_at = ?
+                WHERE id = ?
+                """,
+                (timestamp, attempt["process_id"]),
+            )
         return True
 
 

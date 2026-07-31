@@ -52,3 +52,10 @@ build the home dashboard from stored process, attempt, and report aggregates,
 include score statistics/trends, recent activity, strengths, weaknesses, and
 first-run guidance, omit upcoming sessions and interview readiness, verify the
 phase, and mark it complete in the plan, task ledger, and map.
+
+---
+
+Remove the browser test harness completely as though it never existed, restore
+required process-stage ownership for every persisted attempt, rename the
+interview CLI to `interview-engine-usage.py`, verify it works, and add equivalent
+standalone usage scripts for the report engine and profile parser.

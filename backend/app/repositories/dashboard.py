@@ -26,10 +26,9 @@ class DashboardRepository:
               (SELECT COUNT(*) FROM interview_processes) AS process_count,
               (SELECT COUNT(*) FROM interview_processes WHERE status = 'active')
                 AS active_process_count,
-              (SELECT COUNT(*) FROM interview_attempts WHERE stage_id IS NOT NULL)
-                AS attempt_count,
+              (SELECT COUNT(*) FROM interview_attempts) AS attempt_count,
               (SELECT COUNT(*) FROM interview_attempts
-                 WHERE stage_id IS NOT NULL AND status = 'completed')
+                 WHERE status = 'completed')
                 AS completed_attempt_count,
               (SELECT COUNT(*) FROM interview_reports) AS evaluated_attempt_count,
               (SELECT ROUND(AVG(overall_score)) FROM interview_reports) AS average_score,

@@ -43,7 +43,7 @@ steps = [
         """
         CREATE TABLE interview_attempts (
             id TEXT PRIMARY KEY,
-            stage_id TEXT REFERENCES interview_stages(id) ON DELETE CASCADE,
+            stage_id TEXT NOT NULL REFERENCES interview_stages(id) ON DELETE CASCADE,
             attempt_number INTEGER NOT NULL DEFAULT 1 CHECK (attempt_number >= 1),
             thread_id TEXT NOT NULL UNIQUE,
             status TEXT NOT NULL DEFAULT 'ready',
@@ -61,7 +61,7 @@ steps = [
     ),
     step(
         "CREATE UNIQUE INDEX idx_attempt_stage_number "
-        "ON interview_attempts(stage_id, attempt_number) WHERE stage_id IS NOT NULL",
+        "ON interview_attempts(stage_id, attempt_number)",
         "DROP INDEX IF EXISTS idx_attempt_stage_number",
     ),
     step(

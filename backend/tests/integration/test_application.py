@@ -30,21 +30,38 @@ async def test_prepared_database_boots_without_credentials(tmp_path: Path) -> No
             response = await client.get("/api/v1/capabilities")
             assert response.status_code == 200
             assert response.json()["interview"]["available"] is False
-            assert "WebSocket" in (await client.get("/")).text
-            history = await client.get("/api/v1/interviews/browser-harness/history")
-            assert history.json()["attempt_id"] == "browser-harness"
-            assert history.json()["status"] == "ready"
-            assert history.json()["messages"] == []
-            assert history.json()["context"]["target_role"] == ""
+            assert (await client.get("/")).json()["name"] == "Interview Studio API"
             missing = await client.get("/api/v1/interviews/missing/history")
             assert missing.status_code == 404
             assert missing.json()["code"] == "attempt_not_found"
+            process = (
+                await client.post(
+                    "/api/v1/processes",
+                    json={
+                        "title": "Provider test",
+                        "target_role": "Software engineer",
+                        "job": {"kind": "text", "value": "Build software."},
+                        "stages": [
+                            {
+                                "stage_type": "mixed",
+                                "configuration": {},
+                            }
+                        ],
+                    },
+                )
+            ).json()
+            attempt = (
+                await client.post(
+                    f"/api/v1/processes/{process['id']}/stages/"
+                    f"{process['stages'][0]['id']}/attempts"
+                )
+            ).json()
             configured = await client.patch("/api/v1/settings", json={"chat_model": "gpt-4.1-mini"})
             assert configured.status_code == 200
 
         service = cast(InterviewService, app.state.interviews)
         with pytest.raises(ProviderNotConfiguredError):
-            await service.open_session("browser-harness")
+            await service.open_session(attempt["id"])
 
     await prepare_database(config)
     async with app.router.lifespan_context(app):

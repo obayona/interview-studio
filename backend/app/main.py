@@ -7,11 +7,10 @@ from typing import cast
 from uuid import uuid4
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse, Response
+from fastapi.responses import JSONResponse, Response
 from starlette.middleware.base import RequestResponseEndpoint
 
 from backend.app.api.dashboard import router as dashboard_router
-from backend.app.api.index import INDEX_HTML
 from backend.app.api.interviews import attempts_router
 from backend.app.api.interviews import router as interviews_router
 from backend.app.api.processes import router as processes_router
@@ -98,9 +97,13 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
             },
         )
 
-    @app.get("/", response_class=HTMLResponse)
-    async def index() -> str:
-        return INDEX_HTML
+    @app.get("/")
+    async def index() -> dict[str, str]:
+        return {
+            "name": "Interview Studio API",
+            "health": "/health/ready",
+            "docs": "/docs",
+        }
 
     @app.get("/health/live")
     async def live() -> dict[str, str]:

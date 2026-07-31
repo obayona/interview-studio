@@ -30,9 +30,34 @@ async def database(tmp_path: Path) -> SQLiteManager:
     async with manager.transaction() as connection:
         connection.execute(
             """
+            INSERT INTO interview_processes (
+                id, title, target_role, job_description, company_info,
+                status, created_at, updated_at
+            ) VALUES (
+                'process-1', 'Checkpointer test', 'Backend engineer',
+                'Backend role', '', 'active', ?, ?
+            )
+            """,
+            (now, now),
+        )
+        connection.execute(
+            """
+            INSERT INTO interview_stages (
+                id, process_id, stage_type, position, enabled, status,
+                configuration_json, created_at, updated_at
+            ) VALUES (
+                'stage-1', 'process-1', 'technical', 0, 1, 'not_started',
+                '{}', ?, ?
+            )
+            """,
+            (now, now),
+        )
+        connection.execute(
+            """
             INSERT INTO interview_attempts (
-                id, thread_id, status, configuration_json, created_at, updated_at
-            ) VALUES ('attempt-1', 'thread-1', 'ready', ?, ?, ?)
+                id, stage_id, thread_id, status, configuration_json,
+                created_at, updated_at
+            ) VALUES ('attempt-1', 'stage-1', 'thread-1', 'ready', ?, ?, ?)
             """,
             (InterviewConfiguration(job_listing="Backend role").model_dump_json(), now, now),
         )

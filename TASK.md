@@ -11,9 +11,9 @@
 - [x] Implement the LangGraph lifecycle and adaptive interview flow.
 - [x] Implement the fluent builder with `MemorySaver` defaults and injectable dependencies.
 - [x] Add `interview-engine` library logging.
-- [x] Add the asynchronous CLI streaming harness.
+- [x] Add the asynchronous CLI streaming exercise.
 - [x] Add unit tests only for pure lifecycle, validation, topic, and prompt functions.
-- [x] Use `backend/cli/engine-usage.py` as the Phase 1 manual engine exercise; do not add backend integration tests before Phase 2.
+- [x] Use `backend/cli/interview-engine-usage.py` as the Phase 1 manual engine exercise; do not add backend integration tests before Phase 2.
 - [x] Run formatting, linting, typing, and test verification.
 - [x] Synchronize `MAP.md` with the implemented system.
 - [x] Mark Phase 1 complete in `PLAN.md`, `TASK.md`, and `MAP.md`.
@@ -38,7 +38,7 @@ Phase 1 completed and verified on 2026-07-28.
 - [x] Add the settings repository and typed configuration store.
 - [x] Ensure startup succeeds without API credentials.
 - [x] Build the interview application service, attempt validation, and WebSocket adapter.
-- [x] Serve the inline root-page WebSocket test UI.
+- [x] Serve backend API metadata at the root.
 - [x] Add health, readiness, capabilities, request IDs, and structured errors.
 - [x] Add unit and temporary-database integration tests.
 - [x] Verify fresh/existing migrations, formatting, linting, typing, and tests.
@@ -50,7 +50,7 @@ Phase 2 completed and verified on 2026-07-28.
 ## Phase 2 follow-up
 
 - [x] Add canonical transcript history retrieval for reconnecting clients.
-- [x] Update the browser harness to hydrate history and avoid restarting resumed interviews.
+- [x] Update interview clients to hydrate history and avoid restarting resumed interviews.
 
 ## Phase 3 — Settings
 

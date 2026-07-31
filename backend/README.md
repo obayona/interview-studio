@@ -11,8 +11,20 @@ python -m pip install -r backend/requirements-dev.txt
 Run the development CLI:
 
 ```bash
-python -m backend.cli.engine-usage --job "Backend engineer role"
+python -m backend.cli.interview-engine-usage --job "Backend engineer role"
 ```
+
+Equivalent standalone exercises exist for every current AI workflow:
+
+```bash
+python -m backend.cli.report-engine-usage evaluation-context.json
+python -m backend.cli.profile-parser-usage --pdf resume.pdf
+```
+
+All three commands accept `--api-key` or read `OPENAI_API_KEY`; model selection
+is available through `--model`. The report command accepts a JSON document
+matching `EvaluationContext`, while the profile parser accepts either `--pdf`
+or an already extracted `--text` file.
 
 Prepare the database, then run the FastAPI application:
 
@@ -22,10 +34,11 @@ python -m backend.cli.load_fixtures backend/interview_studio.sqlite3
 python -m uvicorn backend.app.main:app --reload
 ```
 
-Then open `http://127.0.0.1:8000`. The inline browser harness uses the
-`/api/v1/interviews/browser-harness/ws` WebSocket. The application starts and
-serves health/capability information without credentials; interview events return a
-structured configuration error until `api_key` exists in the `settings` table.
+Then open `http://127.0.0.1:8000/docs` for the API documentation. The
+application starts and serves health/capability information without credentials;
+interview events return a structured configuration error until `api_key` exists
+in the `settings` table. Interview attempts are created only through process
+stages; development tools do not create special persistent attempts.
 
 The SQLite database defaults to `backend/interview_studio.sqlite3`. Migrations and
 fixtures are independent installation commands; the web application assumes the
@@ -41,7 +54,6 @@ order listed by `backend/cli/load_fixtures.py`:
 
 1. Insert missing non-secret setting defaults such as `chat_model` and `theme`.
 2. Create the singleton `default` developer profile.
-3. Create the `browser-harness` development interview attempt.
 
 Each fixture executes idempotent SQL directly. `INSERT OR IGNORE` prevents repeated
 execution from overwriting user values or creating duplicate entities. API keys and
@@ -97,7 +109,8 @@ The dashboard is read-only and computed from canonical persisted records. It
 returns process and stage-backed attempt totals, completed/evaluated counts,
 average/minimum/maximum scores, chronological report trend points, recent
 attempt activity, recurring strong/weak topics, and first-run completion state.
-The development browser harness is excluded from dashboard counts.
+All attempts belong to process stages and therefore contribute to the relevant
+dashboard totals.
 
 Only completed attempts can be evaluated. Evaluation is request-bound and
 checkpointer-free: cancelling the request stores no partial report, and a later

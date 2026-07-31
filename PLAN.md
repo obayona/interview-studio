@@ -266,9 +266,9 @@ Acceptance:
 - Define provider-neutral STT/TTS ports without implementing audio.
 - Build versioned, bias-aware prompt templates based on interview best practices.
 - Add the `interview-engine` logger without configuring handlers.
-- Implement `backend/cli/engine-usage.py`.
+- Implement `backend/cli/interview-engine-usage.py`.
 - Unit test only pure lifecycle, validation, topic-selection, and prompt-building functions.
-- Use `backend/cli/engine-usage.py` as the Phase 1 manual end-to-end exercise for greeting, streaming, follow-ups, stopping, and checkpoint resume behavior.
+- Use `backend/cli/interview-engine-usage.py` as the Phase 1 manual end-to-end exercise for greeting, streaming, follow-ups, stopping, and checkpoint resume behavior.
 
 Acceptance:
 
@@ -298,14 +298,14 @@ Acceptance:
 - Build the interview application service, attempt validation, and WebSocket adapter.
 - Treat `interview_messages` as the product source of truth for UI, reports, analytics, and exports; no application feature may query graph-state JSON as transcript storage.
 - Assign stable message IDs and make checkpoint writes idempotent so retries cannot duplicate transcript rows.
-- Serve a small inline root-page WebSocket test UI.
+- Serve API metadata at the backend root and exercise interviews through real process attempts.
 - Add readiness/capability reporting and structured error handling.
 
 Acceptance:
 
 - Fresh startup creates and migrates the database.
 - Missing keys disable interviews without preventing startup.
-- The browser harness completes and resumes an interview.
+- A real process attempt completes and resumes through the application interview interface.
 - Disconnects and simulated crashes leave a recoverable attempt using the latest checkpoint and pending writes.
 - Repeated checkpoint saves retain one graph-state row per thread/namespace and never create historical snapshots or binary blobs.
 - LangGraph saver conformance tests cover retrieval, writes, listing, deletion, idempotency, and asynchronous execution.

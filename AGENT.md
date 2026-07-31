@@ -119,7 +119,7 @@ The idea is that users can easily start using the app. So it can be installed lo
 - Use the .venv virtual env for python
 - setup linters and follow conventions stated in this file
 - add logging, the handler will be handled externally (configure output files, stdout, etc), uses debug() and error() mostly. It should have its own channel like "interview-engine".
-- Implement a script engine-usage.py inside backend/cli to test the interview using the cli, it import the package, instantiate the engine. Very simple scan of user keyboard. Asyncio wrapper for streamming, it should buffer AI messages and print the full message. Enable debugs on stdout
+- Implement `backend/cli/interview-engine-usage.py` to exercise the interview engine from the terminal. Add equivalent standalone usage scripts for the report engine and profile parser.
 
 ### PHASE 2:
 - Web wrapper of interview engine.
@@ -158,7 +158,6 @@ steps = [
 - Init DB pool, config, logging, etc
 - Implement a websocket endpoint for the interview process
 - Implement a small / root endpoint to serve a index.html
-- That index.html contains minimal html, css and js code all inline, to test the websocket endpoint, it will have a minimal chat UI
 - For development I will provide you the keys on a .env file but it is only for you to be able to run and test the code, the backend will uses the DB
 - The database name can be hardcoded on the config class, no paswword needed
 - If API keys are missing, the backend still should be able to boot however the specific endpoints would fails. I think you can create a convenient method to check if all required settings are not empty. This could be used on the UI to disable different sections.
