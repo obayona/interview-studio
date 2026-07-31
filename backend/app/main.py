@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import cast
 from uuid import uuid4
@@ -40,7 +40,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
     application_config = config or AppConfig.default()
 
     @asynccontextmanager
-    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logging.getLogger("interview-studio").debug("Starting application")
         database = SQLiteManager(
             application_config.database_path, application_config.migrations_path

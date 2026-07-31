@@ -118,6 +118,7 @@ Last synchronized: 2026-07-30
 - The graph's conditional router is asynchronous, preventing unnecessary executor thread hops.
 - Structured prompts follow job-competency and behavioral/situational interviewing guidance and prohibit non-job-related protected-characteristic questions.
 - Phase 2 uses one application-owned `sqlite3` connection behind an asynchronous manager API and transaction lock; migrations run synchronously through Yoyo before the connection opens. A pool is intentionally unnecessary for the single-user SQLite architecture.
+- Async context-manager generators use explicit `AsyncGenerator[yield_type, None]` annotations for current Python/Pylance compatibility.
 - Persisted configuration is resolved for every operation and runtime startup never reads `.env`.
 - Graph state is JSON text only. Completed LangChain messages require stable IDs and are stored once in `interview_messages`; checkpoint state is reconstructed from the ordered canonical transcript.
 - The saver supports LangGraph's async execution API only; synchronous methods fail explicitly so web graph execution cannot bypass the manager's asynchronous transaction boundary.

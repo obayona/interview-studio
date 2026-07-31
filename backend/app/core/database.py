@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import sqlite3
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, cast
@@ -39,7 +39,9 @@ class SQLiteManager:
         return self._connection
 
     @asynccontextmanager
-    async def transaction(self) -> AsyncIterator[sqlite3.Connection]:
+    async def transaction(
+        self,
+    ) -> AsyncGenerator[sqlite3.Connection, None]:
         async with self._transaction_lock:
             connection = self.connection
             connection.execute("BEGIN IMMEDIATE")
