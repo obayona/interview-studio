@@ -79,6 +79,9 @@ describe('FeedbackPage', () => {
     );
     evaluate.mockResolvedValue(report);
     history.mockResolvedValue({
+      context: {
+        process_id: 'process-1',
+      },
       messages: [
         {
           id: 'user-1',
@@ -108,6 +111,9 @@ describe('FeedbackPage', () => {
     expect(screen.getByText('Clear structure')).toBeVisible();
     expect(screen.getByText('I designed a reliable API.')).toBeVisible();
     expect(screen.getByText('Relevant answer.')).toBeVisible();
+    expect(
+      screen.getByRole('link', { name: 'Back to process' }),
+    ).toHaveAttribute('href', '/processes/details?id=process-1');
   });
 
   it('shows a retry action when evaluation fails', async () => {

@@ -230,6 +230,6 @@ describe('process pages', () => {
         expect.objectContaining({ method: 'DELETE' }),
       ),
     );
-    expect(screen.getByText(/Feedback and interview scores/)).toBeVisible();
+    expect(screen.getByText('Evaluate pending (1)')).toBeVisible();
   });
 });

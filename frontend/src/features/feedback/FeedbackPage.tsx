@@ -255,6 +255,7 @@ export function FeedbackPage() {
   );
   const attemptId = params.get('attempt');
   const processId = params.get('process');
+  const [parentProcessId, setParentProcessId] = useState(processId);
   const shouldEvaluate = params.get('evaluate') === '1';
 
   const load = useCallback(
@@ -262,13 +263,19 @@ export function FeedbackPage() {
       setError('The feedback could not be loaded.');
       if (attemptId) {
         setState('loading');
+        const historyRequest = interviewApi
+          .history(attemptId)
+          .then((history) => {
+            setMessages(history.messages);
+            setParentProcessId(history.context.process_id || processId);
+            return history;
+          });
         try {
-          const [report, history] = await Promise.all([
+          const [report] = await Promise.all([
             reportApi.getAttempt(attemptId),
-            interviewApi.history(attemptId),
+            historyRequest,
           ]);
           setAttemptReport(report);
-          setMessages(history.messages);
           setState('ready');
         } catch (requestError) {
           if (
@@ -278,12 +285,11 @@ export function FeedbackPage() {
             if (shouldEvaluate || forceEvaluation) {
               setState('evaluating');
               try {
-                const [report, history] = await Promise.all([
+                const [report] = await Promise.all([
                   reportApi.evaluate(attemptId),
-                  interviewApi.history(attemptId),
+                  historyRequest,
                 ]);
                 setAttemptReport(report);
-                setMessages(history.messages);
                 setState('ready');
               } catch (evaluationError) {
                 setError(
@@ -335,8 +341,8 @@ export function FeedbackPage() {
 
   useEffect(() => void load(), [load]);
 
-  const backHref = processId
-    ? `/processes/details?id=${encodeURIComponent(processId)}`
+  const backHref = parentProcessId
+    ? `/processes/details?id=${encodeURIComponent(parentProcessId)}`
     : '/processes';
   return (
     <section className="feedback">

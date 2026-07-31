@@ -9,6 +9,7 @@ export interface TranscriptMessage {
 }
 
 export interface InterviewContext {
+  process_id: string;
   process_title: string;
   company_name: string;
   target_role: string;

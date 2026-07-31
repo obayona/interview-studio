@@ -17,6 +17,7 @@ class TranscriptMessage(TypedDict):
 
 
 class AttemptContext(TypedDict):
+    process_id: str
     process_title: str
     company_name: str
     target_role: str
@@ -83,6 +84,7 @@ class AttemptRepository:
             """
             SELECT a.attempt_number, a.configuration_json,
                    COALESCE(s.stage_type, '') AS stage_type,
+                   COALESCE(p.id, '') AS process_id,
                    COALESCE(p.title, '') AS process_title,
                    COALESCE(p.company_name, '') AS company_name,
                    COALESCE(p.target_role, '') AS target_role,
@@ -116,6 +118,7 @@ class AttemptRepository:
             else []
         )
         return {
+            "process_id": str(row["process_id"]),
             "process_title": str(row["process_title"]),
             "company_name": str(row["company_name"]),
             "target_role": str(row["target_role"]),
