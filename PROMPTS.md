@@ -44,3 +44,11 @@ validated versioned reports with transcript evidence, prevent duplicate
 evaluations, support retry without partial storage, add process-detail evaluation
 actions, and deterministically consolidate the highest-scoring attempt per
 enabled stage into process feedback.
+
+---
+
+Implement Phase 9 in the exact plan order: query and maintain the system map,
+build the home dashboard from stored process, attempt, and report aggregates,
+include score statistics/trends, recent activity, strengths, weaknesses, and
+first-run guidance, omit upcoming sessions and interview readiness, verify the
+phase, and mark it complete in the plan, task ledger, and map.

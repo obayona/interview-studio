@@ -78,6 +78,7 @@ src/
     layout/       Astro shell components
     ui/           Reusable accessible React components
   features/
+    dashboard/    Home aggregates, activity, report trends, and onboarding
     feedback/     Attempt evaluation and deterministic process feedback
     interview/    Streaming text/audio simulator and browser media controls
     profile/      Profile editor, autosave, avatar, and CV import
@@ -107,6 +108,12 @@ The current routes are:
 - `/interview`
 - `/feedback`
 - `/settings`
+
+The home dashboard loads persisted process, attempt, and report aggregates from
+`GET /api/v1/dashboard`. It provides responsive loading, empty, error/retry, and
+populated states plus first-run links for AI settings, profile completion,
+process creation, and the first interview. The unsupported prototype sections
+for upcoming sessions and interview readiness are intentionally omitted.
 
 Design tokens support light, dark, and system themes. Shared styles include
 visible keyboard focus and reduced-motion behavior.

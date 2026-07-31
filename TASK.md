@@ -167,3 +167,18 @@ Phase 7 completed and verified on 2026-07-30.
 - [x] Mark Phase 8 complete in `PLAN.md`, `TASK.md`, and `MAP.md`.
 
 Phase 8 completed and verified on 2026-07-30.
+
+## Phase 9 — Dashboard
+
+- [x] Query `MAP.md` before starting and reconcile it with the repository.
+- [x] Implement process, attempt, score, trend, recent-activity, strength, and weakness aggregates.
+- [x] Add the typed dashboard application service and HTTP API.
+- [x] Build the simplified dashboard from the supplied prototype.
+- [x] Exclude upcoming sessions and interview-readiness features.
+- [x] Add first-run guidance for settings, profile, process creation, and interviews.
+- [x] Add backend and frontend Phase 9 tests.
+- [x] Run migration, formatting, linting, typing, tests, build, and accessibility verification.
+- [x] Completely synchronize `MAP.md` with the implemented system.
+- [x] Mark Phase 9 complete in `PLAN.md`, `TASK.md`, and `MAP.md`.
+
+Phase 9 completed and verified on 2026-07-30.

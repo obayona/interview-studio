@@ -10,6 +10,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from starlette.middleware.base import RequestResponseEndpoint
 
+from backend.app.api.dashboard import router as dashboard_router
 from backend.app.api.index import INDEX_HTML
 from backend.app.api.interviews import attempts_router
 from backend.app.api.interviews import router as interviews_router
@@ -18,6 +19,7 @@ from backend.app.api.profile import router as profile_router
 from backend.app.api.reports import router as reports_router
 from backend.app.api.settings import router as settings_router
 from backend.app.api.websocket import router as websocket_router
+from backend.app.application.dashboard import DashboardService
 from backend.app.application.interviews import InterviewService
 from backend.app.application.processes import ProcessService
 from backend.app.application.profiles import ProfileService
@@ -28,6 +30,7 @@ from backend.app.core.errors import ApplicationError
 from backend.app.core.secrets import SecretBox
 from backend.app.infrastructure.checkpointer import InterviewSQLiteCheckpointer
 from backend.app.repositories.attempts import AttemptRepository
+from backend.app.repositories.dashboard import DashboardRepository
 from backend.app.repositories.processes import ProcessRepository
 from backend.app.repositories.profile import ProfileRepository
 from backend.app.repositories.reports import ReportRepository
@@ -59,11 +62,13 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
         app.state.profile = ProfileService(profiles, settings)
         app.state.processes = ProcessService(ProcessRepository(database), profiles, settings)
         app.state.reports = ReportService(ReportRepository(database), attempts, profiles, settings)
+        app.state.dashboard = DashboardService(DashboardRepository(database), settings)
         yield
         await database.close()
 
     app = FastAPI(title="Interview Studio", version="0.2.0", lifespan=lifespan)
     app.include_router(interviews_router)
+    app.include_router(dashboard_router)
     app.include_router(attempts_router)
     app.include_router(profile_router)
     app.include_router(processes_router)

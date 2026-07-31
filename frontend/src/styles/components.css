@@ -140,7 +140,18 @@
 }
 
 .ui-spinner {
+  display: inline-flex;
   color: currentcolor;
+}
+
+.ui-spinner .ui-icon {
+  animation: ui-spinner-rotate 0.85s linear infinite;
+}
+
+@keyframes ui-spinner-rotate {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .ui-skeleton {

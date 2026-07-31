@@ -89,6 +89,16 @@ Report routes:
 - `GET/POST /api/v1/attempts/{attempt_id}/report`
 - `GET /api/v1/processes/{process_id}/report`
 
+Dashboard route:
+
+- `GET /api/v1/dashboard`
+
+The dashboard is read-only and computed from canonical persisted records. It
+returns process and stage-backed attempt totals, completed/evaluated counts,
+average/minimum/maximum scores, chronological report trend points, recent
+attempt activity, recurring strong/weak topics, and first-run completion state.
+The development browser harness is excluded from dashboard counts.
+
 Only completed attempts can be evaluated. Evaluation is request-bound and
 checkpointer-free: cancelling the request stores no partial report, and a later
 request can retry. Valid reports are stored atomically with their schema and

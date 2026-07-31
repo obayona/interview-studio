@@ -13,7 +13,8 @@ Last synchronized: 2026-07-30
 - Phase 6: Complete and verified on 2026-07-29.
 - Phase 7: Complete and verified on 2026-07-30.
 - Phase 8: Complete and verified on 2026-07-30.
-- Phases 9–12: Not started.
+- Phase 9: Complete and verified on 2026-07-30.
+- Phases 10–12: Not started.
 
 ## Repository baseline
 
@@ -55,10 +56,12 @@ Last synchronized: 2026-07-30
 - `backend/report_engine/`: Checkpointer-free LangGraph evaluation workflow with bounded, versioned report schemas and canonical transcript evidence references.
 - `backend/app/domain/processes.py`, `backend/app/repositories/processes.py`, and `backend/app/application/processes.py`: Validated process aggregate, atomic persistence, safe content import, and repeated-attempt creation.
 - `backend/app/api/processes.py`: Process list/create/detail/update/delete, URL-preview, and stage-attempt routes.
+- `backend/app/domain/dashboard.py`, `backend/app/repositories/dashboard.py`, `backend/app/application/dashboard.py`, and `backend/app/api/dashboard.py`: Typed dashboard totals, score statistics/trends, recent activity, recurring feedback topics, onboarding state, and the read-only dashboard endpoint.
 - `backend/app/repositories/reports.py`, `backend/app/application/reports.py`, and `backend/app/api/reports.py`: Atomic completed-attempt report persistence, request-scoped duplicate-safe evaluation, evidence validation, retrieval, and deterministic process aggregation.
 - `backend/app/infrastructure/json_codec.py`: Versioned strict JSON codec and explicit LangChain message adapter; unsupported and binary values are rejected.
 - `backend/app/infrastructure/checkpointer.py`: Async `BaseCheckpointSaver` implementation with canonical transcript extraction, atomic shallow state upsert, idempotent pending writes, current-only listing, reconstruction, and graph-state deletion.
 - `backend/app/repositories/attempts.py`: Attempt configuration/status lookup, canonical transcript reads, pause/resume transitions, confirmed deletion with stage-status recalculation, and idempotent browser-harness bootstrap.
+- Interview history context includes the canonical parent process ID, allowing attempt and feedback pages to restore exact-parent navigation even after direct access or reload without a `process` query parameter.
 - `backend/app/application/interviews.py`: Singleton interview-session factory plus attempt-scoped session orchestration. Each WebSocket session retains one configured engine/thread and delegates media operations through its injected ports.
 - `backend/app/infrastructure/openai_audio.py`: OpenAI transcription and MP3 speech adapters behind the interview-engine media ports.
 - `backend/app/api/websocket.py`: Versioned interview WebSocket adapter for session start/end, text answers, streaming assistant deltas/completions, ping/pong, and structured errors.
@@ -66,6 +69,7 @@ Last synchronized: 2026-07-30
 - `backend/app/api/interviews.py`: Status-bearing canonical transcript history for reconnect/read-only hydration and cascading attempt deletion.
 - `backend/app/api/index.py`: Inline accessible minimal browser chat harness.
 - `backend/app/main.py`: FastAPI factory, lifespan wiring, request IDs, structured application errors, root page, health, readiness, and capabilities.
+- Dashboard aggregation reads existing process, attempt, profile, settings, and versioned report records without adding derived persistence. Browser-harness attempts are excluded from user-facing counts and activity because they have no stage.
 - `backend/tests/integration/`: Temporary-database migration, startup, capability, strict-codec, saver-conformance, and real compiled-LangGraph resume coverage.
 - `backend/app/core/secrets.py`: Versioned AES-GCM secret box with a restricted local master-key file.
 - `backend/app/api/settings.py`: Validated settings status/update/removal and OpenAI provider-test routes.
@@ -81,6 +85,7 @@ Last synchronized: 2026-07-30
 - `frontend/src/layouts/AppLayout.astro`: Persistent shell with sidebar, optional standard header, explicit active-section routing, focused-page spacing, responsive navigation, and Astro client transitions.
 - `frontend/src/components/layout/HeaderAvatar.tsx`: Global profile link that loads the current avatar, uses a user-icon fallback, and reacts to profile updates without a page reload.
 - `frontend/src/components/ui/`: Reusable Font Awesome icon, button, form, input, select, switch, card, badge, toast, dialog, spinner, skeleton, empty-state, and error-state components.
+- The shared spinner owns its rotation animation in bundled component CSS instead of depending on Font Awesome runtime style injection; global reduced-motion behavior still shortens animation as configured.
 - Toast context identity lives in a dedicated non-rendering module, preventing Vite/Astro hot refresh or client navigation from pairing a refreshed `useToast` consumer with a stale provider context.
 - `frontend/src/styles/`: Ventura Tech-derived design tokens, component styles, responsive layout, dark mode, focus states, and reduced-motion behavior.
 - `frontend/src/services/`: Typed normalized HTTP client, settings API, and versioned interview WebSocket foundation.
@@ -89,13 +94,14 @@ Last synchronized: 2026-07-30
 - `frontend/src/features/profile/`: Prototype-aligned profile editor with autosave, explicit save, avatar management, ordered experience/projects, and modal profile import from a PDF CV.
 - `frontend/src/features/processes/`: Searchable process list, mode-aware reusable create/edit form, safe import preview, ordered stage configuration, process detail, complete attempt history, completed-attempt evaluation/report actions, sequential pending evaluation, and confirmed deletion.
 - `frontend/src/features/feedback/`: Request-bound attempt evaluation with blocking progress/retry and accessible evidence-linked reports, plus deterministic process feedback with explicit stage coverage.
+- `frontend/src/features/dashboard/`, `frontend/src/services/dashboard-api.ts`, and `frontend/src/types/dashboard.ts`: Responsive home dashboard with real summary cards, score trend, recurring report themes, recent activity, and state-aware first-run guidance; upcoming sessions and readiness are intentionally absent.
 - Attempt-history actions use compact start, resume, view, and delete icons with accessible names and native title tooltips. Attempt badges translate persisted state names into user-facing labels without changing transport values.
 - Process-detail stage badges likewise translate `not_started`, `in_progress`, `completed`, and `skipped` into readable labels without changing persisted/API status values.
 - `frontend/src/features/interview/`: API-history hydration, reconnecting versioned WebSocket session, typed answers, explicit-permission push-to-talk, friendly voice-answer/spoken-reply controls, sequenced/cancellable browser audio, pause/end controls, and an accessible meeting-style transcript UI. The bundled interviewer portrait is presented as a large circular participant tile with an animated streaming glow.
 - `frontend/src/services/process-api.ts` and `frontend/src/types/process.ts`: Typed process aggregate, content-source, stage-configuration, attempt, and CRUD transport contracts.
 - `frontend/src/services/profile-api.ts`: Typed profile aggregate and transient multipart avatar/CV transport.
 - `frontend/src/types/profile.ts`: Profile aggregate, ordered collections, draft, and transient CV suggestion transport types.
-- `frontend/src/pages/`: Working dashboard, profile, processes, process-details, interview, feedback, and settings routes.
+- `frontend/src/pages/`: Working dashboard, profile, processes, process-details, interview, feedback, and settings routes; the home route now renders the integrated dashboard rather than a placeholder.
 - `frontend/README.md`: pnpm-based setup, development, verification, deployment configuration, routes, and source-structure guide.
 
 ## Technical decisions
@@ -191,7 +197,7 @@ Last synchronized: 2026-07-30
 
 - Public backend interfaces: `backend.interview_engine.InterviewEngineBuilder`, `InterviewEngine`, typed configuration models, and enums.
 - Engine operations: `stream_start`, `stream_response`, `stream_end`, and `get_state`.
-- HTTP routes: `GET /`, health/readiness/capabilities, interview history, settings CRUD/provider test, profile/avatar/CV import, process CRUD/import preview, per-stage attempt creation, attempt report retrieval/evaluation, and process report aggregation under `/api/v1`.
+- HTTP routes: `GET /`, health/readiness/capabilities, dashboard aggregation, interview history, settings CRUD/provider test, profile/avatar/CV import, process CRUD/import preview, per-stage attempt creation, attempt report retrieval/evaluation, and process report aggregation under `/api/v1`.
 - WebSocket route: `/api/v1/interviews/{attempt_id}/ws`.
 - Implemented client WebSocket events: `session.start`, `user.text`, `user.audio.start`, `user.audio.chunk`, `user.audio.end`, `audio.output.cancel`, `mode.update`, `session.pause`, `session.resume`, `session.end`, and `ping`.
 - Implemented server WebSocket events: `session.ready`, assistant text/audio delta/completion/cancellation, partial/final transcripts, interview state, mode updates, warnings, errors, and `pong`.
@@ -233,6 +239,14 @@ Last synchronized: 2026-07-30
 - Phase 8 Astro diagnostics: 61 files passed with zero errors, warnings, or hints.
 - Phase 8 production build: 9 static routes built successfully.
 - Phase 8 repository diff whitespace check: Passed.
+- Phase 9 requires no migration; fresh-database migration and fixture preparation passed through the complete backend integration suite.
+- Phase 9 Ruff lint passed, and strict mypy passed for all new dashboard production modules and application wiring. The repository-wide mypy command still exposes 16 pre-existing test-only typing errors in lifecycle, checkpointer, and profile-parser tests.
+- Phase 9 Pytest: 30 tests passed, including empty onboarding, stage-backed attempt counts, score averages/ranges/trends, recurring feedback topics, recent activity, and onboarding state.
+- Phase 9 Prettier, ESLint, and Stylelint: Passed.
+- Phase 9 Astro diagnostics: 65 files passed with zero errors, warnings, or hints.
+- Phase 9 frontend tests: 20 tests passed across 9 files, including dashboard aggregates, incomplete onboarding, excluded prototype sections, retry behavior, and an axe-core accessibility scan with no violations.
+- Phase 9 production build: All 9 static routes generated successfully.
+- Feedback loading refinement: the shared spinner now uses bundled CSS rotation, and attempt history resolves the exact parent process while evaluation is still running so feedback navigation never depends solely on a query parameter. All 30 backend tests, focused feedback/interview tests, frontend lint/style checks, 65-file Astro diagnostics, and the 9-route production build pass.
 - Yoyo migration apply and rollback: Passed on a fresh temporary SQLite database; repeated startup against an existing migrated database passed.
 - Live FastAPI/WebSocket/provider exercise: Passed greeting streaming, disconnect, checkpoint resume, and next-response streaming. The temporary credential database was deleted afterward.
 - Phase 3 Ruff lint and formatting checks: Passed for 40 backend files.

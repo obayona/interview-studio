@@ -426,7 +426,7 @@ Acceptance:
 - Retry works.
 - Reports render accessibly.
 
-### Phase 9 — Dashboard
+### Phase 9 — Dashboard ✅ Completed 2026-07-30
 
 - Implement process, attempt, score, trend, recent-activity, strength, and weakness aggregates.
 - Build the simplified dashboard prototype.
