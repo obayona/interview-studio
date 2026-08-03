@@ -441,9 +441,33 @@ Acceptance:
 
 ### Phase 10 — System Design Interview
 
+**Status: In progress. Phase 10A completed 2026-08-03; Phases 10B–10C pending.**
+
+#### Phase 10A — Continuous voice turns ✅ Completed 2026-08-03
+
+- Replace click-to-start/click-to-send capture with an explicitly enabled continuous voice mode.
+- Detect speech locally with Web Audio energy analysis and start a bounded recording segment automatically.
+- End and send the current turn after three seconds of silence; resumed speech cancels the pending send countdown.
+- Keep microphone permission and the input stream active between turns while the mode is enabled.
+- Suspend capture while the interview is not ready for an answer or assistant audio is playing.
+- Preserve press-and-release recording as a fallback when browser audio analysis is unavailable.
+- Reuse the existing bounded `user.audio.start`, `user.audio.chunk`, and `user.audio.end` WebSocket protocol.
+
+Acceptance:
+
+- One explicit action requests permission and enables automatic voice turns.
+- Detected speech is sent after three seconds of silence without an additional click.
+- Resuming speech before the deadline keeps it in the same turn.
+- The UI clearly distinguishes permission, listening, countdown, transcription, and fallback states.
+
+#### Phase 10B — Whiteboard persistence and API
+
 - Add an interactive React whiteboard with serializable scenes and image export.
 - Persist editable scene JSON and periodic/explicit PNG snapshots.
 - Autosave with debouncing and optimistic version checks.
+
+#### Phase 10C — Diagram-aware interview and split-pane UI
+
 - Send snapshots to a vision-capable model only on explicit submission, configured checkpoints, or interview end.
 - Relate every snapshot to its transcript event and scene version.
 - Preserve the standard interview graph while adding diagram observations.
@@ -574,5 +598,5 @@ For every phase:
 - Development and desktop modes default to unauthenticated loopback access.
 - Server mode defaults to mandatory FastAPI session authentication.
 - System-design sessions persist editable scene JSON and PNG snapshots.
-- Push-to-talk is guaranteed; VAD is an optional enhancement.
+- Continuous local VAD is the primary voice-turn interaction; press-and-release capture is the compatibility fallback when browser audio analysis is unavailable.
 - SQLite supports one user and one application instance; horizontal scaling is outside scope.

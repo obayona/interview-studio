@@ -182,3 +182,20 @@ Phase 8 completed and verified on 2026-07-30.
 - [x] Mark Phase 9 complete in `PLAN.md`, `TASK.md`, and `MAP.md`.
 
 Phase 9 completed and verified on 2026-07-30.
+
+## Phase 10 — System Design Interview
+
+### Phase 10A — Continuous voice turns
+
+- [x] Query `MAP.md` before starting and reconcile it with the repository.
+- [x] Split Phase 10 so voice capture can be tested before whiteboard work begins.
+- [x] Implement explicitly enabled browser VAD with automatic speech-segment capture.
+- [x] Send a voice turn after three seconds of silence and cancel the countdown when speech resumes.
+- [x] Keep microphone access active between turns and suspend capture outside answer-ready states.
+- [x] Preserve press-and-release capture when Web Audio analysis is unavailable.
+- [x] Reuse the existing bounded WebSocket audio protocol without backend changes.
+- [x] Add focused VAD and interview simulator tests.
+- [x] Run frontend formatting, linting, diagnostics, tests, and production build.
+- [x] Synchronize `MAP.md` with the implemented voice slice.
+
+Phase 10A completed and verified on 2026-08-03. Phase 10B whiteboard persistence and Phase 10C diagram-aware orchestration remain pending.

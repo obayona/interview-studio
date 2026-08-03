@@ -1,6 +1,6 @@
 # Interview Studio System Map
 
-Last synchronized: 2026-07-30
+Last synchronized: 2026-08-03
 
 ## Current status
 
@@ -14,7 +14,8 @@ Last synchronized: 2026-07-30
 - Phase 7: Complete and verified on 2026-07-30.
 - Phase 8: Complete and verified on 2026-07-30.
 - Phase 9: Complete and verified on 2026-07-30.
-- Phases 10–12: Not started.
+- Phase 10: In progress. Phase 10A continuous voice turns is complete and verified; whiteboard persistence and diagram-aware orchestration remain pending.
+- Phases 11–12: Not started.
 
 ## Repository baseline
 
@@ -66,7 +67,7 @@ Last synchronized: 2026-07-30
 - `backend/app/application/interviews.py`: Singleton interview-session factory plus attempt-scoped session orchestration. Each WebSocket session retains one configured engine/thread and delegates media operations through its injected ports.
 - `backend/app/infrastructure/openai_audio.py`: OpenAI transcription and MP3 speech adapters behind the interview-engine media ports.
 - `backend/app/api/websocket.py`: Versioned interview WebSocket adapter for session start/end, text answers, streaming assistant deltas/completions, ping/pong, and structured errors.
-- Phase 7 extends the WebSocket adapter with push-to-talk audio segments, transient/final transcripts, live media-mode overrides, sentence-buffered sequenced audio, playback cancellation, pause/resume, and interview-state events.
+- Phase 7 extends the WebSocket adapter with bounded audio segments, transient/final transcripts, live media-mode overrides, sentence-buffered sequenced audio, playback cancellation, pause/resume, and interview-state events. Phase 10A drives those unchanged audio events through continuous browser VAD or a press-and-release fallback.
 - `backend/app/api/interviews.py`: Status-bearing canonical transcript history for reconnect/read-only hydration and cascading attempt deletion.
 - `backend/app/main.py`: FastAPI factory, lifespan wiring, request IDs, structured application errors, root page, health, readiness, and capabilities.
 - Dashboard aggregation reads existing process, attempt, profile, settings, and versioned report records without adding derived persistence.
@@ -98,7 +99,7 @@ Last synchronized: 2026-07-30
 - `frontend/src/features/dashboard/`, `frontend/src/services/dashboard-api.ts`, and `frontend/src/types/dashboard.ts`: Responsive home dashboard with real summary cards, score trend, recurring report themes, recent activity, and state-aware first-run guidance; upcoming sessions and readiness are intentionally absent.
 - Attempt-history actions use compact start, resume, view, and delete icons with accessible names and native title tooltips. Attempt badges translate persisted state names into user-facing labels without changing transport values.
 - Process-detail stage badges likewise translate `not_started`, `in_progress`, `completed`, and `skipped` into readable labels without changing persisted/API status values.
-- `frontend/src/features/interview/`: API-history hydration, reconnecting versioned WebSocket session, typed answers, explicit-permission push-to-talk, friendly voice-answer/spoken-reply controls, sequenced/cancellable browser audio, pause/end controls, and an accessible meeting-style transcript UI. The bundled interviewer portrait is presented as a large circular participant tile with an animated streaming glow.
+- `frontend/src/features/interview/`: API-history hydration, reconnecting versioned WebSocket session, typed answers, explicit-permission continuous voice capture through `useVoiceCapture`, press-and-release compatibility fallback, friendly voice-answer/spoken-reply controls, sequenced/cancellable browser audio, pause/end controls, and an accessible meeting-style transcript UI. The bundled interviewer portrait is presented as a large circular participant tile with an animated streaming glow.
 - `frontend/src/services/process-api.ts` and `frontend/src/types/process.ts`: Typed process aggregate, content-source, stage-configuration, attempt, and CRUD transport contracts.
 - `frontend/src/services/profile-api.ts`: Typed profile aggregate and transient multipart avatar/CV transport.
 - `frontend/src/types/profile.ts`: Profile aggregate, ordered collections, draft, and transient CV suggestion transport types.
@@ -129,10 +130,11 @@ Last synchronized: 2026-07-30
 - `SettingKey` exposes `.value`, `.default`, and `.secret` from the single definition dictionary; `setting_keys()` supplies key-only iterations without a second registry.
 - Model and voice defaults plus allowed values live in that same settings-definition registry. Settings status exposes the options to the frontend, which renders model/voice selects instead of duplicating provider identifiers; backend updates enforce the identical lists. `marin` is the default voice.
 - Every interview attempt belongs to exactly one process stage. Test and CLI exercises do not create special persistent attempts or weaken this ownership invariant.
-- STT is an immediate push-to-talk capability gated by global enablement, API key, and transcription model; it is not persisted per attempt. TTS remains a persisted attempt preference gated by global enablement, API key, speech model, and voice. Requests for unavailable voice capabilities produce disabled guidance or a warning rather than silently remaining on.
+- STT is an immediate browser-capture capability gated by global enablement, API key, and transcription model; it is not persisted per attempt. TTS remains a persisted attempt preference gated by global enablement, API key, speech model, and voice. Requests for unavailable voice capabilities produce disabled guidance or a warning rather than silently remaining on.
 - Stage and engine configuration contain no media preference fields. A new attempt receives only a concrete non-null TTS preference copied from the current global gate; live mode updates mutate only that preference. Browser permission and autoplay failures remain transient.
 - Push-to-talk uses base64 WebSocket chunks limited to 256 KiB and recorded segments limited to 10 MiB. Partial transcript events are transient receive progress; only final transcription text enters the interview engine and canonical transcript.
-- Voice input is explicitly push-to-talk; browser VAD is not implemented. Enabling STT and starting a voice answer are separate labeled controls. Only the start action requests microphone permission, and active capture shows a reduced-motion-aware pulsing candidate tile with a visible live-streaming status until the user stops and sends.
+- Voice input is an explicitly enabled continuous mode. The browser requests microphone permission once, uses local Web Audio energy analysis to detect speech, records a bounded segment automatically, and sends it after three seconds of silence. Resumed speech cancels the countdown; the microphone stream remains active between turns until disabled.
+- Voice detection is suspended unless the session is ready for an answer and assistant audio is not playing. Browsers without Web Audio analysis retain press-and-release capture as a compatibility fallback. Both paths reuse the existing bounded `user.audio.start`, `user.audio.chunk`, and `user.audio.end` protocol; no backend route, persistence, or engine change was required.
 - Audio bytes are transient transport data and are not persisted. The development migration intentionally has no audio-artifact table; only final text transcriptions and assistant messages enter canonical persistence.
 - Assistant text remains authoritative. TTS receives sentence/latency-sized buffers, serializes speech generation in transcript order, emits sequenced MP3 chunks, and runs in a cancellable per-connection chain so interruption or mode changes stop stale and queued playback.
 - Browser playback groups chunks by audio ID, queues completed speech segments without overlap, and immediately clears current and queued output when the user records, disables TTS, or receives server cancellation.
@@ -325,3 +327,5 @@ Last synchronized: 2026-07-30
 - Process stage-label refinement: process detail renders readable stage-state badges rather than raw transport identifiers, and attempt deletion copy matches transient-audio persistence. Prettier, ESLint, Stylelint, all 4 process feature tests, 56-file Astro diagnostics, and the repository whitespace check pass.
 - Push-to-talk clarity refinement: voice enablement and capture have explicit action labels/tooltips, enabled STT shows visible start guidance, and active capture shows a pulsing candidate tile with live-streaming and stop-to-send feedback. VAD remains intentionally unimplemented. Prettier, ESLint, Stylelint, all 16 frontend tests, 56-file Astro diagnostics, the 9-route production build, and the repository whitespace check pass.
 - Single-action voice-input refinement: the attempt STT column and preference mode are removed. Session payloads expose STT as a global/provider-gated capability, while one microphone button owns permission request, recording, second-click stop/send, and disabled transcribing states; TTS remains the only persisted/live media mode. Ruff formatting/lint, strict mypy across 44 source files, all 27 backend tests, Prettier, ESLint, Stylelint, all 16 frontend tests, 56-file Astro diagnostics, the 9-route production build, and the repository whitespace check pass.
+- Phase 10A continuous-voice refinement: `useVoiceCapture` owns permission, local energy-based VAD, three-second silence countdown, speech-resume cancellation, 60-second segment bounds, microphone lifecycle, and press-and-release fallback. The simulator reuses its existing audio WebSocket events and exposes permission, listening, countdown, transcription, and fallback guidance. The whiteboard and diagram-aware engine remain pending.
+- Phase 10A verification: Prettier, ESLint, Stylelint, 67-file Astro diagnostics, all 23 frontend tests across 10 files, the 9-route production build, and the repository whitespace check pass.

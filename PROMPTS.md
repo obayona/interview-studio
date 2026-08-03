@@ -59,3 +59,9 @@ Remove the browser test harness completely as though it never existed, restore
 required process-stage ownership for every persisted attempt, rename the
 interview CLI to `interview-engine-usage.py`, verify it works, and add equivalent
 standalone usage scripts for the report engine and profile parser.
+
+---
+
+Continue Phase 10, but implement only the VAD and continuous voice-turn slice so
+it can be tested and corrected incrementally. Split the remaining system-design
+whiteboard work into later subphases.

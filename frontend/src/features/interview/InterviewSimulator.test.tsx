@@ -120,26 +120,11 @@ describe('InterviewSimulator', () => {
       });
     });
     expect(
-      screen.getByRole('button', { name: 'Start voice answer' }),
-    ).toHaveAttribute('title', 'Start voice answer');
+      screen.getByRole('button', { name: 'Turn on voice answers' }),
+    ).toHaveAttribute('title', 'Turn on voice answers');
     expect(screen.getByText('Voice input ready')).toBeVisible();
     expect(
-      screen.getByText('Click the microphone to start a voice answer'),
-    ).toBeVisible();
-    act(() => {
-      emit?.({
-        type: 'interview.state',
-        payload: { status: 'listening' },
-      });
-    });
-    expect(screen.getByText('Microphone live')).toBeVisible();
-    expect(
-      screen.getByText('Click the microphone again to stop and send'),
-    ).toBeVisible();
-    expect(
-      screen.getByRole('button', {
-        name: 'Stop recording and send voice answer',
-      }),
+      screen.getByText('Click the microphone to enable voice answers'),
     ).toBeVisible();
 
     act(() => {

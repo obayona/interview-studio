@@ -17,6 +17,7 @@ import {
   type SocketEvent,
 } from '../../services/interview-socket';
 import './interview.css';
+import { useVoiceCapture } from './useVoiceCapture';
 
 type Modes = { text_to_speech: boolean };
 type Capabilities = { speech_to_text: boolean };
@@ -40,8 +41,6 @@ function bytesToBase64(buffer: ArrayBuffer) {
 function InterviewSimulatorContent() {
   const { showToast } = useToast();
   const socket = useRef(new InterviewSocket());
-  const recorder = useRef<MediaRecorder | null>(null);
-  const pendingChunks = useRef<Promise<void>[]>([]);
   const audioParts = useRef(new Map<string, string[]>());
   const playbackQueue = useRef<Blob[]>([]);
   const currentAudio = useRef<HTMLAudioElement | null>(null);
@@ -67,10 +66,10 @@ function InterviewSimulatorContent() {
   const [capabilities, setCapabilities] = useState<Capabilities>({
     speech_to_text: false,
   });
-  const [requestingMicrophone, setRequestingMicrophone] = useState(false);
   const [status, setStatus] = useState<Status>('connecting');
   const [error, setError] = useState<string>();
   const [connected, setConnected] = useState(false);
+  const [playingAudio, setPlayingAudio] = useState(false);
 
   const playNext = useCallback(() => {
     if (currentAudio.current || playbackQueue.current.length === 0) return;
@@ -79,9 +78,11 @@ function InterviewSimulatorContent() {
     const url = URL.createObjectURL(blob);
     const audio = new Audio(url);
     currentAudio.current = audio;
+    setPlayingAudio(true);
     const finish = () => {
       URL.revokeObjectURL(url);
       currentAudio.current = null;
+      setPlayingAudio(false);
       playNext();
     };
     audio.addEventListener('ended', finish, { once: true });
@@ -94,6 +95,7 @@ function InterviewSimulatorContent() {
   const stopPlayback = useCallback(() => {
     currentAudio.current?.pause();
     currentAudio.current = null;
+    setPlayingAudio(false);
     playbackQueue.current = [];
     audioParts.current.clear();
   }, []);
@@ -244,7 +246,6 @@ function InterviewSimulatorContent() {
       window.clearTimeout(reconnectTimer.current);
       socket.current.close();
       stopPlayback();
-      recorder.current?.stream.getTracks().forEach((track) => track.stop());
     };
   }, [connect, stopPlayback]);
 
@@ -286,46 +287,27 @@ function InterviewSimulatorContent() {
     socket.current.send('user.text', { text });
   };
 
-  const startRecording = async () => {
-    setRequestingMicrophone(true);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stopPlayback();
-      const mediaRecorder = new MediaRecorder(stream);
-      recorder.current = mediaRecorder;
-      pendingChunks.current = [];
+  const voice = useVoiceCapture({
+    available: capabilities.speech_to_text,
+    ready:
+      connected &&
+      status === 'ready_for_answer' &&
+      !streamingText &&
+      !playingAudio,
+    onInterrupt: stopPlayback,
+    onAudioStart: (mediaType) => {
       socket.current.send('user.audio.start', {
-        media_type: mediaRecorder.mimeType || 'audio/webm',
+        media_type: mediaType,
       });
-      mediaRecorder.addEventListener('dataavailable', (event) => {
-        if (!event.data.size) return;
-        const pending = event.data.arrayBuffer().then((buffer) => {
-          socket.current.send('user.audio.chunk', {
-            audio: bytesToBase64(buffer),
-          });
-        });
-        pendingChunks.current.push(pending);
+    },
+    onAudioChunk: async (buffer) => {
+      socket.current.send('user.audio.chunk', {
+        audio: bytesToBase64(buffer),
       });
-      mediaRecorder.addEventListener(
-        'stop',
-        () => {
-          void Promise.all(pendingChunks.current).then(() => {
-            socket.current.send('user.audio.end');
-            stream.getTracks().forEach((track) => track.stop());
-          });
-        },
-        { once: true },
-      );
-      mediaRecorder.start(500);
-      setStatus('listening');
-    } catch {
-      showToast('Microphone permission is required for push-to-talk.', 'error');
-    } finally {
-      setRequestingMicrophone(false);
-    }
-  };
-
-  const stopRecording = () => recorder.current?.stop();
+    },
+    onAudioEnd: () => socket.current.send('user.audio.end'),
+    onError: (message) => showToast(message, 'error'),
+  });
   const updateSpeechOutput = () => {
     if (modes.text_to_speech) stopPlayback();
     socket.current.send('mode.update', {
@@ -423,13 +405,14 @@ function InterviewSimulatorContent() {
             <span>{interviewerIsStreaming ? 'Responding…' : 'Ready'}</span>
           </div>
           {capabilities.speech_to_text &&
-            (requestingMicrophone ||
+            (voice.requesting ||
+              voice.enabled ||
               ['ready_for_answer', 'listening', 'transcribing'].includes(
                 status,
               )) && (
               <div
                 className={`interview__candidate-speaking ${
-                  status === 'listening' ? 'is-listening' : ''
+                  voice.recording ? 'is-listening' : ''
                 }`}
                 role="status"
                 aria-live="polite"
@@ -442,22 +425,36 @@ function InterviewSimulatorContent() {
                   )}
                 </span>
                 <strong>
-                  {requestingMicrophone
+                  {voice.requesting
                     ? 'Waiting for permission'
-                    : status === 'listening'
-                      ? 'Microphone live'
+                    : voice.recording
+                      ? voice.countdown
+                        ? `Sending in ${voice.countdown}…`
+                        : 'Listening'
                       : status === 'transcribing'
                         ? 'Transcribing…'
-                        : 'Voice input ready'}
+                        : voice.enabled
+                          ? voice.manualFallback
+                            ? 'Push to talk ready'
+                            : 'Voice input on'
+                          : 'Voice input ready'}
                 </strong>
                 <span>
-                  {requestingMicrophone
+                  {voice.requesting
                     ? 'Allow microphone access in your browser'
-                    : status === 'listening'
-                      ? 'Click the microphone again to stop and send'
+                    : voice.recording
+                      ? voice.countdown
+                        ? 'Keep speaking to cancel automatic send'
+                        : voice.manualFallback
+                          ? 'Release the microphone to send'
+                          : 'Your answer sends after three seconds of silence'
                       : status === 'transcribing'
                         ? 'Preparing your voice answer'
-                        : 'Click the microphone to start a voice answer'}
+                        : voice.enabled
+                          ? voice.manualFallback
+                            ? 'Hold the microphone while you answer'
+                            : 'Start speaking when you are ready'
+                          : 'Click the microphone to enable voice answers'}
                 </span>
               </div>
             )}
@@ -546,48 +543,51 @@ function InterviewSimulatorContent() {
             <>
               <Button
                 className={`interview__control interview__talk ui-button--icon ${
-                  status === 'listening' ? 'is-listening is-active' : ''
-                }`}
-                aria-pressed={status === 'listening'}
+                  voice.recording ? 'is-listening is-active' : ''
+                } ${voice.enabled ? 'is-active' : ''}`}
+                aria-pressed={voice.enabled}
                 aria-label={
-                  requestingMicrophone
+                  voice.requesting
                     ? 'Requesting microphone permission'
-                    : status === 'listening'
-                      ? 'Stop recording and send voice answer'
-                      : status === 'transcribing'
-                        ? 'Transcribing voice answer'
-                        : 'Start voice answer'
+                    : voice.manualFallback
+                      ? 'Hold to record a voice answer'
+                      : voice.enabled
+                        ? 'Turn off voice answers'
+                        : status === 'transcribing'
+                          ? 'Transcribing voice answer'
+                          : 'Turn on voice answers'
                 }
                 title={
                   !capabilities.speech_to_text
                     ? 'Enable speech input in Settings'
-                    : status === 'listening'
-                      ? 'Stop recording and send voice answer'
-                      : status === 'transcribing'
-                        ? 'Transcribing voice answer'
-                        : 'Start voice answer'
+                    : voice.manualFallback
+                      ? 'Hold to record; release to send'
+                      : voice.enabled
+                        ? 'Turn off voice answers'
+                        : status === 'transcribing'
+                          ? 'Transcribing voice answer'
+                          : 'Turn on voice answers'
                 }
                 disabled={
-                  requestingMicrophone ||
+                  voice.requesting ||
                   !capabilities.speech_to_text ||
                   !connected ||
-                  !['ready_for_answer', 'listening'].includes(status)
+                  (!voice.enabled && status !== 'ready_for_answer')
                 }
-                onClick={
-                  status === 'listening'
-                    ? stopRecording
-                    : () => void startRecording()
-                }
+                onClick={voice.toggle}
+                onPointerDown={voice.startManual}
+                onPointerUp={voice.stopManual}
+                onPointerCancel={voice.stopManual}
               >
                 <Icon
                   name={
-                    requestingMicrophone || status === 'transcribing'
+                    voice.requesting || status === 'transcribing'
                       ? 'spinner'
-                      : status === 'listening'
+                      : voice.enabled
                         ? 'microphoneOff'
                         : 'microphone'
                   }
-                  spin={requestingMicrophone || status === 'transcribing'}
+                  spin={voice.requesting || status === 'transcribing'}
                 />
               </Button>
               <Button
