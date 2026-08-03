@@ -132,6 +132,55 @@ a {
   margin-inline-start: auto;
 }
 
+.login-page {
+  display: grid;
+  min-height: 100vh;
+  padding: 2rem;
+  place-items: center;
+  background:
+    radial-gradient(
+      circle at 15% 10%,
+      color-mix(in srgb, var(--color-primary) 16%, transparent),
+      transparent 36rem
+    ),
+    var(--color-background);
+}
+
+.login-card {
+  width: min(44rem, 100%);
+  padding: clamp(2.8rem, 6vw, 4.8rem);
+  border: 0.1rem solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-floating);
+}
+
+.login-card__eyebrow {
+  margin: 0 0 0.8rem;
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.login-card h1 {
+  margin: 0;
+  font-size: 3.2rem;
+}
+
+.login-card__intro {
+  margin: 0.8rem 0 2.8rem;
+  color: var(--color-text-muted);
+}
+
+.login-card__form {
+  display: grid;
+  gap: 1.8rem;
+}
+
+.login-card__error {
+  margin: 0;
+  color: var(--color-error);
+}
+
 .app-shell__avatar {
   display: grid;
   width: 4rem;

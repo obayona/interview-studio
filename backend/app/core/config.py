@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import base64
+import binascii
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -15,14 +18,68 @@ class AppConfig:
     database_path: Path
     migrations_path: Path
     secret_path: Path | None = None
+    server_mode: bool = False
+    auth_username: str = ""
+    auth_password: str = ""
+    session_lifetime_seconds: int = 86_400
+    trusted_origins: tuple[str, ...] = ()
+    encryption_key: bytes | None = None
+
+    def __post_init__(self) -> None:
+        if not self.server_mode:
+            return
+        if not 1 <= len(self.auth_username) <= 128:
+            raise ValueError("APP_USERNAME must contain between 1 and 128 characters")
+        if len(self.auth_password) < 16:
+            raise ValueError("APP_PASSWORD must contain at least 16 characters")
+        if self.encryption_key is None or len(self.encryption_key) != 32:
+            raise ValueError("APP_ENCRYPTION_KEY is required in server mode")
+        if not self.trusted_origins or any(
+            not origin.startswith("https://") for origin in self.trusted_origins
+        ):
+            raise ValueError("Server mode requires at least one trusted HTTPS origin")
 
     @classmethod
     def default(cls) -> AppConfig:
         backend_root = Path(__file__).resolve().parents[2]
+        server_mode = os.getenv("APP_SERVER_MODE", "false").lower() == "true"
+        database_path = Path(
+            os.getenv("APP_DATABASE_PATH", str(backend_root / "interview_studio.sqlite3"))
+        )
+        secret_path = Path(
+            os.getenv("APP_SECRET_PATH", str(database_path.with_name(".secret-key")))
+        )
+        trusted_origins = tuple(
+            origin.strip()
+            for origin in os.getenv("APP_TRUSTED_ORIGINS", "").split(",")
+            if origin.strip()
+        )
+        session_lifetime = int(os.getenv("APP_SESSION_LIFETIME_SECONDS", "86400"))
+        username = os.getenv("APP_USERNAME", "")
+        password = os.getenv("APP_PASSWORD", "")
+        encryption_key_text = os.getenv("APP_ENCRYPTION_KEY", "")
+        encryption_key: bytes | None = None
+        if encryption_key_text:
+            try:
+                encryption_key = base64.b64decode(encryption_key_text, validate=True)
+            except (binascii.Error, ValueError) as error:
+                raise ValueError("APP_ENCRYPTION_KEY must be valid base64") from error
+            if len(encryption_key) != 32:
+                raise ValueError("APP_ENCRYPTION_KEY must decode to exactly 32 bytes")
+        if server_mode and (not username or not password):
+            raise ValueError("APP_USERNAME and APP_PASSWORD are required in server mode")
+        if session_lifetime < 300:
+            raise ValueError("APP_SESSION_LIFETIME_SECONDS must be at least 300")
         return cls(
-            database_path=backend_root / "interview_studio.sqlite3",
+            database_path=database_path,
             migrations_path=backend_root / "migrations",
-            secret_path=backend_root / ".secret-key",
+            secret_path=secret_path,
+            server_mode=server_mode,
+            auth_username=username,
+            auth_password=password,
+            session_lifetime_seconds=session_lifetime,
+            trusted_origins=trusted_origins,
+            encryption_key=encryption_key,
         )
 
 

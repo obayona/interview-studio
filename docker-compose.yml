@@ -1,0 +1,137 @@
+name: interview-studio
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-backend: &backend-service
+  build:
+    context: .
+    dockerfile: deployment/docker/backend.Dockerfile
+  image: interview-studio-backend:local
+  environment:
+    APP_SERVER_MODE: "true"
+    APP_DATABASE_PATH: /data/interview_studio.sqlite3
+    APP_SECRET_PATH: /secrets/settings.key
+    APP_USERNAME: ${APP_USERNAME:?Set APP_USERNAME in .env}
+    APP_PASSWORD: ${APP_PASSWORD:?Set APP_PASSWORD in .env}
+    APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY:?Set APP_ENCRYPTION_KEY in .env}
+    APP_SESSION_LIFETIME_SECONDS: ${APP_SESSION_LIFETIME_SECONDS:-86400}
+    APP_TRUSTED_ORIGINS: https://${DOMAIN:?Set DOMAIN in .env}
+  volumes:
+    - app_data:/data
+    - app_secrets:/secrets
+  logging: *default-logging
+
+services:
+  backend:
+    <<: *backend-service
+    restart: unless-stopped
+    expose:
+      - "8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3)"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    stop_grace_period: 30s
+
+  nginx:
+    build:
+      context: .
+      dockerfile: deployment/docker/nginx.Dockerfile
+    image: interview-studio-nginx:local
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN in .env}
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:8080"
+      - "443:8443"
+    volumes:
+      - letsencrypt:/etc/letsencrypt:ro
+      - acme_webroot:/var/www/certbot:ro
+      - tls_runtime:/var/run/interview-studio-tls
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "wget -q --no-check-certificate -O /dev/null https://127.0.0.1:8443/health/live || exit 1"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    logging: *default-logging
+
+  certbot:
+    image: certbot/certbot:v5.4.0
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN in .env}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:?Set LETSENCRYPT_EMAIL in .env}
+      LETSENCRYPT_STAGING: ${LETSENCRYPT_STAGING:-false}
+    volumes:
+      - letsencrypt:/etc/letsencrypt
+      - acme_webroot:/var/www/certbot
+      - ./deployment/scripts/renew-certificates.sh:/usr/local/bin/renew-certificates:ro
+      - ./deployment/scripts/issue-certificate.sh:/usr/local/bin/issue-certificate:ro
+    entrypoint: ["/bin/sh", "/usr/local/bin/renew-certificates"]
+    depends_on:
+      nginx:
+        condition: service_healthy
+    logging: *default-logging
+
+  migrate:
+    <<: *backend-service
+    profiles: ["tools"]
+    command:
+      - python
+      - -m
+      - backend.cli.migrate
+      - /data/interview_studio.sqlite3
+
+  fixtures:
+    <<: *backend-service
+    profiles: ["tools"]
+    command:
+      - python
+      - -m
+      - backend.cli.load_fixtures
+      - /data/interview_studio.sqlite3
+
+  backup:
+    <<: *backend-service
+    profiles: ["tools"]
+    volumes:
+      - app_data:/data
+      - app_secrets:/secrets
+      - ${BACKUP_DIR:-./backups}:/backups
+    command:
+      - python
+      - -m
+      - backend.cli.deployment_data
+      - backup
+
+  restore:
+    <<: *backend-service
+    profiles: ["tools"]
+    volumes:
+      - app_data:/data
+      - app_secrets:/secrets
+      - ${BACKUP_DIR:-./backups}:/backups
+    command: ["python", "-m", "backend.cli.deployment_data", "restore"]
+
+volumes:
+  app_data:
+  app_secrets:
+  letsencrypt:
+  acme_webroot:
+  tls_runtime:

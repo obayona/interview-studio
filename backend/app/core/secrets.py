@@ -15,13 +15,15 @@ class SecretBox:
 
     VERSION = "v1"
 
-    def __init__(self, key_path: Path) -> None:
+    def __init__(self, key_path: Path, initial_key: bytes | None = None) -> None:
         self.key_path = key_path
         self.key_path.parent.mkdir(parents=True, exist_ok=True)
         if self.key_path.exists():
             key = self.key_path.read_bytes()
+            if initial_key is not None and not secrets.compare_digest(key, initial_key):
+                raise ValueError("APP_ENCRYPTION_KEY does not match the persisted settings key")
         else:
-            key = secrets.token_bytes(32)
+            key = initial_key or secrets.token_bytes(32)
             flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
             descriptor = os.open(self.key_path, flags, 0o600)
             try:

@@ -51,6 +51,10 @@ class SystemDesignService:
     pass
 
 
+class Authentication:
+    enabled = False
+
+
 def event(event_type: str, payload: dict[str, object] | None = None) -> dict[str, object]:
     return {"type": event_type, "payload": payload or {}}
 
@@ -60,7 +64,11 @@ class Socket:
         self.incoming = incoming
         self.sent: list[dict[str, Any]] = []
         self.app = SimpleNamespace(
-            state=SimpleNamespace(interviews=service, system_design=SystemDesignService())
+            state=SimpleNamespace(
+                auth=Authentication(),
+                interviews=service,
+                system_design=SystemDesignService(),
+            )
         )
 
     async def accept(self) -> None:

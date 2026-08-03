@@ -86,3 +86,13 @@ diagram-aware AI orchestration for Phase 10C.
 Start Phase 10C and improve the prompts so the concrete system-design exercise starts
 early. A couple of setup questions are acceptable, but the interviewer should then ask
 the candidate to design a specific system so the whiteboard is used early.
+
+---
+
+Implement Phase 11 secure web deployment in ordered subphases: keep backend and
+frontend as sibling applications, compile Astro into a static Nginx image, add
+FastAPI session authentication with authoritative environment credentials, CSRF
+and authenticated WebSockets, add Docker Compose for FastAPI/Nginx/Certbot and
+explicit schema jobs, validate a documented `.env.example`, bootstrap and renew
+Let's Encrypt TLS, add persistent volumes and safe backup/restore/upgrade tooling,
+verify the full deployment, and synchronize all SDD governance documents.

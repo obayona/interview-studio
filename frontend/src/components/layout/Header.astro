@@ -1,6 +1,7 @@
 ---
 import { Icon } from '../ui/Icon';
 import { HeaderAvatar } from './HeaderAvatar';
+import { LogoutButton } from '../../features/auth/LogoutButton';
 ---
 
 <header class="app-shell__header" transition:persist>
@@ -20,5 +21,6 @@ import { HeaderAvatar } from './HeaderAvatar';
       href="/interview">Start interview</a
     >
     <HeaderAvatar client:load />
+    <LogoutButton client:load />
   </div>
 </header>

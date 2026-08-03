@@ -516,7 +516,47 @@ Acceptance:
 
 **Status: Completed and verified on 2026-08-03.**
 
-### Phase 11 — Desktop Packaging
+### Phase 11 — Web Deployment
+
+#### Phase 11A — Repository and production-build foundation
+
+- Keep backend and frontend as sibling applications and move Python-only tooling configuration under `backend/`.
+- Compile Astro with pinned pnpm in a multi-stage image and copy only static assets into the Nginx runtime.
+- Keep production HTTP and WebSocket traffic same-origin.
+
+#### Phase 11B — Single-user server authentication
+
+- Add the singleton user and hashed opaque sessions.
+- Reconcile the authoritative environment username/password into Argon2 persistence and invalidate sessions after rotation.
+- Add secure cookie login/session/logout, CSRF enforcement, login throttling, and exact-origin authenticated WebSockets.
+- Add the accessible login/logout frontend flow while leaving development and desktop modes unauthenticated.
+
+#### Phase 11C — Docker Compose runtime
+
+- Add FastAPI, static/proxy Nginx, Certbot, migration, fixture, backup, and restore services.
+- Persist SQLite, encryption keys, ACME data, certificates, and promoted TLS files in explicit volumes.
+- Configure unprivileged application processes, health checks, graceful shutdown, bounded logs, WebSocket streaming, upload limits, and security headers.
+
+#### Phase 11D — Environment, TLS, and operations
+
+- Document and strictly validate `.env` through `.env.example` without copying it into images.
+- Bootstrap HTTP challenges with a temporary TLS certificate, request Let's Encrypt material, and reload renewals without interrupting interviews.
+- Add checksummed SQLite/key backup, verified offline restore, migration-first upgrades, and complete operating instructions.
+
+#### Phase 11E — Governance and completion
+
+- Verify backend, frontend, images, Compose expansion, isolated runtime health, proxy authentication, scripts, backup/restore, and documentation.
+- Synchronize `PLAN.md`, `TASK.md`, `MAP.md`, and `PROMPTS.md` only after verification.
+
+Acceptance:
+
+- Fresh installation transitions successfully to HTTPS.
+- Anonymous HTTP and WebSocket access is rejected in server mode.
+- Authentication, CSRF, certificate renewal, backup, restore, and upgrades are tested.
+
+**Status: Completed and verified on 2026-08-03.**
+
+### Phase 12 — Desktop Packaging
 
 - Prebuild the frontend and serve it through the packaged backend.
 - Use pywebview for the desktop shell.
@@ -533,26 +573,6 @@ Acceptance:
 - Clean Windows and Debian systems install, launch, migrate, run, close, and uninstall.
 - No external Python installation is required.
 - User data is not silently removed.
-
-### Phase 12 — Web Deployment
-
-- Build production application artifacts.
-- Add Docker Compose services for FastAPI, Nginx, and Certbot.
-- Persist SQLite, artifacts, certificates, and encryption secrets in explicit volumes.
-- Bootstrap over HTTP and transition to HTTPS with renewal.
-- Validate domain, email, ports, permissions, and secrets in installation scripts.
-- Enable FastAPI session authentication in server mode.
-- Configure the initial password through a one-time CLI or installer action.
-- Configure Nginx for TLS, WebSockets, security headers, limits, timeouts, and redirects.
-- Document SQLite backup, restore, upgrades, and migrations.
-- Run containers as non-root where practical.
-- Add health checks and log-rotation guidance.
-
-Acceptance:
-
-- Fresh installation transitions successfully to HTTPS.
-- Anonymous HTTP and WebSocket access is rejected in server mode.
-- Authentication, CSRF, certificate renewal, backup, restore, and upgrades are tested.
 
 ## 6. Testing Strategy
 

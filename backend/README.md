@@ -45,6 +45,12 @@ fixtures are independent installation commands; the web application assumes the
 schema and required initial records already exist. Runtime application code never
 reads `.env`; persisted settings are resolved when each interview session is opened.
 
+In web server mode, Docker Compose injects deployment variables rather than the
+application reading an `.env` file directly. `APP_SERVER_MODE=true` requires an
+authoritative username/password, trusted HTTPS origin, mounted database/key
+paths, and a base64 32-byte `APP_ENCRYPTION_KEY`. Local development and the
+future desktop build keep authentication disabled.
+
 The migration history is currently development-only and intentionally consolidated.
 Databases created from an earlier migration layout must be recreated before applying
 the current migrations; no compatibility upgrade is maintained yet.
@@ -76,6 +82,16 @@ Health and capability routes:
 - `GET /api/v1/capabilities`
 - `GET /api/v1/interviews/{attempt_id}/history`
 - `DELETE /api/v1/attempts/{attempt_id}`
+
+Server authentication routes:
+
+- `POST /api/v1/auth/login`
+- `GET /api/v1/auth/session`
+- `POST /api/v1/auth/logout`
+
+Server sessions use secure HTTP-only same-site cookies. State-changing HTTP
+requests also send the session CSRF token, and interview WebSockets validate
+the same session plus their exact configured origin.
 
 Settings routes:
 
@@ -181,10 +197,10 @@ environment variables; callers inject credentials, models, and checkpointers thr
 Run the backend verification suite:
 
 ```bash
-python -m ruff check backend
-python -m ruff format --check backend
-python -m mypy
-python -m pytest
+python -m ruff check --config backend/pyproject.toml backend
+python -m ruff format --config backend/pyproject.toml --check backend
+python -m mypy --config-file backend/pyproject.toml
+python -m pytest -c backend/pyproject.toml
 ```
 
 ## Interview graph

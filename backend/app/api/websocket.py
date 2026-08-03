@@ -11,6 +11,8 @@ from uuid import uuid4
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+from backend.app.api.auth import SESSION_COOKIE
+from backend.app.application.auth import AuthService
 from backend.app.application.interviews import InterviewService
 from backend.app.application.system_design import SystemDesignService
 from backend.app.core.errors import ApplicationError
@@ -57,6 +59,17 @@ def _event(attempt_id: str, event_type: str, payload: dict[str, Any]) -> dict[st
 
 @router.websocket("/api/v1/interviews/{attempt_id}/ws")
 async def interview_websocket(websocket: WebSocket, attempt_id: str) -> None:
+    auth: AuthService = websocket.app.state.auth
+    if auth.enabled:
+        current = await auth.authenticate(websocket.cookies.get(SESSION_COOKIE))
+        if current is None:
+            await websocket.close(code=4401, reason="Authentication required")
+            return
+        trusted_origins: tuple[str, ...] = websocket.app.state.config.trusted_origins
+        origin = websocket.headers.get("origin", "")
+        if not origin or origin not in trusted_origins:
+            await websocket.close(code=4403, reason="Origin is not allowed")
+            return
     await websocket.accept()
     service: InterviewService = websocket.app.state.interviews
     system_design: SystemDesignService = websocket.app.state.system_design

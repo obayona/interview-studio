@@ -56,7 +56,7 @@ pnpm --dir frontend audit --prod
 
 ## Configuration
 
-The client uses same-origin HTTP and WebSocket URLs by default. Production
+The client uses same-origin HTTP and WebSocket URLs by default. Separate-origin
 deployments can set these public build-time variables:
 
 ```dotenv
@@ -67,8 +67,14 @@ PUBLIC_WS_BASE_URL=wss://api.example.com
 Omit trailing slashes because the client appends route paths beginning with
 `/api`.
 
-When these variables are omitted, deploy the frontend behind a reverse proxy
-that forwards `/api` to FastAPI and supports WebSocket upgrades.
+The supported Docker deployment omits both variables. Its multi-stage Nginx
+image compiles Astro to static assets and forwards same-origin `/api` and
+WebSocket requests to FastAPI. Node and Astro are not present at runtime.
+
+Server deployments expose `/login` before the authenticated application. The
+shared API client bootstraps its CSRF token from the session endpoint, attaches
+it to mutations, and returns expired sessions to login while retaining the
+requested local route. Local development remains unauthenticated.
 
 ## Structure
 

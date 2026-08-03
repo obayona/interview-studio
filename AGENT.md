@@ -248,6 +248,13 @@ steps = [
 - I am not sure how it would work, propose ideas
 
 ### PHASE 11:
+- Web deployment scripts and containers
+- Add docker compose with containers for fastapi app, nginx, certbot (at first should work with http but after the certificate is created, it will use let's encrpt certificate).
+- it should be easy to install everything on a server
+- the users can access the app from a browser using the domain
+- In this case, there should be a way to add basic authentication so only the user can access the app, propose how to do it, maybe at nginx level or app level
+
+### PHASE 12:
 - Wrap the webapp on a desktop app.
 - You can use pywebview to show the frontend on a web-view
 - A python build tool to create an installer
@@ -260,12 +267,6 @@ steps = [
 - The program should integrate with the OS, appear at menus, have icons
 - Create a simple unistaller that removes everything from the install path
 
-### PHASE 12:
-- Web deployment scripts and containers
-- Add docker compose with containers for fastapi app, nginx, certbot (at first should work with http but after the certificate is created, it will use let's encrpt certificate).
-- it should be easy to install everything on a server
-- the users can access the app from a browser using the domain
-- In this case, there should be a way to add basic authentication so only the user can access the app, propose how to do it, maybe at nginx level or app level
 ---
 
 ## Tech Stack:

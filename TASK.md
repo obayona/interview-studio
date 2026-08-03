@@ -250,3 +250,48 @@ Phase 10B completed and verified on 2026-08-03.
 - [x] Mark Phase 10 complete in `PLAN.md`, `TASK.md`, and `MAP.md`.
 
 Phase 10C and Phase 10 completed and verified on 2026-08-03.
+
+## Phase 11 — Secure Web Deployment
+
+### Phase 11A — Repository and production-build foundation
+
+- [x] Query `MAP.md` and preserve the current repository state.
+- [x] Keep backend/frontend siblings and move Python tooling configuration under `backend/`.
+- [x] Add non-root FastAPI and multi-stage static Astro/Nginx image definitions.
+- [x] Preserve same-origin production HTTP and WebSocket URLs.
+- [x] Synchronize `MAP.md` with the build and structure decisions.
+
+### Phase 11B — Single-user server authentication
+
+- [x] Add singleton users and hashed opaque sessions through migration 006.
+- [x] Reconcile authoritative environment credentials with Argon2 and invalidate rotated sessions.
+- [x] Add login, session, logout, secure cookies, CSRF, and bounded rate limiting.
+- [x] Require authenticated exact-origin interview WebSockets.
+- [x] Add the accessible login/logout frontend and shared CSRF-aware API client.
+- [x] Add backend and frontend authentication coverage and synchronize `MAP.md`.
+
+### Phase 11C — Docker Compose runtime
+
+- [x] Add backend, Nginx, Certbot, migration, fixture, backup, and restore services.
+- [x] Add explicit persistent data, secret, certificate, ACME, and runtime TLS volumes.
+- [x] Configure static routing, API/WebSocket proxying, auth subrequests, limits, timeouts, and security headers.
+- [x] Add health checks, graceful shutdown, restart policy, and bounded log rotation.
+- [x] Build both production images and validate an isolated Compose runtime.
+
+### Phase 11D — Environment, TLS, and operations
+
+- [x] Add `.env.example` and strict installation-time configuration validation.
+- [x] Add HTTP challenge bootstrap, certificate issuance, periodic renewal, and atomic Nginx reload.
+- [x] Add checksummed SQLite/settings-key backup and verified offline restore.
+- [x] Add migration-first installation and upgrade scripts.
+- [x] Document installation, staging-to-production TLS, operations, rotation, backup, restore, and upgrades.
+
+### Phase 11E — Governance and completion
+
+- [x] Run complete backend and frontend verification.
+- [x] Validate Compose expansion, shell scripts, production images, and the isolated HTTPS runtime.
+- [x] Completely synchronize `MAP.md` with the implemented deployment.
+- [x] Append the Phase 11 implementation prompt to `PROMPTS.md`.
+- [x] Mark Phase 11 complete in `PLAN.md`, `TASK.md`, and `MAP.md`.
+
+Phase 11 completed and verified on 2026-08-03.

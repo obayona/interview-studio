@@ -15,7 +15,8 @@ Last synchronized: 2026-08-03
 - Phase 8: Complete and verified on 2026-07-30.
 - Phase 9: Complete and verified on 2026-07-30.
 - Phase 10: Complete and verified on 2026-08-03.
-- Phases 11–12: Not started.
+- Phase 11: Complete and verified on 2026-08-03.
+- Phase 12: Not started.
 
 ## Repository baseline
 
@@ -41,7 +42,7 @@ Last synchronized: 2026-08-03
 - `backend/cli/generate_graph.py`: Builds the real compiled graph and renders `backend/cli/graph.png` without making a model request.
 - `backend/__init__.py`: Backend package boundary; `backend.interview_engine` imports work from the repository root without installation or path manipulation.
 - `backend/requirements*.txt`: Runtime and development dependencies only; the interview engine is not an installable distribution.
-- `pyproject.toml`: Repository-level Python quality-tool configuration.
+- `backend/pyproject.toml`: Backend-owned Ruff, mypy, pytest, and coverage configuration; commands retain the repository root so the `backend.*` package namespace is unchanged.
 - `backend/README.md`: Environment, dependency, import, and CLI instructions.
 - `backend/WEBSOCKET_PROTOCOL.md`: Protocol 1.2 envelopes, limits, event reference, and separate GitHub-renderable sequence diagrams for connection, candidate input, assistant output, and controls.
 - `backend/README.md` embeds the generated interview graph and documents its regeneration command.
@@ -56,6 +57,7 @@ Last synchronized: 2026-08-03
 - `backend/migrations/002_phase5_profile.py`: Reversible developer-profile, ordered link/experience/project, and avatar schema migration; CV documents are intentionally absent.
 - `backend/migrations/003_phase6_processes.py`: Complete interview schema in dependency order: processes, ordered stages, full attempts, canonical messages, graph state, and pending writes.
 - `backend/migrations/004_phase8_reports.py`: Attempt-versioned, cascade-owned validated evaluation-report persistence.
+- `backend/migrations/006_phase11_auth.py`: Singleton server user and hashed opaque-session persistence with credential-version invalidation and expiry indexing.
 - `backend/report_engine/`: Checkpointer-free LangGraph evaluation workflow with bounded, versioned report schemas and canonical transcript evidence references.
 - `backend/app/domain/processes.py`, `backend/app/repositories/processes.py`, and `backend/app/application/processes.py`: Validated process aggregate, atomic persistence, safe content import, and repeated-attempt creation.
 - `backend/app/api/processes.py`: Process list/create/detail/update/delete, URL-preview, and stage-attempt routes.
@@ -74,6 +76,7 @@ Last synchronized: 2026-08-03
 - `backend/app/domain/system_design.py`, `backend/app/repositories/system_design.py`, and `backend/app/application/system_design.py`: Bounded Excalidraw scene validation, attempt-owned optimistic persistence, PNG snapshots, system-design eligibility enforcement, and stale-version conflicts.
 - `backend/app/api/system_design.py`: Scene retrieval/save plus bounded snapshot creation and PNG retrieval under `/api/v1/system-design/{attempt_id}`.
 - `backend/app/main.py`: FastAPI factory, lifespan wiring, request IDs, structured application errors, root page, health, readiness, and capabilities.
+- `backend/app/repositories/auth.py`, `backend/app/application/auth.py`, and `backend/app/api/auth.py`: Optional server-mode Argon2 credential reconciliation, bounded login attempts, hashed sessions, secure cookies, CSRF tokens, login/session/logout routes, and password-change session invalidation.
 - Dashboard aggregation reads existing process, attempt, profile, settings, and versioned report records without adding derived persistence.
 - `backend/tests/integration/`: Temporary-database migration, startup, capability, strict-codec, saver-conformance, and real compiled-LangGraph resume coverage.
 - `backend/app/core/secrets.py`: Versioned AES-GCM secret box with a restricted local master-key file.
@@ -110,23 +113,35 @@ Last synchronized: 2026-08-03
 - `frontend/src/services/profile-api.ts`: Typed profile aggregate and transient multipart avatar/CV transport.
 - `frontend/src/types/profile.ts`: Profile aggregate, ordered collections, draft, and transient CV suggestion transport types.
 - `frontend/src/pages/`: Working dashboard, profile, processes, process-details, interview, feedback, and settings routes; the home route now renders the integrated dashboard rather than a placeholder.
+- `frontend/src/features/auth/`, `frontend/src/services/auth-api.ts`, and `frontend/src/pages/login.astro`: Accessible server login, same-origin session/CSRF bootstrap, logout, and safe return-path handling; local development hides logout because authentication is disabled.
 - `frontend/README.md`: pnpm-based setup, development, verification, deployment configuration, routes, and source-structure guide.
+- `deployment/docker/backend.Dockerfile`: Non-root Python 3.12 FastAPI runtime image with runtime-only dependencies and no schema mutation during startup.
+- `deployment/docker/nginx.Dockerfile`: Multi-stage pnpm/Astro static build copied into an unprivileged Nginx runtime without Node.js or source files.
+- `docker-compose.yml`: Single-instance backend, static/proxy Nginx, Certbot renewal, explicit migration/fixture jobs, persistent data/secrets/certificate volumes, health checks, graceful restart policy, and bounded JSON logs.
+- `deployment/nginx/default.conf.template`: Same-origin static/API/WebSocket routing, auth subrequests for application documents, ACME HTTP access, HTTPS redirects, upload/streaming limits, and browser security headers.
+- `deployment/scripts/nginx-entrypoint.sh` and `renew-certificates.sh`: Short-lived bootstrap TLS, atomic promoted-certificate reloads, and periodic webroot renewal without interrupting interviews.
+- `.env.example` and `deployment/scripts/validate_env.py`: Documented deployment contract plus strict hostname, email, issuer, password, encryption-key, session, file-permission, Docker, port, and backup-path validation.
+- `backend/cli/deployment_data.py` and deployment operation scripts: Consistent SQLite online backups with checksummed settings keys, verified offline restore, migration-first upgrades, TLS bootstrap, and post-operation readiness checks.
 
 ## Technical decisions
 
 - Python 3.12 is the supported runtime.
+- Backend-only Python tooling configuration lives under `backend/`; the backend and frontend remain sibling applications, and production Astro output is static, same-origin content served by Nginx.
+- Server mode is opt-in and reconciles its single authoritative environment username/password into an Argon2 hash. HTTP mutations require per-session CSRF, opaque session cookies are stored only as SHA-256 digests, and interview WebSockets require both the session cookie and an exact trusted origin.
+- The production Compose topology exposes only Nginx on host ports 80/443. FastAPI remains internal, migration and fixtures are explicit one-shot operations, SQLite/settings secrets/certificates use named volumes, and Nginx starts with a one-day bootstrap certificate before atomically adopting Certbot material.
+- `APP_ENCRYPTION_KEY` is base64 for exactly 32 bytes. It initializes the mounted settings-key file once and must match that persisted key thereafter, preventing an environment typo from making encrypted API credentials unreadable.
 - Interview lifecycle routing is deterministic from typed state: elapsed time, question limit, topic coverage, explicit end, and configured follow-up depth.
 - The chat model generates the greeting, questions, transitions, follow-ups, and closing language.
 - Phase 1 is text-only; STT and TTS are represented by provider-neutral abstract ports.
 - The engine logger is named `interview-engine` and does not install handlers.
 - `MemorySaver` is the standalone default; callers can inject another LangGraph `BaseCheckpointSaver`.
-- Runtime package code never reads `.env`; credentials are injected through the builder. The CLI may read `OPENAI_API_KEY` for development.
+- Runtime package code never parses `.env`; Docker Compose injects server deployment variables, engine callers inject provider settings, and the CLI may read `OPENAI_API_KEY` for development.
 - The engine is an internal backend module imported as `backend.interview_engine`; it has no build metadata or editable-install requirement.
 - The graph's conditional router is asynchronous, preventing unnecessary executor thread hops.
 - Structured prompts follow job-competency and behavioral/situational interviewing guidance and prohibit non-job-related protected-characteristic questions.
 - Phase 2 uses one application-owned `sqlite3` connection behind an asynchronous manager API and transaction lock; migrations run synchronously through Yoyo before the connection opens. A pool is intentionally unnecessary for the single-user SQLite architecture.
 - Async context-manager generators use explicit `AsyncGenerator[yield_type, None]` annotations for current Python/Pylance compatibility.
-- Persisted configuration is resolved for every operation and runtime startup never reads `.env`.
+- Persisted AI configuration is resolved for every operation. Runtime startup reads only injected deployment environment variables and never parses or silently imports `.env` settings.
 - Graph state is JSON text only. Completed LangChain messages require stable IDs and are stored once in `interview_messages`; checkpoint state is reconstructed from the ordered canonical transcript.
 - The saver supports LangGraph's async execution API only; synchronous methods fail explicitly so web graph execution cannot bypass the manager's asynchronous transaction boundary.
 - FastAPI's singleton `InterviewService` creates an attempt-scoped `InterviewSession` when a WebSocket connects. The session resolves current persisted configuration once, retains its engine and thread for the connection lifetime, and injects the shared shallow saver; controllers never receive or manage a bare engine.
@@ -207,26 +222,27 @@ Last synchronized: 2026-08-03
 
 - Public backend interfaces: `backend.interview_engine.InterviewEngineBuilder`, `InterviewEngine`, typed configuration models, and enums.
 - Engine operations: `stream_start`, `stream_response`, `stream_end`, and `get_state`.
-- HTTP routes: `GET /`, health/readiness/capabilities, dashboard aggregation, interview history, settings CRUD/provider test, profile/avatar/CV import, process CRUD/import preview, per-stage attempt creation, attempt report retrieval/evaluation, process report aggregation, and system-design scene/snapshot operations under `/api/v1`.
+- HTTP routes: `GET /`, health/readiness/capabilities, authentication login/session/logout, dashboard aggregation, interview history, settings CRUD/provider test, profile/avatar/CV import, process CRUD/import preview, per-stage attempt creation, attempt report retrieval/evaluation, process report aggregation, and system-design scene/snapshot operations under `/api/v1`.
 - WebSocket route: `/api/v1/interviews/{attempt_id}/ws`.
 - Implemented client WebSocket events: `session.start`, `user.text`, `user.audio.start`, `user.audio.chunk`, `user.audio.end`, `user.turn.end`, `user.turn.cancel`, `audio.output.cancel`, `mode.update`, `session.pause`, `session.resume`, `session.end`, and `ping`.
 - Implemented server WebSocket events: `session.ready`, assistant text/audio delta/completion/cancellation, partial/segment-final/turn-final transcripts, interview state, mode updates, warnings, errors, and `pong`.
-- Database entities: `settings`, `interview_processes`, ordered `interview_stages`, numbered `interview_attempts`, canonical `interview_messages`, shallow `interview_graph_state`, temporary `interview_graph_writes`, versioned `interview_reports`, attempt-owned `system_design_sessions`, versioned `system_design_snapshots`, singleton `developer_profiles`, ordered `profile_links`, ordered `work_experiences`, and ordered `projects`.
+- Database entities: `settings`, singleton `users`, hashed opaque `sessions`, `interview_processes`, ordered `interview_stages`, numbered `interview_attempts`, canonical `interview_messages`, shallow `interview_graph_state`, temporary `interview_graph_writes`, versioned `interview_reports`, attempt-owned `system_design_sessions`, versioned `system_design_snapshots`, singleton `developer_profiles`, ordered `profile_links`, ordered `work_experiences`, and ordered `projects`.
 - Migration `001_phase2_core` creates only settings. Interview persistence is consolidated in migration 003 so attempts are created with their final process-stage relationship instead of being altered later.
 - Phase 3 requires no schema migration: the existing key/value `settings` table supports the complete known-key registry and encrypted values.
 - Migration `002_phase5_profile` creates only the final profile schema without CV-document persistence. Collection ordering is protected by per-profile unique positions.
 - Migration `003_phase6_processes` creates the complete interview persistence graph from parent to child. Attempts have required stage ownership, immutable per-stage numbering, a non-null TTS preference, timing, and termination metadata from initial creation; no follow-up table alteration is required.
 - Migration `004_phase8_reports` adds bounded-score report metadata and a versioned JSON report owned by its attempt; process deletion therefore cascades through reports.
 - Migration `005_phase10_system_design` adds one current versioned scene per system-design attempt plus reason-bearing PNG snapshots; both cascade through attempt ownership.
+- Migration `006_phase11_auth` adds the singleton server user and expiring hashed sessions with credential-version invalidation.
 - Migration history is intentionally development-only. Databases produced by the superseded pre-consolidation migration layout must be recreated; there is no compatibility upgrade path.
-- Frontend routes: `/`, `/profile`, `/processes`, `/processes/new`, `/processes/edit`, `/processes/details`, `/interview`, `/feedback`, and `/settings`.
+- Frontend routes: `/login`, `/`, `/profile`, `/processes`, `/processes/new`, `/processes/edit`, `/processes/details`, `/interview`, `/feedback`, and `/settings`.
 
 ## Known constraints
 
 - `MAP.md` did not exist before Phase 1 started; this file was derived from the repository.
 - `PHASE_PROMPT.md` has a pre-existing user modification and must not be overwritten.
 - Natural voice interruption is not implemented in Phase 1. The media ports preserve the future boundary; push-to-talk is the reliable Phase 7 baseline and browser VAD/barge-in is a higher-complexity progressive enhancement.
-- Report and canvas WebSocket events remain assigned to later phases.
+- Process-level horizontal scaling remains unsupported; the production topology intentionally runs one FastAPI instance against one SQLite database.
 - Phase 5 CV extraction supports text-based PDFs. Scanned/image-only and password-protected PDFs return a validation error instead of invoking OCR.
 
 ## Verification
@@ -352,4 +368,5 @@ Last synchronized: 2026-08-03
 - Voice pause/disable correction: pausing now optimistically clears partial/captured listening feedback, cancels any unfinished server voice turn, disables continuous voice mode, closes the browser audio context, stops microphone tracks, and requires explicit re-enablement after resume. Turning voice input off follows the same cancellation and device-release path, including while speech is pending, so browser and server turn ownership cannot leave the simulator labeled as listening.
 - WebSocket protocol documentation: `backend/WEBSOCKET_PROTOCOL.md` documents protocol 1.2 with four focused GitHub-renderable sequence diagrams covering connection/resume, typed and rolling-voice input with optional diagram context, assistant text/TTS output, and controls/termination. It also records envelopes, media limits, persistence boundaries, and the complete client/server event reference. `backend/README.md` retains a concise overview and links to the dedicated document. The review corrected the prose to require `session.resume` after hydrating an existing incomplete transcript, matching the implemented client.
 - Mermaid verification: all four protocol diagrams pass the installed Mermaid 11.16 parser; parser-sensitive punctuation from the original combined diagram is absent.
+- Phase 11 verification: Ruff lint/format and strict mypy pass across 61 backend sources; all 41 backend tests pass. Prettier, ESLint, Stylelint, 76-file Astro diagnostics, all 33 frontend tests, and the 10-route static production build pass. Docker Compose expansion and shell syntax pass; both production images build, the pinned Certbot 5.4 image resolves, and an isolated migrated/fixture-loaded Compose deployment reached healthy backend/Nginx states with HTTPS proxy health, public login, protected-document redirect, anonymous API rejection, and the configured security headers. Disposable test containers, network, and volumes were removed after verification.
 - Phase 10A verification: Prettier, ESLint, Stylelint, 67-file Astro diagnostics, all 23 frontend tests across 10 files, the 9-route production build, and the repository whitespace check pass.

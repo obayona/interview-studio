@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hmac
 import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -10,6 +11,8 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, Response
 from starlette.middleware.base import RequestResponseEndpoint
 
+from backend.app.api.auth import SESSION_COOKIE
+from backend.app.api.auth import router as auth_router
 from backend.app.api.dashboard import router as dashboard_router
 from backend.app.api.interviews import attempts_router
 from backend.app.api.interviews import router as interviews_router
@@ -19,6 +22,7 @@ from backend.app.api.reports import router as reports_router
 from backend.app.api.settings import router as settings_router
 from backend.app.api.system_design import router as system_design_router
 from backend.app.api.websocket import router as websocket_router
+from backend.app.application.auth import AuthService
 from backend.app.application.dashboard import DashboardService
 from backend.app.application.interviews import InterviewService
 from backend.app.application.processes import ProcessService
@@ -31,6 +35,7 @@ from backend.app.core.errors import ApplicationError
 from backend.app.core.secrets import SecretBox
 from backend.app.infrastructure.checkpointer import InterviewSQLiteCheckpointer
 from backend.app.repositories.attempts import AttemptRepository
+from backend.app.repositories.auth import AuthRepository
 from backend.app.repositories.dashboard import DashboardRepository
 from backend.app.repositories.processes import ProcessRepository
 from backend.app.repositories.profile import ProfileRepository
@@ -52,12 +57,24 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
         secret_path = application_config.secret_path or application_config.database_path.with_name(
             ".secret-key"
         )
-        settings_repository = SettingsRepository(database, SecretBox(secret_path))
+        settings_repository = SettingsRepository(
+            database, SecretBox(secret_path, application_config.encryption_key)
+        )
         settings = SettingsService(settings_repository)
+        auth = AuthService(
+            AuthRepository(database),
+            enabled=application_config.server_mode,
+            username=application_config.auth_username,
+            password=application_config.auth_password,
+            session_lifetime_seconds=application_config.session_lifetime_seconds,
+        )
+        await auth.initialize()
         attempts = AttemptRepository(database)
         profiles = ProfileRepository(database)
         checkpointer = InterviewSQLiteCheckpointer(database)
         app.state.database = database
+        app.state.config = application_config
+        app.state.auth = auth
         app.state.settings = settings
         app.state.attempts = attempts
         app.state.interviews = InterviewService(attempts, settings, checkpointer)
@@ -70,6 +87,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
         await database.close()
 
     app = FastAPI(title="Interview Studio", version="0.2.0", lifespan=lifespan)
+    app.include_router(auth_router)
     app.include_router(interviews_router)
     app.include_router(dashboard_router)
     app.include_router(attempts_router)
@@ -79,6 +97,46 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
     app.include_router(settings_router)
     app.include_router(system_design_router)
     app.include_router(websocket_router)
+
+    @app.middleware("http")
+    async def authentication_middleware(
+        request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
+        if not application_config.server_mode:
+            return await call_next(request)
+        public_paths = {
+            "/health/live",
+            "/health/ready",
+            "/api/v1/auth/login",
+        }
+        if request.url.path in public_paths or request.method == "OPTIONS":
+            return await call_next(request)
+        auth: AuthService = request.app.state.auth
+        current = await auth.authenticate(request.cookies.get(SESSION_COOKIE))
+        if current is None:
+            return JSONResponse(
+                status_code=401,
+                content={
+                    "code": "authentication_required",
+                    "message": "Sign in to continue.",
+                    "field_errors": {},
+                    "request_id": getattr(request.state, "request_id", None),
+                },
+            )
+        request.state.auth_session = current
+        if request.method not in {"GET", "HEAD", "OPTIONS"}:
+            supplied = request.headers.get("x-csrf-token", "")
+            if not supplied or not hmac.compare_digest(supplied, current.csrf_token):
+                return JSONResponse(
+                    status_code=403,
+                    content={
+                        "code": "csrf_failed",
+                        "message": "The request security token is missing or invalid.",
+                        "field_errors": {},
+                        "request_id": getattr(request.state, "request_id", None),
+                    },
+                )
+        return await call_next(request)
 
     @app.middleware("http")
     async def request_id_middleware(
