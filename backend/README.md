@@ -153,6 +153,13 @@ and transcription model, with press-and-release as a compatibility fallback; it
 is not an attempt preference. Browser microphone
 permission and autoplay failures remain transient runtime conditions.
 
+System-design attempts expose `GET`/`PUT /api/v1/system-design/{attempt_id}` for
+the current Excalidraw scene and `POST /api/v1/system-design/{attempt_id}/snapshots`
+for periodic, explicit, or interview-end PNG snapshots. Scene saves include an
+`expected_version`; stale writers receive `409` and cannot overwrite newer work.
+Scenes and PNGs are each capped at 5 MiB and cascade when their attempt is deleted.
+Snapshot image retrieval uses the `image_url` returned with snapshot metadata.
+
 The CLI alone may read `OPENAI_API_KEY` for development convenience. The backend module does not read
 environment variables; callers inject credentials, models, and checkpointers through
 `InterviewEngineBuilder`.

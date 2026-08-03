@@ -198,7 +198,7 @@ Phase 9 completed and verified on 2026-07-30.
 - [x] Run frontend formatting, linting, diagnostics, tests, and production build.
 - [x] Synchronize `MAP.md` with the implemented voice slice.
 
-Phase 10A completed and verified on 2026-08-03. Phase 10B whiteboard persistence and Phase 10C diagram-aware orchestration remain pending.
+Phase 10A completed and verified on 2026-08-03. Later Phase 10 refinements are tracked below.
 
 The Phase 10A.1 refinement below supersedes the initial direct handoff after three seconds of silence.
 
@@ -217,3 +217,19 @@ The Phase 10A.1 refinement below supersedes the initial direct handoff after thr
 - [x] Run backend and frontend verification and synchronize documentation.
 
 Phase 10A.1 completed and verified on 2026-08-03. Phase 10 remains in progress.
+
+### Phase 10B — Whiteboard persistence and API
+
+- [x] Query `MAP.md` and reconcile the Phase 10B schema and interview context.
+- [x] Add attempt-owned system-design sessions and PNG snapshots with cascade deletion.
+- [x] Add typed scene validation, system-design eligibility checks, and optimistic version conflicts.
+- [x] Add scene retrieval/save and snapshot create/retrieve HTTP APIs.
+- [x] Integrate the repository and application service into FastAPI lifespan wiring.
+- [x] Add Excalidraw as the interactive whiteboard instead of implementing drawing primitives.
+- [x] Add debounced scene autosave through the shared autosave hook with serialized save requests.
+- [x] Add changed-scene periodic snapshots, explicit snapshots, and local PNG export.
+- [x] Render the whiteboard only for system-design attempts and use view-only mode on mobile.
+- [x] Add migration, repository/API, stale-version, cascade, autosave, and snapshot tests.
+- [x] Run backend/frontend verification and synchronize documentation.
+
+Phase 10B completed and verified on 2026-08-03. Phase 10C remains pending.

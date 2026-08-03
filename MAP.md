@@ -14,7 +14,7 @@ Last synchronized: 2026-08-03
 - Phase 7: Complete and verified on 2026-07-30.
 - Phase 8: Complete and verified on 2026-07-30.
 - Phase 9: Complete and verified on 2026-07-30.
-- Phase 10: In progress. Phase 10A continuous voice turns and Phase 10A.1 natural long-form turns are complete and verified; whiteboard persistence and diagram-aware orchestration remain pending.
+- Phase 10: In progress. Phase 10A continuous voice, Phase 10A.1 natural long-form turns, and Phase 10B whiteboard persistence are complete and verified; diagram-aware orchestration remains pending.
 - Phases 11–12: Not started.
 
 ## Repository baseline
@@ -69,6 +69,8 @@ Last synchronized: 2026-08-03
 - `backend/app/api/websocket.py`: Versioned interview WebSocket adapter for session start/end, text answers, streaming assistant deltas/completions, ping/pong, and structured errors.
 - Phase 7 extends the WebSocket adapter with bounded audio segments, transient/final transcripts, live media-mode overrides, sentence-buffered sequenced audio, playback cancellation, pause/resume, and interview-state events. Phase 10A.1 separates bounded segment transcription from conversational handoff through explicit voice-turn events.
 - `backend/app/api/interviews.py`: Status-bearing canonical transcript history for reconnect/read-only hydration and cascading attempt deletion.
+- `backend/app/domain/system_design.py`, `backend/app/repositories/system_design.py`, and `backend/app/application/system_design.py`: Bounded Excalidraw scene validation, attempt-owned optimistic persistence, PNG snapshots, system-design eligibility enforcement, and stale-version conflicts.
+- `backend/app/api/system_design.py`: Scene retrieval/save plus bounded snapshot creation and PNG retrieval under `/api/v1/system-design/{attempt_id}`.
 - `backend/app/main.py`: FastAPI factory, lifespan wiring, request IDs, structured application errors, root page, health, readiness, and capabilities.
 - Dashboard aggregation reads existing process, attempt, profile, settings, and versioned report records without adding derived persistence.
 - `backend/tests/integration/`: Temporary-database migration, startup, capability, strict-codec, saver-conformance, and real compiled-LangGraph resume coverage.
@@ -100,6 +102,8 @@ Last synchronized: 2026-08-03
 - Attempt-history actions use compact start, resume, view, and delete icons with accessible names and native title tooltips. Attempt badges translate persisted state names into user-facing labels without changing transport values.
 - Process-detail stage badges likewise translate `not_started`, `in_progress`, `completed`, and `skipped` into readable labels without changing persisted/API status values.
 - `frontend/src/features/interview/`: API-history hydration, reconnecting versioned WebSocket session, typed answers, explicit-permission continuous voice capture through `useVoiceCapture`, press-and-release compatibility fallback, friendly voice-answer/spoken-reply controls, sequenced/cancellable browser audio, pause/end controls, and an accessible meeting-style transcript UI. The bundled interviewer portrait is presented as a large circular participant tile with an animated streaming glow.
+- `frontend/src/features/interview/SystemDesignWhiteboard.tsx`: Dynamically loaded Excalidraw editor with serialized scene autosave, optimistic save sequencing, periodic/explicit snapshots, local PNG export, persisted reload, status feedback, and mobile view-only mode.
+- `frontend/src/services/system-design-api.ts` and `frontend/src/types/system-design.ts`: Typed scene/session/snapshot HTTP contracts.
 - `frontend/src/services/process-api.ts` and `frontend/src/types/process.ts`: Typed process aggregate, content-source, stage-configuration, attempt, and CRUD transport contracts.
 - `frontend/src/services/profile-api.ts`: Typed profile aggregate and transient multipart avatar/CV transport.
 - `frontend/src/types/profile.ts`: Profile aggregate, ordered collections, draft, and transient CV suggestion transport types.
@@ -201,16 +205,17 @@ Last synchronized: 2026-08-03
 
 - Public backend interfaces: `backend.interview_engine.InterviewEngineBuilder`, `InterviewEngine`, typed configuration models, and enums.
 - Engine operations: `stream_start`, `stream_response`, `stream_end`, and `get_state`.
-- HTTP routes: `GET /`, health/readiness/capabilities, dashboard aggregation, interview history, settings CRUD/provider test, profile/avatar/CV import, process CRUD/import preview, per-stage attempt creation, attempt report retrieval/evaluation, and process report aggregation under `/api/v1`.
+- HTTP routes: `GET /`, health/readiness/capabilities, dashboard aggregation, interview history, settings CRUD/provider test, profile/avatar/CV import, process CRUD/import preview, per-stage attempt creation, attempt report retrieval/evaluation, process report aggregation, and system-design scene/snapshot operations under `/api/v1`.
 - WebSocket route: `/api/v1/interviews/{attempt_id}/ws`.
 - Implemented client WebSocket events: `session.start`, `user.text`, `user.audio.start`, `user.audio.chunk`, `user.audio.end`, `user.turn.end`, `user.turn.cancel`, `audio.output.cancel`, `mode.update`, `session.pause`, `session.resume`, `session.end`, and `ping`.
 - Implemented server WebSocket events: `session.ready`, assistant text/audio delta/completion/cancellation, partial/segment-final/turn-final transcripts, interview state, mode updates, warnings, errors, and `pong`.
-- Database entities: `settings`, `interview_processes`, ordered `interview_stages`, numbered `interview_attempts`, canonical `interview_messages`, shallow `interview_graph_state`, temporary `interview_graph_writes`, versioned `interview_reports`, singleton `developer_profiles`, ordered `profile_links`, ordered `work_experiences`, and ordered `projects`.
+- Database entities: `settings`, `interview_processes`, ordered `interview_stages`, numbered `interview_attempts`, canonical `interview_messages`, shallow `interview_graph_state`, temporary `interview_graph_writes`, versioned `interview_reports`, attempt-owned `system_design_sessions`, versioned `system_design_snapshots`, singleton `developer_profiles`, ordered `profile_links`, ordered `work_experiences`, and ordered `projects`.
 - Migration `001_phase2_core` creates only settings. Interview persistence is consolidated in migration 003 so attempts are created with their final process-stage relationship instead of being altered later.
 - Phase 3 requires no schema migration: the existing key/value `settings` table supports the complete known-key registry and encrypted values.
 - Migration `002_phase5_profile` creates only the final profile schema without CV-document persistence. Collection ordering is protected by per-profile unique positions.
 - Migration `003_phase6_processes` creates the complete interview persistence graph from parent to child. Attempts have required stage ownership, immutable per-stage numbering, a non-null TTS preference, timing, and termination metadata from initial creation; no follow-up table alteration is required.
 - Migration `004_phase8_reports` adds bounded-score report metadata and a versioned JSON report owned by its attempt; process deletion therefore cascades through reports.
+- Migration `005_phase10_system_design` adds one current versioned scene per system-design attempt plus reason-bearing PNG snapshots; both cascade through attempt ownership.
 - Migration history is intentionally development-only. Databases produced by the superseded pre-consolidation migration layout must be recreated; there is no compatibility upgrade path.
 - Frontend routes: `/`, `/profile`, `/processes`, `/processes/new`, `/processes/edit`, `/processes/details`, `/interview`, `/feedback`, and `/settings`.
 
@@ -330,4 +335,8 @@ Last synchronized: 2026-08-03
 - Phase 10A continuous-voice baseline introduced local energy-based VAD, direct silence handoff, bounded capture, persistent microphone lifecycle, and press-and-release fallback. Its direct-handoff behavior is superseded by Phase 10A.1.
 - Phase 10A.1 long-form voice refinement: bounded 45-second or silence-ended segments are transcribed independently, acknowledged visually, and accumulated until a five-second handoff countdown completes or the candidate selects **Finish answer now**. Capture remains disabled during interviewer turns, and pause/end cancellation clears transient voice state. System-design prompts favor one concise clarification, trade-off probe, continuation invitation, or transition after handoff.
 - Phase 10A.1 verification: backend Ruff formatting/lint, strict mypy across 53 source files, all 33 backend tests, frontend Prettier/ESLint/Stylelint, 67-file Astro diagnostics, all 27 frontend tests across 10 files, the 9-route production build, and the repository whitespace check pass.
+- Phase 10B whiteboard persistence: Excalidraw owns drawing, selection, shapes, connectors, freehand pen, text, undo/redo, zoom, pan, and clear behavior. Its database serialization is capped at 5 MiB and autosaved after 700 ms through the shared hook; requests are serialized so every optimistic update uses the latest accepted scene version.
+- Phase 10B snapshots: changed scenes may be saved explicitly and are checked every 30 seconds for a periodic PNG snapshot. PNG uploads are signature-validated and capped at 5 MiB; audio and canvas images remain separate persistence concerns. Snapshot AI consumption and transcript-message association remain Phase 10C.
+- Phase 10B simulator impact: system-design attempts replace the participant portrait area with the whiteboard while retaining the existing transcript and controls. Other interview types retain their existing layout. Mobile exposes the canvas in view-only mode rather than offering constrained editing.
+- Phase 10B verification: fresh migration and migration 005 application over a temporary Phase 8-era database, Ruff formatting/lint, strict mypy across 57 source files, all 34 backend tests, frontend Prettier/ESLint/Stylelint, 71-file Astro diagnostics, all 28 frontend tests across 11 files, the 9-route production build, production dependency audit with no known vulnerabilities, and the repository whitespace check pass. The dynamically split Excalidraw asset produces Vite's expected greater-than-500-KiB chunk warning.
 - Phase 10A verification: Prettier, ESLint, Stylelint, 67-file Astro diagnostics, all 23 frontend tests across 10 files, the 9-route production build, and the repository whitespace check pass.

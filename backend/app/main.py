@@ -17,12 +17,14 @@ from backend.app.api.processes import router as processes_router
 from backend.app.api.profile import router as profile_router
 from backend.app.api.reports import router as reports_router
 from backend.app.api.settings import router as settings_router
+from backend.app.api.system_design import router as system_design_router
 from backend.app.api.websocket import router as websocket_router
 from backend.app.application.dashboard import DashboardService
 from backend.app.application.interviews import InterviewService
 from backend.app.application.processes import ProcessService
 from backend.app.application.profiles import ProfileService
 from backend.app.application.reports import ReportService
+from backend.app.application.system_design import SystemDesignService
 from backend.app.core.config import AppConfig, SettingsService
 from backend.app.core.database import SQLiteManager
 from backend.app.core.errors import ApplicationError
@@ -34,6 +36,7 @@ from backend.app.repositories.processes import ProcessRepository
 from backend.app.repositories.profile import ProfileRepository
 from backend.app.repositories.reports import ReportRepository
 from backend.app.repositories.settings import SettingsRepository
+from backend.app.repositories.system_design import SystemDesignRepository
 
 
 def create_app(config: AppConfig | None = None) -> FastAPI:
@@ -62,6 +65,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
         app.state.processes = ProcessService(ProcessRepository(database), profiles, settings)
         app.state.reports = ReportService(ReportRepository(database), attempts, profiles, settings)
         app.state.dashboard = DashboardService(DashboardRepository(database), settings)
+        app.state.system_design = SystemDesignService(SystemDesignRepository(database))
         yield
         await database.close()
 
@@ -73,6 +77,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
     app.include_router(processes_router)
     app.include_router(reports_router)
     app.include_router(settings_router)
+    app.include_router(system_design_router)
     app.include_router(websocket_router)
 
     @app.middleware("http")

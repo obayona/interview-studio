@@ -126,6 +126,12 @@ show a five-second interviewer-handoff countdown after silence. Resumed speech
 cancels the countdown, and **Finish answer now** appears only during that window.
 Candidate capture remains suspended while the interviewer responds. Browsers
 without Web Audio analysis fall back to press-and-release segment capture.
+System-design attempts dynamically load Excalidraw in place of the interviewer
+portrait. The editor provides basic architecture shapes, connectors, text,
+freehand drawing, selection, undo/redo, zoom, pan, and clear. Scene JSON autosaves
+after 700 ms, changed scenes are considered for a periodic PNG snapshot every 30
+seconds, and toolbar actions create an explicit snapshot or download a PNG.
+Mobile sessions render the persisted board in view-only mode.
 New process stages inherit global voice preferences, and live attempt changes are
 persisted across reloads. Microphone denial or blocked autoplay displays feedback
 without changing the saved preference.

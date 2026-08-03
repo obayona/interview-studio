@@ -444,7 +444,7 @@ Acceptance:
 
 ### Phase 10 — System Design Interview
 
-**Status: In progress. Phase 10A completed 2026-08-03; Phases 10B–10C pending.**
+**Status: In progress. Phases 10A–10B completed 2026-08-03; Phase 10C pending.**
 
 #### Phase 10A — Continuous voice turns ✅ Completed 2026-08-03
 
@@ -481,11 +481,20 @@ Acceptance:
 - Automatic and explicit countdown handoff each invoke the interviewer exactly once.
 - Turn ownership, capture, transcription, acknowledgment, and countdown states remain visible.
 
-#### Phase 10B — Whiteboard persistence and API
+#### Phase 10B — Whiteboard persistence and API ✅ Completed 2026-08-03
 
-- Add an interactive React whiteboard with serializable scenes and image export.
+- Add a dynamically loaded Excalidraw React whiteboard with serializable scenes and PNG export.
 - Persist editable scene JSON and periodic/explicit PNG snapshots.
 - Autosave with debouncing and optimistic version checks.
+- Restrict whiteboards to system-design attempts and cascade their data with attempt deletion.
+- Render the whiteboard in the existing interview stage, retaining the fixed transcript panel and using view-only mode on mobile.
+
+Acceptance:
+
+- Scene JSON survives reload and remains editable.
+- Stale scene versions return `409` and cannot overwrite current data.
+- Changed scenes autosave, produce periodic or explicit snapshots, and export locally as PNG.
+- Non-system-design interview layouts and persistence remain unchanged.
 
 #### Phase 10C — Diagram-aware interview and split-pane UI
 

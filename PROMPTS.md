@@ -73,3 +73,10 @@ segments without yielding the candidate's floor, start a five-second handoff
 countdown after three seconds of silence, show Finish answer only during that
 countdown, suspend capture while the interviewer responds, provide explicit turn
 feedback, and keep candidate interruption unsupported.
+
+---
+
+Continue with Phase 10B: add the interactive system-design whiteboard, persist
+versioned editable scenes and periodic/explicit PNG snapshots, autosave with
+optimistic conflict protection, preserve non-system-design interviews, and leave
+diagram-aware AI orchestration for Phase 10C.

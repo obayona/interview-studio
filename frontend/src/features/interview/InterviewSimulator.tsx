@@ -18,6 +18,7 @@ import {
 } from '../../services/interview-socket';
 import './interview.css';
 import { useVoiceCapture } from './useVoiceCapture';
+import { SystemDesignWhiteboard } from './SystemDesignWhiteboard';
 
 type Modes = { text_to_speech: boolean };
 type Capabilities = { speech_to_text: boolean };
@@ -423,23 +424,38 @@ function InterviewSimulatorContent() {
       <div
         className={`interview__meeting ${chatVisible ? 'is-chat-visible' : ''}`}
       >
-        <section className="interview__stage" aria-label="Interviewer">
-          <div
-            className={`interview__interviewer ${
-              interviewerIsStreaming ? 'is-streaming' : ''
-            }`}
-            aria-label={
-              interviewerIsStreaming
-                ? 'Interviewer is responding'
-                : 'Interviewer'
-            }
-          >
-            <div className="interview__interviewer-portrait">
-              <img src={interviewerImage.src} alt="AI interviewer" />
+        <section
+          className={`interview__stage ${
+            interviewContext?.stage_type === 'system_design'
+              ? 'interview__stage--whiteboard'
+              : ''
+          }`}
+          aria-label={
+            interviewContext?.stage_type === 'system_design'
+              ? 'System design workspace'
+              : 'Interviewer'
+          }
+        >
+          {interviewContext?.stage_type === 'system_design' && attemptId ? (
+            <SystemDesignWhiteboard attemptId={attemptId} />
+          ) : (
+            <div
+              className={`interview__interviewer ${
+                interviewerIsStreaming ? 'is-streaming' : ''
+              }`}
+              aria-label={
+                interviewerIsStreaming
+                  ? 'Interviewer is responding'
+                  : 'Interviewer'
+              }
+            >
+              <div className="interview__interviewer-portrait">
+                <img src={interviewerImage.src} alt="AI interviewer" />
+              </div>
+              <strong>Interviewer</strong>
+              <span>{interviewerIsStreaming ? 'Responding…' : 'Ready'}</span>
             </div>
-            <strong>Interviewer</strong>
-            <span>{interviewerIsStreaming ? 'Responding…' : 'Ready'}</span>
-          </div>
+          )}
           {capabilities.speech_to_text &&
             (voice.requesting ||
               voice.enabled ||

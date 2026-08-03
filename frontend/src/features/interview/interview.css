@@ -81,6 +81,11 @@
   );
 }
 
+.interview__stage--whiteboard {
+  display: block;
+  padding: 0;
+}
+
 .interview__candidate-speaking {
   position: absolute;
   right: clamp(1.6rem, 3vw, 3rem);

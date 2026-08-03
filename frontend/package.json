@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@astrojs/react": "^6.0.2",
+    "@excalidraw/excalidraw": "^0.18.1",
     "@fortawesome/fontawesome-svg-core": "^7.0.0",
     "@fortawesome/free-solid-svg-icons": "^7.0.0",
     "@fortawesome/react-fontawesome": "^3.1.0",
