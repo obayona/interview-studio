@@ -132,8 +132,8 @@ The uploaded file, extracted text, and suggestions are not persisted by the back
 
 Clients should request interview history before starting a WebSocket session. If
 history is empty, send `session.start` to generate the greeting. If history is
-present, render it and send future `user.text` events directly; this avoids
-generating a duplicate question during checkpoint resume.
+present, render it and send `session.resume`; this restores the current modes and
+answer-ready state without generating a duplicate question.
 History responses include the current attempt status. Completed attempts are
 read-only in the frontend, while ready, active, and paused attempts can be opened
 from their parent process. Deleting an attempt cascades its transcript, graph
@@ -152,6 +152,12 @@ input is a continuous browser-VAD action gated by the global STT setting, API ke
 and transcription model, with press-and-release as a compatibility fallback; it
 is not an attempt preference. Browser microphone
 permission and autoplay failures remain transient runtime conditions.
+
+### WebSocket protocol
+
+Protocol version 1.2, event envelopes, limits, and smaller sequence diagrams
+for connection, candidate input, assistant output, and controls are documented
+in [WEBSOCKET_PROTOCOL.md](WEBSOCKET_PROTOCOL.md).
 
 System-design attempts expose `GET`/`PUT /api/v1/system-design/{attempt_id}` for
 the current Excalidraw scene and `POST /api/v1/system-design/{attempt_id}/snapshots`
