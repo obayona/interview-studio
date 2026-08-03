@@ -5,7 +5,7 @@ from textwrap import dedent
 from backend.interview_engine.models import InterviewConfiguration
 from backend.interview_engine.state import InterviewState
 
-PROMPT_VERSION = "2026-07-structured-v1"
+PROMPT_VERSION = "2026-08-system-design-v2"
 
 SYSTEM_PROMPT = dedent(
     """
@@ -107,14 +107,47 @@ def build_turn_instruction(state: InterviewState, *, topic: str, is_follow_up: b
     ).strip()
 
 
-def build_system_design_turn_instruction() -> str:
+def build_system_design_turn_instruction(
+    state: InterviewState,
+    *,
+    topic: str,
+    diagram_observation: str | None = None,
+) -> str:
+    question_count = state.get("question_count", 0)
+    if question_count == 0:
+        return dedent(
+            """
+            Begin the system-design interview with a brief introduction and ask exactly one
+            short setup question about the candidate's relevant context, constraints, or
+            familiarity. Do not conduct a behavioral or résumé screen and do not ask the
+            candidate to design anything yet.
+            """
+        ).strip()
+    if question_count == 1:
+        return dedent(
+            f"""
+            Start the design exercise now; do not ask another background question. Give the
+            candidate one concrete, role-relevant prompt beginning with the words "Design a
+            system". Base it on {topic}, the role, and company context. Include only the few
+            essential initial requirements, explicitly invite the candidate to state assumptions
+            and use the whiteboard, then hand them the floor. Do not solve the problem for them.
+            """
+        ).strip()
+
+    diagram_context = (
+        f"\nCurrent whiteboard observation:\n<diagram-observation>\n{diagram_observation}"
+        "\n</diagram-observation>"
+        if diagram_observation
+        else "\nNo new whiteboard observation is available; rely on the spoken transcript."
+    )
     return dedent(
-        """
+        f"""
         The candidate has handed back the floor after a potentially long system-design
         explanation. Respond naturally and concisely. Choose the single most useful next move:
         ask one clarification, probe one design trade-off or failure mode, invite the candidate
         to continue an incomplete explanation, or transition to the next planned topic. Use at
         most one brief neutral acknowledgment and do not provide coaching or evaluation.
+        Ground diagram-specific questions only in the observation below.{diagram_context}
         """
     ).strip()
 

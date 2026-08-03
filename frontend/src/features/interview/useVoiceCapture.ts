@@ -249,8 +249,8 @@ export function useVoiceCapture({
 
   const toggle = useCallback(() => {
     if (!enabled) void enable();
-    else if (!manualFallback) disable();
-  }, [disable, enable, enabled, manualFallback]);
+    else if (!manualFallback) cancelTurn(disable);
+  }, [cancelTurn, disable, enable, enabled, manualFallback]);
 
   const startManual = useCallback(() => {
     if (manualFallback && enabled) startSegment();

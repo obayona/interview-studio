@@ -216,7 +216,7 @@ The Phase 10A.1 refinement below supersedes the initial direct handoff after thr
 - [x] Add backend protocol and frontend state-machine/UI coverage.
 - [x] Run backend and frontend verification and synchronize documentation.
 
-Phase 10A.1 completed and verified on 2026-08-03. Phase 10 remains in progress.
+Phase 10A.1 completed and verified on 2026-08-03.
 
 ### Phase 10B — Whiteboard persistence and API
 
@@ -232,4 +232,21 @@ Phase 10A.1 completed and verified on 2026-08-03. Phase 10 remains in progress.
 - [x] Add migration, repository/API, stale-version, cascade, autosave, and snapshot tests.
 - [x] Run backend/frontend verification and synchronize documentation.
 
-Phase 10B completed and verified on 2026-08-03. Phase 10C remains pending.
+Phase 10B completed and verified on 2026-08-03.
+
+### Phase 10C — Diagram-aware interview and split-pane UI
+
+- [x] Query `MAP.md` and reconcile the Phase 10C graph, protocol, persistence, and UI scope.
+- [x] Start the concrete system-design exercise on the second interviewer turn at the latest.
+- [x] Add the provider-neutral diagram observer and configured OpenAI vision adapter.
+- [x] Add changed-scene checkpoints before text/voice handoff and interview termination.
+- [x] Add versioned `canvas.snapshot`, `canvas.ready`, and `canvas.observed` WebSocket events.
+- [x] Add diagram observations to the standard interview graph without changing canonical candidate text.
+- [x] Relate snapshots to canonical transcript messages and retain scene-version traceability.
+- [x] Continue text-only when vision is unavailable or diagram analysis fails.
+- [x] Retain the split whiteboard/transcript layout and add an accessible whiteboard visibility control.
+- [x] Add prompt, persistence, engine-delegation, checkpoint-ordering, and UI tests.
+- [x] Run backend/frontend verification and synchronize documentation.
+- [x] Mark Phase 10 complete in `PLAN.md`, `TASK.md`, and `MAP.md`.
+
+Phase 10C and Phase 10 completed and verified on 2026-08-03.

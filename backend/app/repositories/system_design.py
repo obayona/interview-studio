@@ -103,13 +103,29 @@ class SystemDesignRepository:
             current_version = 0 if row is None else int(row["scene_version"])
             if current_version != scene_version:
                 raise SceneVersionConflictError(current_version)
+            message = connection.execute(
+                """
+                SELECT id FROM interview_messages
+                WHERE attempt_id = ? ORDER BY sequence DESC LIMIT 1
+                """,
+                (attempt_id,),
+            ).fetchone()
             connection.execute(
                 """
                 INSERT INTO system_design_snapshots (
-                    id, attempt_id, scene_version, png_blob, reason, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?)
+                    id, attempt_id, scene_version, png_blob, reason,
+                    transcript_message_id, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
-                (snapshot_id, attempt_id, scene_version, png, reason, timestamp),
+                (
+                    snapshot_id,
+                    attempt_id,
+                    scene_version,
+                    png,
+                    reason,
+                    str(message["id"]) if message is not None else None,
+                    timestamp,
+                ),
             )
         return SnapshotSummary(
             id=snapshot_id,
@@ -129,22 +145,75 @@ class SystemDesignRepository:
         )
         return None if row is None else bytes(row["png_blob"])
 
-    async def _snapshots(self, attempt_id: str) -> list[SnapshotSummary]:
-        rows = await self._database.fetchall(
-            """
-            SELECT id, scene_version, reason, created_at
-            FROM system_design_snapshots
-            WHERE attempt_id = ? ORDER BY created_at
-            """,
-            (attempt_id,),
-        )
-        return [
-            SnapshotSummary(
-                id=str(row["id"]),
-                scene_version=int(row["scene_version"]),
-                reason=cast(SnapshotReason, str(row["reason"])),
-                created_at=datetime.fromisoformat(str(row["created_at"])),
-                image_url=(f"/api/v1/system-design/{attempt_id}/snapshots/{row['id']}"),
+    async def associate_snapshot(
+        self, attempt_id: str, snapshot_id: str, observation: str | None
+    ) -> SnapshotSummary | None:
+        timestamp = datetime.now(UTC).isoformat()
+        async with self._database.transaction() as connection:
+            message = connection.execute(
+                """
+                SELECT id FROM interview_messages
+                WHERE attempt_id = ? AND role = 'human'
+                ORDER BY sequence DESC LIMIT 1
+                """,
+                (attempt_id,),
+            ).fetchone()
+            if message is None:
+                return None
+            cursor = connection.execute(
+                """
+                UPDATE system_design_snapshots
+                SET transcript_message_id = ?, observation_text = ?, observed_at = ?
+                WHERE attempt_id = ? AND id = ?
+                """,
+                (str(message["id"]), observation, timestamp, attempt_id, snapshot_id),
             )
-            for row in rows
-        ]
+            if cursor.rowcount == 0:
+                return None
+        return await self.snapshot_summary(attempt_id, snapshot_id)
+
+    async def snapshot_summary(self, attempt_id: str, snapshot_id: str) -> SnapshotSummary | None:
+        rows = await self._snapshot_rows(attempt_id, snapshot_id)
+        return self._summary(attempt_id, rows[0]) if rows else None
+
+    async def _snapshots(self, attempt_id: str) -> list[SnapshotSummary]:
+        rows = await self._snapshot_rows(attempt_id)
+        return [self._summary(attempt_id, row) for row in rows]
+
+    async def _snapshot_rows(self, attempt_id: str, snapshot_id: str | None = None) -> list[Any]:
+        suffix = " AND ss.id = ?" if snapshot_id else ""
+        parameters = (attempt_id, snapshot_id) if snapshot_id else (attempt_id,)
+        return await self._database.fetchall(
+            """
+            SELECT ss.id, ss.scene_version, ss.reason, ss.created_at,
+                   ss.observation_text, ss.observed_at, im.langgraph_message_id
+            FROM system_design_snapshots ss
+            LEFT JOIN interview_messages im ON im.id = ss.transcript_message_id
+            WHERE ss.attempt_id = ?"""
+            + suffix
+            + " ORDER BY ss.created_at",
+            parameters,
+        )
+
+    @staticmethod
+    def _summary(attempt_id: str, row: Any) -> SnapshotSummary:
+        return SnapshotSummary(
+            id=str(row["id"]),
+            scene_version=int(row["scene_version"]),
+            reason=cast(SnapshotReason, str(row["reason"])),
+            created_at=datetime.fromisoformat(str(row["created_at"])),
+            image_url=f"/api/v1/system-design/{attempt_id}/snapshots/{row['id']}",
+            transcript_message_id=(
+                str(row["langgraph_message_id"])
+                if row["langgraph_message_id"] is not None
+                else None
+            ),
+            observation=(
+                str(row["observation_text"]) if row["observation_text"] is not None else None
+            ),
+            observed_at=(
+                datetime.fromisoformat(str(row["observed_at"]))
+                if row["observed_at"] is not None
+                else None
+            ),
+        )

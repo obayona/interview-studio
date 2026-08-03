@@ -132,6 +132,11 @@ freehand drawing, selection, undo/redo, zoom, pan, and clear. Scene JSON autosav
 after 700 ms, changed scenes are considered for a periodic PNG snapshot every 30
 seconds, and toolbar actions create an explicit snapshot or download a PNG.
 Mobile sessions render the persisted board in view-only mode.
+Changed boards are checkpointed before typed or voice answers yield the candidate's
+turn. The server may use the configured vision model to inform the next question and
+links the checkpoint to the persisted answer; the interview remains text-only when
+vision is unavailable. The whiteboard and transcript remain a split workspace, and
+each can be hidden independently from the meeting controls.
 New process stages inherit global voice preferences, and live attempt changes are
 persisted across reloads. Microphone denial or blocked autoplay displays feedback
 without changing the saved preference.

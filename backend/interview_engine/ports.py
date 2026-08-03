@@ -28,3 +28,9 @@ class TextToSpeechPort(ABC):
     @abstractmethod
     async def synthesize(self, text: str) -> bytes:
         raise NotImplementedError
+
+
+class DiagramObserverPort(ABC):
+    @abstractmethod
+    async def observe(self, png: bytes, context: str) -> str:
+        raise NotImplementedError

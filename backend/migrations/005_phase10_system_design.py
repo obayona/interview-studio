@@ -24,6 +24,10 @@ steps = [
             png_blob BLOB NOT NULL,
             reason TEXT NOT NULL
                 CHECK (reason IN ('periodic', 'explicit', 'interview_end')),
+            transcript_message_id TEXT
+                REFERENCES interview_messages(id) ON DELETE SET NULL,
+            observation_text TEXT,
+            observed_at TEXT,
             created_at TEXT NOT NULL
         )
         """,

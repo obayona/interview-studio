@@ -26,7 +26,9 @@ class Session:
     async def transcribe(self, audio: bytes, filename: str) -> str:
         return audio.decode()
 
-    async def respond(self, text: str) -> AsyncIterator[str]:
+    async def respond(
+        self, text: str, diagram_observation: str | None = None
+    ) -> AsyncIterator[str]:
         self.received_answers.append(text)
         yield "Follow-up question?"
 
@@ -45,6 +47,10 @@ class Service:
         return self.session
 
 
+class SystemDesignService:
+    pass
+
+
 def event(event_type: str, payload: dict[str, object] | None = None) -> dict[str, object]:
     return {"type": event_type, "payload": payload or {}}
 
@@ -53,7 +59,9 @@ class Socket:
     def __init__(self, incoming: list[dict[str, object]], service: Service) -> None:
         self.incoming = incoming
         self.sent: list[dict[str, Any]] = []
-        self.app = SimpleNamespace(state=SimpleNamespace(interviews=service))
+        self.app = SimpleNamespace(
+            state=SimpleNamespace(interviews=service, system_design=SystemDesignService())
+        )
 
     async def accept(self) -> None:
         return None

@@ -33,6 +33,7 @@ class AISettings(BaseModel):
     chat_model: str = "gpt-4o-mini"
     transcription_model: str = "gpt-4o-mini-transcribe"
     speech_model: str = "gpt-4o-mini-tts"
+    vision_model: str = "gpt-4o-mini"
     voice: str = "marin"
     stt_enabled: bool = False
     tts_enabled: bool = False
@@ -55,6 +56,7 @@ class SettingsService:
                 SettingKey.CHAT_MODEL.value,
                 SettingKey.TRANSCRIPTION_MODEL.value,
                 SettingKey.SPEECH_MODEL.value,
+                SettingKey.VISION_MODEL.value,
                 SettingKey.VOICE.value,
                 SettingKey.STT_ENABLED.value,
                 SettingKey.TTS_ENABLED.value,
@@ -73,6 +75,10 @@ class SettingsService:
             speech_model=values.get(
                 SettingKey.SPEECH_MODEL.value,
                 SettingKey.SPEECH_MODEL.default,
+            ),
+            vision_model=values.get(
+                SettingKey.VISION_MODEL.value,
+                SettingKey.VISION_MODEL.default,
             ),
             voice=values.get(SettingKey.VOICE.value, SettingKey.VOICE.default),
             stt_enabled=values.get(SettingKey.STT_ENABLED.value) == "true",

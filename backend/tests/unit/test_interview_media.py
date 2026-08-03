@@ -9,7 +9,11 @@ from backend.app.core.config import AISettings
 from backend.app.repositories.attempts import AttemptRepository
 from backend.interview_engine import InterviewEngine
 from backend.interview_engine.models import InterviewConfiguration
-from backend.interview_engine.ports import SpeechToTextPort, TextToSpeechPort
+from backend.interview_engine.ports import (
+    DiagramObserverPort,
+    SpeechToTextPort,
+    TextToSpeechPort,
+)
 
 
 class Attempts:
@@ -39,7 +43,9 @@ class Settings:
 
 
 class CompletedEngine:
-    async def stream_response(self, thread_id: str, text: str) -> AsyncIterator[str]:
+    async def stream_response(
+        self, thread_id: str, text: str, diagram_observation: str | None = None
+    ) -> AsyncIterator[str]:
         yield "This concludes our interview."
 
     async def get_state(self, thread_id: str) -> dict[str, object]:
@@ -54,6 +60,11 @@ class SpeechToText(SpeechToTextPort):
 class TextToSpeech(TextToSpeechPort):
     async def synthesize(self, text: str) -> bytes:
         return text.upper().encode()
+
+
+class DiagramObserver(DiagramObserverPort):
+    async def observe(self, png: bytes, context: str) -> str:
+        return f"{context}:{len(png)}"
 
 
 async def test_media_modes_require_attempt_and_global_enablement() -> None:
@@ -117,7 +128,9 @@ async def test_engine_delegates_media_operations_to_injected_ports() -> None:
         cast(Any, None),
         speech_to_text=SpeechToText(),
         text_to_speech=TextToSpeech(),
+        diagram_observer=DiagramObserver(),
     )
 
     assert await engine.transcribe(b"audio", "answer.webm") == "answer.webm:audio"
     assert await engine.synthesize("hello") == b"HELLO"
+    assert await engine.observe_diagram(b"png", "architecture") == "architecture:3"

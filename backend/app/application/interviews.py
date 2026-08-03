@@ -6,6 +6,7 @@ from backend.app.core.config import SettingsService
 from backend.app.core.errors import AttemptNotFoundError, ProviderNotConfiguredError
 from backend.app.infrastructure.checkpointer import InterviewSQLiteCheckpointer
 from backend.app.infrastructure.openai_audio import OpenAISpeechToText, OpenAITextToSpeech
+from backend.app.infrastructure.openai_vision import OpenAIDiagramObserver
 from backend.app.repositories.attempts import AttemptRepository
 from backend.interview_engine import (
     InterviewEngine,
@@ -61,6 +62,9 @@ class InterviewSession:
             return b""
         return await self._engine.synthesize(text)
 
+    async def observe_diagram(self, png: bytes, context: str) -> str | None:
+        return await self._engine.observe_diagram(png, context)
+
     async def start(self) -> AsyncIterator[str]:
         await self._attempts.mark_started(self.attempt_id)
         state = await self._checkpointer.aget_tuple(
@@ -71,9 +75,11 @@ class InterviewSession:
                 yield token
             await self._complete_if_ended()
 
-    async def respond(self, text: str) -> AsyncIterator[str]:
+    async def respond(
+        self, text: str, diagram_observation: str | None = None
+    ) -> AsyncIterator[str]:
         await self._attempts.mark_started(self.attempt_id)
-        async for token in self._engine.stream_response(self._thread_id, text):
+        async for token in self._engine.stream_response(self._thread_id, text, diagram_observation):
             yield token
         await self._complete_if_ended()
 
@@ -83,8 +89,8 @@ class InterviewSession:
     async def resume(self) -> None:
         await self._attempts.mark_started(self.attempt_id)
 
-    async def end(self) -> AsyncIterator[str]:
-        async for token in self._engine.stream_end(self._thread_id):
+    async def end(self, diagram_observation: str | None = None) -> AsyncIterator[str]:
+        async for token in self._engine.stream_end(self._thread_id, diagram_observation):
             yield token
         await self._complete_if_ended()
 
@@ -143,6 +149,8 @@ class InterviewService:
             builder.set_speech_to_text(OpenAISpeechToText(ai.api_key, ai.transcription_model))
         if ai.api_key and ai.speech_model and ai.voice:
             builder.set_text_to_speech(OpenAITextToSpeech(ai.api_key, ai.speech_model, ai.voice))
+        if ai.api_key and ai.vision_model:
+            builder.set_diagram_observer(OpenAIDiagramObserver(ai.api_key, ai.vision_model))
         return InterviewSession(
             attempt_id,
             thread_id,

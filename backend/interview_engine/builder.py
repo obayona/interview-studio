@@ -17,7 +17,7 @@ from backend.interview_engine.models import (
     InterviewLimits,
     InterviewType,
 )
-from backend.interview_engine.ports import SpeechToTextPort, TextToSpeechPort
+from backend.interview_engine.ports import DiagramObserverPort, SpeechToTextPort, TextToSpeechPort
 
 
 class InterviewEngineBuilder:
@@ -38,6 +38,7 @@ class InterviewEngineBuilder:
         self._limits = InterviewLimits()
         self._speech_to_text: SpeechToTextPort | None = None
         self._text_to_speech: TextToSpeechPort | None = None
+        self._diagram_observer: DiagramObserverPort | None = None
 
     def set_openai_api(self, api_key: str) -> Self:
         self._api_key = api_key.strip()
@@ -103,6 +104,10 @@ class InterviewEngineBuilder:
         self._text_to_speech = adapter
         return self
 
+    def set_diagram_observer(self, adapter: DiagramObserverPort) -> Self:
+        self._diagram_observer = adapter
+        return self
+
     def build(self) -> InterviewEngine:
         configuration = InterviewConfiguration(
             candidate=self._candidate,
@@ -124,6 +129,7 @@ class InterviewEngineBuilder:
             graph,
             speech_to_text=self._speech_to_text,
             text_to_speech=self._text_to_speech,
+            diagram_observer=self._diagram_observer,
         )
 
     def _build_openai_model(self) -> BaseChatModel:

@@ -19,3 +19,4 @@ class InterviewState(TypedDict, total=False):
     user_requested_end: bool
     termination_reason: str | None
     last_processed_message_id: str | None
+    diagram_observation: str | None

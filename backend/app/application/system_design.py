@@ -72,6 +72,19 @@ class SystemDesignService:
             )
         return image
 
+    async def associate_snapshot(
+        self, attempt_id: str, snapshot_id: str, observation: str | None
+    ) -> SnapshotSummary:
+        await self._ensure_system_design(attempt_id)
+        snapshot = await self._repository.associate_snapshot(attempt_id, snapshot_id, observation)
+        if snapshot is None:
+            raise ApplicationError(
+                code="snapshot_association_failed",
+                message="The whiteboard snapshot could not be linked to this answer.",
+                status_code=409,
+            )
+        return snapshot
+
     async def _ensure_system_design(self, attempt_id: str) -> None:
         stage_type = await self._repository.attempt_type(attempt_id)
         if stage_type is None:

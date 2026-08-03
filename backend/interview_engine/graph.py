@@ -77,6 +77,7 @@ class InterviewGraph:
             user_requested_end=False,
             termination_reason=None,
             last_processed_message_id=None,
+            diagram_observation=None,
         )
 
     def _compile(self, checkpointer: BaseCheckpointSaver[Any]) -> CompiledStateGraph[Any, Any]:
@@ -153,17 +154,19 @@ class InterviewGraph:
                 SystemMessage(content=build_interview_context(self._configuration)),
                 *state.get("messages", []),
                 SystemMessage(
-                    content=build_turn_instruction(
-                        state,
-                        topic=topic,
-                        is_follow_up=is_follow_up,
+                    content=(
+                        build_system_design_turn_instruction(
+                            state,
+                            topic=topic,
+                            diagram_observation=state.get("diagram_observation"),
+                        )
+                        if self._configuration.interview_type == InterviewType.SYSTEM_DESIGN
+                        else build_turn_instruction(
+                            state,
+                            topic=topic,
+                            is_follow_up=is_follow_up,
+                        )
                     )
-                ),
-                *(
-                    [SystemMessage(content=build_system_design_turn_instruction())]
-                    if self._configuration.interview_type == InterviewType.SYSTEM_DESIGN
-                    and state.get("question_count", 0) > 0
-                    else []
                 ),
             ]
         )
@@ -171,6 +174,7 @@ class InterviewGraph:
             messages=[response],
             current_topic=topic,
             question_count=state.get("question_count", 0) + 1,
+            diagram_observation=None,
         )
 
     async def _closing(self, state: InterviewState) -> InterviewState:
@@ -181,6 +185,18 @@ class InterviewGraph:
                 SystemMessage(content=SYSTEM_PROMPT),
                 SystemMessage(content=build_interview_context(self._configuration)),
                 *state.get("messages", []),
+                *(
+                    [
+                        SystemMessage(
+                            content=(
+                                "Final whiteboard observation for interview context:\n"
+                                f"{state.get('diagram_observation', '')}"
+                            )
+                        )
+                    ]
+                    if state.get("diagram_observation")
+                    else []
+                ),
                 SystemMessage(content=build_closing_instruction(reason_value)),
             ]
         )
@@ -188,4 +204,5 @@ class InterviewGraph:
             messages=[response],
             ended=True,
             termination_reason=reason_value,
+            diagram_observation=None,
         )

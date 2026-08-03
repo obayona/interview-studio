@@ -18,7 +18,10 @@ import {
 } from '../../services/interview-socket';
 import './interview.css';
 import { useVoiceCapture } from './useVoiceCapture';
-import { SystemDesignWhiteboard } from './SystemDesignWhiteboard';
+import {
+  SystemDesignWhiteboard,
+  type SystemDesignWhiteboardHandle,
+} from './SystemDesignWhiteboard';
 
 type Modes = { text_to_speech: boolean };
 type Capabilities = { speech_to_text: boolean };
@@ -58,6 +61,8 @@ function InterviewSimulatorContent() {
   const [interviewContext, setInterviewContext] = useState<InterviewContext>();
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [chatVisible, setChatVisible] = useState(true);
+  const [whiteboardVisible, setWhiteboardVisible] = useState(true);
+  const [diagramStatus, setDiagramStatus] = useState<string>();
   const [messages, setMessages] = useState<TranscriptMessage[]>([]);
   const [draft, setDraft] = useState('');
   const [streamingText, setStreamingText] = useState('');
@@ -74,6 +79,18 @@ function InterviewSimulatorContent() {
   const [playingAudio, setPlayingAudio] = useState(false);
   const [capturedSegment, setCapturedSegment] = useState(false);
   const capturedTimer = useRef<number | undefined>(undefined);
+  const whiteboard = useRef<SystemDesignWhiteboardHandle>(null);
+
+  const prepareDiagram = useCallback(
+    async (reason: 'explicit' | 'interview_end' = 'explicit') => {
+      if (interviewContext?.stage_type !== 'system_design') return;
+      const snapshot = await whiteboard.current?.checkpoint(reason);
+      if (snapshot) {
+        socket.current.send('canvas.snapshot', { snapshot_id: snapshot.id });
+      }
+    },
+    [interviewContext?.stage_type],
+  );
 
   const playNext = useCallback(() => {
     if (currentAudio.current || playbackQueue.current.length === 0) return;
@@ -182,6 +199,14 @@ function InterviewSimulatorContent() {
         stopPlayback();
       } else if (event.type === 'interview.state') {
         const nextStatus = payload.status as Status;
+        if (
+          ['ready_for_answer', 'paused', 'responding', 'completed'].includes(
+            nextStatus,
+          )
+        ) {
+          setPartialText('');
+          setCapturedSegment(false);
+        }
         setStatus(nextStatus);
         if (nextStatus === 'completed') {
           intentionalClose.current = true;
@@ -196,6 +221,14 @@ function InterviewSimulatorContent() {
             );
           }
         }
+      } else if (event.type === 'canvas.ready') {
+        setDiagramStatus(
+          payload.available
+            ? 'Diagram ready for the interviewer'
+            : 'Diagram saved; continuing with your explanation',
+        );
+      } else if (event.type === 'canvas.observed') {
+        setDiagramStatus('Diagram linked to your answer');
       } else if (event.type === 'warning') {
         showToast(String(payload.message), 'error');
       } else if (event.type === 'error') {
@@ -283,7 +316,7 @@ function InterviewSimulatorContent() {
     transcriptEnd.current?.scrollIntoView?.({ block: 'nearest' });
   }, [messages, partialText, streamingText]);
 
-  const submit = () => {
+  const submit = async () => {
     const text = draft.trim();
     if (
       !text ||
@@ -304,6 +337,7 @@ function InterviewSimulatorContent() {
     ]);
     setDraft('');
     setStatus('connecting');
+    await prepareDiagram();
     socket.current.send('user.text', { text });
   };
 
@@ -327,9 +361,18 @@ function InterviewSimulatorContent() {
     onAudioEnd: () => socket.current.send('user.audio.end'),
     onTurnEnd: () => {
       setStatus('responding');
-      socket.current.send('user.turn.end');
+      void prepareDiagram().then(() => socket.current.send('user.turn.end'));
     },
-    onTurnCancel: () => socket.current.send('user.turn.cancel'),
+    onTurnCancel: () => {
+      setPartialText('');
+      setCapturedSegment(false);
+      setStatus((current) =>
+        ['listening', 'transcribing'].includes(current)
+          ? 'ready_for_answer'
+          : current,
+      );
+      socket.current.send('user.turn.cancel');
+    },
     onError: (message) => showToast(message, 'error'),
   });
   const updateSpeechOutput = () => {
@@ -436,8 +479,10 @@ function InterviewSimulatorContent() {
               : 'Interviewer'
           }
         >
-          {interviewContext?.stage_type === 'system_design' && attemptId ? (
-            <SystemDesignWhiteboard attemptId={attemptId} />
+          {interviewContext?.stage_type === 'system_design' &&
+          attemptId &&
+          whiteboardVisible ? (
+            <SystemDesignWhiteboard ref={whiteboard} attemptId={attemptId} />
           ) : (
             <div
               className={`interview__interviewer ${
@@ -569,7 +614,7 @@ function InterviewSimulatorContent() {
                   onKeyDown={(event) => {
                     if (event.key === 'Enter' && !event.shiftKey) {
                       event.preventDefault();
-                      submit();
+                      void submit();
                     }
                   }}
                   placeholder="Type your answer…"
@@ -589,7 +634,7 @@ function InterviewSimulatorContent() {
                     status !== 'ready_for_answer' ||
                     voice.hasPendingTurn
                   }
-                  onClick={submit}
+                  onClick={() => void submit()}
                 >
                   <Icon name="send" />
                 </Button>
@@ -625,9 +670,7 @@ function InterviewSimulatorContent() {
                     : voice.manualFallback
                       ? 'Hold to record a voice answer'
                       : voice.enabled
-                        ? voice.hasPendingTurn
-                          ? 'Finish the current voice answer first'
-                          : 'Turn off voice answers'
+                        ? 'Turn off voice answers and discard pending speech'
                         : status === 'transcribing'
                           ? 'Transcribing voice answer'
                           : 'Turn on voice answers'
@@ -638,9 +681,7 @@ function InterviewSimulatorContent() {
                     : voice.manualFallback
                       ? 'Hold to record; release to capture this part'
                       : voice.enabled
-                        ? voice.hasPendingTurn
-                          ? 'Finish the current voice answer first'
-                          : 'Turn off voice answers'
+                        ? 'Turn off voice answers and discard pending speech'
                         : status === 'transcribing'
                           ? 'Transcribing voice answer'
                           : 'Turn on voice answers'
@@ -649,7 +690,6 @@ function InterviewSimulatorContent() {
                   voice.requesting ||
                   !capabilities.speech_to_text ||
                   !connected ||
-                  voice.hasPendingTurn ||
                   (!voice.enabled && status !== 'ready_for_answer')
                 }
                 onClick={voice.toggle}
@@ -689,8 +729,21 @@ function InterviewSimulatorContent() {
                 onClick={() => {
                   const next =
                     status === 'paused' ? 'session.resume' : 'session.pause';
-                  if (next === 'session.pause' && voice.hasPendingTurn) {
-                    voice.cancelTurn(() => socket.current.send(next));
+                  if (next === 'session.pause') {
+                    setPartialText('');
+                    setCapturedSegment(false);
+                    setStatus('paused');
+                  } else {
+                    setStatus('connecting');
+                  }
+                  if (
+                    next === 'session.pause' &&
+                    (voice.enabled || voice.hasPendingTurn)
+                  ) {
+                    voice.cancelTurn(() => {
+                      voice.disable();
+                      socket.current.send(next);
+                    });
                   } else {
                     socket.current.send(next);
                   }
@@ -703,10 +756,11 @@ function InterviewSimulatorContent() {
                 variant="danger"
                 aria-label="End session"
                 title="End session"
-                onClick={() => {
+                onClick={async () => {
                   if (voice.hasPendingTurn) {
                     voice.cancelTurn(() => socket.current.send('session.end'));
                   } else {
+                    await prepareDiagram('interview_end');
                     socket.current.send('session.end');
                   }
                 }}
@@ -717,6 +771,21 @@ function InterviewSimulatorContent() {
           )}
         </div>
         <div className="interview__button-bar interview__button-bar--context">
+          {interviewContext?.stage_type === 'system_design' && (
+            <Button
+              className={`interview__control ui-button--icon ${
+                whiteboardVisible ? 'is-active' : ''
+              }`}
+              aria-pressed={whiteboardVisible}
+              aria-label={
+                whiteboardVisible ? 'Hide whiteboard' : 'Show whiteboard'
+              }
+              title={whiteboardVisible ? 'Hide whiteboard' : 'Show whiteboard'}
+              onClick={() => setWhiteboardVisible((visible) => !visible)}
+            >
+              <Icon name="image" />
+            </Button>
+          )}
           <Button
             className={`interview__control ui-button--icon ${
               chatVisible ? 'is-active' : ''
@@ -741,6 +810,12 @@ function InterviewSimulatorContent() {
           </Button>
         </div>
       </footer>
+
+      {diagramStatus && (
+        <span className="sr-only" role="status" aria-live="polite">
+          {diagramStatus}
+        </span>
+      )}
 
       <Dialog
         className="interview__details-dialog"

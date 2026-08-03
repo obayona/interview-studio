@@ -80,3 +80,9 @@ Continue with Phase 10B: add the interactive system-design whiteboard, persist
 versioned editable scenes and periodic/explicit PNG snapshots, autosave with
 optimistic conflict protection, preserve non-system-design interviews, and leave
 diagram-aware AI orchestration for Phase 10C.
+
+---
+
+Start Phase 10C and improve the prompts so the concrete system-design exercise starts
+early. A couple of setup questions are acceptable, but the interviewer should then ask
+the candidate to design a specific system so the whiteboard is used early.

@@ -139,7 +139,7 @@ read-only in the frontend, while ready, active, and paused attempts can be opene
 from their parent process. Deleting an attempt cascades its transcript, graph
 state, and pending writes, then recalculates its stage status.
 
-Interview WebSocket protocol version 1.1 accepts `user.audio.start`, bounded base64
+Interview WebSocket protocol version 1.2 accepts `user.audio.start`, bounded base64
 `user.audio.chunk`, and `user.audio.end` for each transient recording segment.
 The server returns `transcript.segment.final` without invoking the interview engine.
 `user.turn.end` combines the ordered segments into one canonical candidate answer,
@@ -159,6 +159,14 @@ for periodic, explicit, or interview-end PNG snapshots. Scene saves include an
 `expected_version`; stale writers receive `409` and cannot overwrite newer work.
 Scenes and PNGs are each capped at 5 MiB and cascade when their attempt is deleted.
 Snapshot image retrieval uses the `image_url` returned with snapshot metadata.
+On a changed-board candidate handoff, the client submits a checkpoint through
+`canvas.snapshot`. The interview engine optionally converts its PNG into a bounded
+diagram observation using the configured vision model, supplies that observation to
+the normal interview graph, and links the snapshot to the canonical candidate message.
+`canvas.ready` and `canvas.observed` expose that lifecycle without adding image data to
+the WebSocket. Vision failure emits a warning and continues with transcript context.
+System-design prompting permits one concise setup question and starts the concrete
+**Design a system…** exercise on the next interviewer turn.
 
 The CLI alone may read `OPENAI_API_KEY` for development convenience. The backend module does not read
 environment variables; callers inject credentials, models, and checkpointers through

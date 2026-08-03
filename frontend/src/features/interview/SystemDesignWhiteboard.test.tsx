@@ -1,5 +1,11 @@
 import React, { useEffect } from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ToastProvider } from '../../components/ui/Toast';
 import { SystemDesignWhiteboard } from './SystemDesignWhiteboard';
@@ -27,13 +33,17 @@ vi.mock('@excalidraw/excalidraw', () => ({
     onChange: (elements: unknown[], appState: object, files: object) => void;
     viewModeEnabled: boolean;
   }) => {
+    const initialized = React.useRef(false);
     useEffect(() => {
+      if (initialized.current) return;
+      initialized.current = true;
       excalidrawAPI({
         getSceneElements: () => elements,
         getAppState: () => ({}),
         getFiles: () => ({}),
       });
-    }, [excalidrawAPI]);
+      onChange(elements, { normalizedByEditor: true }, {});
+    }, [excalidrawAPI, onChange]);
     return React.createElement(
       'button',
       {
@@ -87,6 +97,7 @@ describe('SystemDesignWhiteboard', () => {
   });
 
   afterEach(() => {
+    cleanup();
     vi.clearAllMocks();
   });
 
@@ -114,5 +125,38 @@ describe('SystemDesignWhiteboard', () => {
     expect(saveSnapshot.mock.calls[0][1]).toBe(1);
     expect(saveSnapshot.mock.calls[0][3]).toBe('explicit');
     expect(await screen.findByText('Whiteboard snapshot saved.')).toBeVisible();
+  });
+
+  it('does not save Excalidraw hydration and preserves the loaded version', async () => {
+    getSession.mockResolvedValue({
+      attempt_id: 'attempt-1',
+      scene: { elements: [], appState: {}, files: {} },
+      scene_version: 1,
+      snapshots: [],
+    });
+    saveScene.mockResolvedValue({
+      attempt_id: 'attempt-1',
+      scene: {
+        elements: [{ id: 'api', type: 'rectangle' }],
+        appState: {},
+        files: {},
+      },
+      scene_version: 2,
+      snapshots: [],
+    });
+
+    render(
+      <ToastProvider>
+        <SystemDesignWhiteboard attemptId="attempt-1" />
+      </ToastProvider>,
+    );
+
+    const canvas = await screen.findByRole('button', { name: 'Draw shape' });
+    await new Promise((resolve) => window.setTimeout(resolve, 750));
+    expect(saveScene).not.toHaveBeenCalled();
+
+    fireEvent.click(canvas);
+    await waitFor(() => expect(saveScene).toHaveBeenCalledOnce());
+    expect(saveScene.mock.calls[0][2]).toBe(1);
   });
 });

@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from pathlib import Path
+from uuid import uuid4
 
 import httpx
+from langchain_core.messages import HumanMessage
 
 from backend.app.core.config import AppConfig
+from backend.app.infrastructure.json_codec import StrictJsonCodec
 from backend.app.main import create_app
 from backend.tests.integration.helpers import prepare_database
 
@@ -96,9 +100,36 @@ async def test_versioned_scene_and_png_snapshot_persistence(tmp_path: Path) -> N
             assert image.content == png
             assert image.headers["content-type"] == "image/png"
 
+            message_id = str(uuid4())
+            stored_message_id = str(uuid4())
+            async with app.state.database.transaction() as connection:
+                connection.execute(
+                    """
+                    INSERT INTO interview_messages (
+                        id, attempt_id, langgraph_message_id, sequence, role,
+                        message_type, content_json, created_at
+                    ) VALUES (?, ?, ?, 0, 'human', 'human', ?, ?)
+                    """,
+                    (
+                        stored_message_id,
+                        attempt_id,
+                        message_id,
+                        StrictJsonCodec().dumps_message(
+                            HumanMessage(content="My design", id=message_id)
+                        ),
+                        datetime.now(UTC).isoformat(),
+                    ),
+                )
+            associated = await app.state.system_design.associate_snapshot(
+                attempt_id, snapshot_body["id"], "An API connects to a database."
+            )
+            assert associated.transcript_message_id == message_id
+            assert associated.observation == "An API connects to a database."
+
             reloaded = await client.get(f"/api/v1/system-design/{attempt_id}")
             assert reloaded.json()["scene"] == scene
             assert len(reloaded.json()["snapshots"]) == 1
+            assert reloaded.json()["snapshots"][0]["transcript_message_id"] == message_id
 
             deleted = await client.delete(f"/api/v1/processes/{process['id']}")
             assert deleted.status_code == 204

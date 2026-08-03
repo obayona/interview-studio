@@ -12,9 +12,10 @@ from uuid import uuid4
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from backend.app.application.interviews import InterviewService
+from backend.app.application.system_design import SystemDesignService
 from backend.app.core.errors import ApplicationError
 
-PROTOCOL_VERSION = "1.1"
+PROTOCOL_VERSION = "1.2"
 MAX_AUDIO_CHUNK_BYTES = 256 * 1024
 MAX_AUDIO_SEGMENT_BYTES = 10 * 1024 * 1024
 OUTPUT_CHUNK_BYTES = 48 * 1024
@@ -58,6 +59,7 @@ def _event(attempt_id: str, event_type: str, payload: dict[str, Any]) -> dict[st
 async def interview_websocket(websocket: WebSocket, attempt_id: str) -> None:
     await websocket.accept()
     service: InterviewService = websocket.app.state.interviews
+    system_design: SystemDesignService = websocket.app.state.system_design
     session = await service.open_session(attempt_id)
     send_lock = asyncio.Lock()
     modes = await session.media_modes()
@@ -69,6 +71,8 @@ async def interview_websocket(websocket: WebSocket, attempt_id: str) -> None:
     tts_tasks: set[asyncio.Task[None]] = set()
     tts_tail: asyncio.Task[None] | None = None
     turn_task: asyncio.Task[None] | None = None
+    pending_snapshot_id: str | None = None
+    pending_diagram_observation: str | None = None
 
     async def send(event_type: str, payload: dict[str, Any]) -> None:
         async with send_lock:
@@ -161,9 +165,31 @@ async def interview_websocket(websocket: WebSocket, attempt_id: str) -> None:
             {"status": _interaction_status(attempt_status)},
         )
 
-    async def run_turn(tokens: AsyncIterator[str]) -> None:
+    async def run_turn(
+        tokens: AsyncIterator[str],
+        snapshot_id: str | None = None,
+        observation: str | None = None,
+    ) -> None:
         try:
             await stream(tokens)
+            if snapshot_id:
+                try:
+                    await system_design.associate_snapshot(attempt_id, snapshot_id, observation)
+                    await send(
+                        "canvas.observed",
+                        {"snapshot_id": snapshot_id, "available": bool(observation)},
+                    )
+                except Exception:
+                    await send(
+                        "warning",
+                        {
+                            "code": "snapshot_association_failed",
+                            "message": (
+                                "The interview continued, but its diagram could not be linked "
+                                "to the answer."
+                            ),
+                        },
+                    )
         except ApplicationError as error:
             await send(
                 "error",
@@ -183,11 +209,15 @@ async def interview_websocket(websocket: WebSocket, attempt_id: str) -> None:
                 },
             )
 
-    async def start_turn(tokens: AsyncIterator[str]) -> None:
+    async def start_turn(
+        tokens: AsyncIterator[str],
+        snapshot_id: str | None = None,
+        observation: str | None = None,
+    ) -> None:
         nonlocal turn_task
         if turn_task and not turn_task.done():
             raise ValueError("Wait for the current interviewer response to finish")
-        turn_task = asyncio.create_task(run_turn(tokens))
+        turn_task = asyncio.create_task(run_turn(tokens, snapshot_id, observation))
 
     try:
         while True:
@@ -209,7 +239,11 @@ async def interview_websocket(websocket: WebSocket, attempt_id: str) -> None:
                     text = str(payload.get("text", "")).strip()
                     if not text:
                         raise ValueError("Answer text cannot be empty")
-                    await start_turn(session.respond(text))
+                    snapshot_id = pending_snapshot_id
+                    observation = pending_diagram_observation
+                    pending_snapshot_id = None
+                    pending_diagram_observation = None
+                    await start_turn(session.respond(text, observation), snapshot_id, observation)
                 elif event_type == "user.audio.start":
                     capabilities = await session.media_capabilities()
                     if not capabilities["speech_to_text"]:
@@ -255,10 +289,44 @@ async def interview_websocket(websocket: WebSocket, attempt_id: str) -> None:
                         raise ValueError("No transcribed speech is ready")
                     await send("transcript.final", {"text": text})
                     await send("interview.state", {"status": "responding"})
-                    await start_turn(session.respond(text))
+                    snapshot_id = pending_snapshot_id
+                    observation = pending_diagram_observation
+                    pending_snapshot_id = None
+                    pending_diagram_observation = None
+                    await start_turn(session.respond(text, observation), snapshot_id, observation)
+                elif event_type == "canvas.snapshot":
+                    snapshot_id = str(payload.get("snapshot_id", "")).strip()
+                    if not snapshot_id:
+                        raise ValueError("A whiteboard snapshot ID is required")
+                    image = await system_design.snapshot_image(attempt_id, snapshot_id)
+                    try:
+                        observation = await session.observe_diagram(
+                            image,
+                            "Use the diagram only to choose the next system-design question.",
+                        )
+                    except Exception:
+                        observation = None
+                        await send(
+                            "warning",
+                            {
+                                "code": "diagram_observation_failed",
+                                "message": (
+                                    "The diagram could not be analyzed. The interview will "
+                                    "continue using your explanation."
+                                ),
+                            },
+                        )
+                    pending_snapshot_id = snapshot_id
+                    pending_diagram_observation = observation
+                    await send(
+                        "canvas.ready",
+                        {"snapshot_id": snapshot_id, "available": bool(observation)},
+                    )
                 elif event_type == "user.turn.cancel":
                     audio_input.clear()
                     voice_turn.clear()
+                    pending_snapshot_id = None
+                    pending_diagram_observation = None
                     await send("interview.state", {"status": "ready_for_answer"})
                 elif event_type == "audio.output.cancel":
                     await cancel_audio()
@@ -289,6 +357,8 @@ async def interview_websocket(websocket: WebSocket, attempt_id: str) -> None:
                     await cancel_audio()
                     audio_input.clear()
                     voice_turn.clear()
+                    pending_snapshot_id = None
+                    pending_diagram_observation = None
                     await session.pause()
                     await send("interview.state", {"status": "paused"})
                 elif event_type == "session.resume":
@@ -303,7 +373,11 @@ async def interview_websocket(websocket: WebSocket, attempt_id: str) -> None:
                     await cancel_audio()
                     audio_input.clear()
                     voice_turn.clear()
-                    await start_turn(session.end())
+                    snapshot_id = pending_snapshot_id
+                    observation = pending_diagram_observation
+                    pending_snapshot_id = None
+                    pending_diagram_observation = None
+                    await start_turn(session.end(observation), snapshot_id, observation)
                 elif event_type == "ping":
                     await send("pong", {})
                 else:

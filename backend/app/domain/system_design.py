@@ -33,6 +33,9 @@ class SnapshotSummary(BaseModel):
     reason: SnapshotReason
     created_at: datetime
     image_url: str
+    transcript_message_id: str | None = None
+    observation: str | None = None
+    observed_at: datetime | None = None
 
 
 class SystemDesignSession(BaseModel):

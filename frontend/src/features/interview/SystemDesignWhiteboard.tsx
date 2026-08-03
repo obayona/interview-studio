@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from 'react';
 import type {
   AppState,
   BinaryFiles,
@@ -17,6 +24,7 @@ import { systemDesignApi } from '../../services/system-design-api';
 import type {
   SystemDesignSession,
   WhiteboardScene,
+  WhiteboardSnapshot,
 } from '../../types/system-design';
 import './whiteboard.css';
 
@@ -39,7 +47,16 @@ const SAVE_LABELS = {
   error: 'Save failed',
 } as const;
 
-export function SystemDesignWhiteboard({ attemptId }: { attemptId: string }) {
+export type SystemDesignWhiteboardHandle = {
+  checkpoint: (
+    reason?: 'explicit' | 'interview_end',
+  ) => Promise<WhiteboardSnapshot | undefined>;
+};
+
+export const SystemDesignWhiteboard = forwardRef<
+  SystemDesignWhiteboardHandle,
+  { attemptId: string }
+>(function SystemDesignWhiteboard({ attemptId }, ref) {
   const { showToast } = useToast();
   const api = useRef<ExcalidrawImperativeAPI | null>(null);
   const sceneRef = useRef<Draft>({ scene: EMPTY_SCENE, expectedVersion: 0 });
@@ -47,6 +64,9 @@ export function SystemDesignWhiteboard({ attemptId }: { attemptId: string }) {
   const saveChain = useRef<Promise<void>>(Promise.resolve());
   const changedSinceSnapshot = useRef(false);
   const snapshottingRef = useRef(false);
+  const latestSnapshot = useRef<WhiteboardSnapshot | undefined>(undefined);
+  const loadRequest = useRef<Promise<Draft | undefined> | null>(null);
+  const hydratingEditor = useRef(false);
   const [module, setModule] =
     useState<typeof import('@excalidraw/excalidraw')>();
   const [draft, setDraft] = useState<Draft>(sceneRef.current);
@@ -56,25 +76,35 @@ export function SystemDesignWhiteboard({ attemptId }: { attemptId: string }) {
   const [snapshotting, setSnapshotting] = useState(false);
   const [editorKey, setEditorKey] = useState(0);
 
-  const load = useCallback(async () => {
+  const load = useCallback(() => {
+    if (loadRequest.current) return loadRequest.current;
     setLoadError(false);
-    try {
-      const session = await systemDesignApi.get(attemptId);
-      const value = {
-        scene: session.scene,
-        expectedVersion: session.scene_version,
-      };
-      sceneRef.current = value;
-      versionRef.current = session.scene_version;
-      changedSinceSnapshot.current = false;
-      setDraft(value);
-      setEditorKey((key) => key + 1);
-      setLoaded(true);
-      return value;
-    } catch {
-      setLoadError(true);
-      return undefined;
-    }
+    const request = (async () => {
+      try {
+        const session = await systemDesignApi.get(attemptId);
+        const value = {
+          scene: session.scene,
+          expectedVersion: session.scene_version,
+        };
+        sceneRef.current = value;
+        versionRef.current = session.scene_version;
+        changedSinceSnapshot.current = false;
+        latestSnapshot.current = session.snapshots.at(-1);
+        hydratingEditor.current = true;
+        setDraft(value);
+        setEditorKey((key) => key + 1);
+        setLoaded(true);
+        return value;
+      } catch {
+        setLoadError(true);
+        return undefined;
+      }
+    })();
+    loadRequest.current = request;
+    void request.finally(() => {
+      if (loadRequest.current === request) loadRequest.current = null;
+    });
+    return request;
   }, [attemptId]);
 
   const persistScene = useCallback(
@@ -159,7 +189,10 @@ export function SystemDesignWhiteboard({ attemptId }: { attemptId: string }) {
   }, [module]);
 
   const saveSnapshot = useCallback(
-    async (reason: 'periodic' | 'explicit', announce = true) => {
+    async (
+      reason: 'periodic' | 'explicit' | 'interview_end',
+      announce = true,
+    ) => {
       if (snapshottingRef.current || !changedSinceSnapshot.current) return;
       snapshottingRef.current = true;
       setSnapshotting(true);
@@ -168,14 +201,16 @@ export function SystemDesignWhiteboard({ attemptId }: { attemptId: string }) {
         if (!saved) return;
         const image = await exportPng();
         if (!image || versionRef.current === 0) return;
-        await systemDesignApi.snapshot(
+        const snapshot = await systemDesignApi.snapshot(
           attemptId,
           versionRef.current,
           image,
           reason,
         );
+        latestSnapshot.current = snapshot;
         changedSinceSnapshot.current = false;
         if (announce) showToast('Whiteboard snapshot saved.', 'success');
+        return snapshot;
       } catch {
         if (announce)
           showToast('The whiteboard snapshot could not be saved.', 'error');
@@ -185,6 +220,14 @@ export function SystemDesignWhiteboard({ attemptId }: { attemptId: string }) {
       }
     },
     [attemptId, exportPng, saveNow, showToast],
+  );
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      checkpoint: (reason = 'explicit') => saveSnapshot(reason, false),
+    }),
+    [saveSnapshot],
   );
 
   useEffect(() => {
@@ -215,6 +258,21 @@ export function SystemDesignWhiteboard({ attemptId }: { attemptId: string }) {
     const scene = JSON.parse(
       module.serializeAsJSON(elements, appState, files, 'database'),
     ) as WhiteboardScene;
+    if (hydratingEditor.current) {
+      hydratingEditor.current = false;
+      const persistedScene = sceneRef.current.scene;
+      const contentIsUnchanged =
+        JSON.stringify(scene.elements) ===
+          JSON.stringify(persistedScene.elements) &&
+        JSON.stringify(scene.files) === JSON.stringify(persistedScene.files);
+      if (contentIsUnchanged) {
+        const value = { scene, expectedVersion: versionRef.current };
+        sceneRef.current = value;
+        setDraft(value);
+        autosave.reset(value);
+        return;
+      }
+    }
     if (JSON.stringify(scene) === JSON.stringify(sceneRef.current.scene))
       return;
     const value = { scene, expectedVersion: versionRef.current };
@@ -292,4 +350,4 @@ export function SystemDesignWhiteboard({ attemptId }: { attemptId: string }) {
       </div>
     </section>
   );
-}
+});

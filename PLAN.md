@@ -163,7 +163,7 @@ Create one migration per coherent schema change and supply reversible rollback l
 - Interview audio remains transient WebSocket data and is not persisted.
 - `interview_reports`: attempt, scores, strengths, weaknesses, recommendations, study plan, detailed JSON, model metadata, and timestamps.
 - `system_design_sessions`: attempt, current scene JSON, scene version, and timestamps.
-- `system_design_snapshots`: session, scene version, PNG BLOB, creation reason, and timestamps.
+- `system_design_snapshots`: session, scene version, PNG BLOB, creation reason, optional canonical transcript-message reference, bounded diagram observation, and timestamps.
 - `users` and `sessions`: created for optional server authentication.
 
 ### Integrity rules
@@ -216,6 +216,7 @@ Client events:
 - `audio.output.cancel`
 - `mode.update`
 - `canvas.snapshot`
+- Server diagram events: `canvas.ready`, `canvas.observed`
 - `session.pause`
 - `session.resume`
 - `session.end`
@@ -444,7 +445,7 @@ Acceptance:
 
 ### Phase 10 — System Design Interview
 
-**Status: In progress. Phases 10A–10B completed 2026-08-03; Phase 10C pending.**
+**Status: Completed and verified on 2026-08-03.**
 
 #### Phase 10A — Continuous voice turns ✅ Completed 2026-08-03
 
@@ -496,11 +497,12 @@ Acceptance:
 - Changed scenes autosave, produce periodic or explicit snapshots, and export locally as PNG.
 - Non-system-design interview layouts and persistence remain unchanged.
 
-#### Phase 10C — Diagram-aware interview and split-pane UI
+#### Phase 10C — Diagram-aware interview and split-pane UI ✅ Completed 2026-08-03
 
 - Send snapshots to a vision-capable model only on explicit submission, configured checkpoints, or interview end.
 - Relate every snapshot to its transcript event and scene version.
 - Preserve the standard interview graph while adding diagram observations.
+- Allow one concise setup question, then require a concrete **Design a system…** exercise that invites early whiteboard use.
 - Support nodes, text, connectors, drawing, selection, undo/redo, zoom, pan, confirmed clear, and export.
 - Fall back to text-only interviews when vision is unavailable.
 - Build the split-pane simulator.
@@ -511,6 +513,8 @@ Acceptance:
 - AI responses are traceable to snapshots.
 - Stale saves cannot overwrite newer scenes.
 - Other interview types remain unchanged.
+
+**Status: Completed and verified on 2026-08-03.**
 
 ### Phase 11 — Desktop Packaging
 

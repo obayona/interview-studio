@@ -5,6 +5,7 @@ from backend.interview_engine.prompts import (
     build_interview_context,
     build_system_design_turn_instruction,
 )
+from backend.interview_engine.state import InterviewState
 
 
 def test_system_prompt_is_versioned_and_bias_aware() -> None:
@@ -33,9 +34,24 @@ def test_context_preserves_candidate_and_user_inputs_as_delimited_data() -> None
 
 
 def test_system_design_handoff_requests_one_concise_next_move() -> None:
-    instruction = build_system_design_turn_instruction()
+    instruction = build_system_design_turn_instruction(
+        InterviewState(question_count=2), topic="scalability"
+    )
 
     assert "single most useful next move" in instruction
     assert "one clarification" in instruction
     assert "trade-off" in instruction
     assert "do not provide coaching or evaluation" in instruction
+
+
+def test_system_design_starts_exercise_on_second_interviewer_turn() -> None:
+    opening = build_system_design_turn_instruction(
+        InterviewState(question_count=0), topic="distributed systems"
+    )
+    exercise = build_system_design_turn_instruction(
+        InterviewState(question_count=1), topic="distributed systems"
+    )
+
+    assert "one short setup question" in " ".join(opening.split())
+    assert 'beginning with the words "Design a system"' in " ".join(exercise.split())
+    assert "use the whiteboard" in exercise

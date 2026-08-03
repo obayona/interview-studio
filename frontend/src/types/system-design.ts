@@ -13,6 +13,9 @@ export type WhiteboardSnapshot = {
   reason: 'periodic' | 'explicit' | 'interview_end';
   created_at: string;
   image_url: string;
+  transcript_message_id?: string;
+  observation?: string;
+  observed_at?: string;
 };
 
 export type SystemDesignSession = {
