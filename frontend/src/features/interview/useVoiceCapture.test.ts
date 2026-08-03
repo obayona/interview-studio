@@ -46,7 +46,8 @@ const options = () => ({
   onAudioStart: vi.fn(),
   onAudioChunk: vi.fn(),
   onAudioEnd: vi.fn(),
-  onInterrupt: vi.fn(),
+  onTurnEnd: vi.fn(),
+  onTurnCancel: vi.fn(),
   onError: vi.fn(),
 });
 
@@ -76,7 +77,7 @@ describe('useVoiceCapture', () => {
     vi.unstubAllGlobals();
   });
 
-  it('automatically sends a detected utterance after three seconds of silence', async () => {
+  it('captures after three seconds of silence and hands off five seconds later', async () => {
     const callbacks = options();
     const { result } = renderHook(() => useVoiceCapture(callbacks));
 
@@ -85,20 +86,21 @@ describe('useVoiceCapture', () => {
 
     signal = 140;
     act(() => animationCallback?.(0));
-    expect(callbacks.onAudioStart).toHaveBeenCalledWith('audio/webm');
     expect(result.current.recording).toBe(true);
 
     signal = 128;
     act(() => animationCallback?.(100));
-    expect(result.current.countdown).toBe(3);
     act(() => animationCallback?.(3100));
-
     await waitFor(() => expect(callbacks.onAudioEnd).toHaveBeenCalledOnce());
-    expect(result.current.recording).toBe(false);
-    expect(result.current.enabled).toBe(true);
+    expect(result.current.countdown).toBe(5);
+    expect(callbacks.onTurnEnd).not.toHaveBeenCalled();
+
+    act(() => animationCallback?.(8101));
+    expect(callbacks.onTurnEnd).toHaveBeenCalledOnce();
+    expect(result.current.hasPendingTurn).toBe(false);
   });
 
-  it('cancels pending automatic send when speech resumes', async () => {
+  it('cancels handoff when speech resumes', async () => {
     const callbacks = options();
     const { result } = renderHook(() => useVoiceCapture(callbacks));
 
@@ -108,14 +110,52 @@ describe('useVoiceCapture', () => {
     act(() => animationCallback?.(0));
     signal = 128;
     act(() => animationCallback?.(100));
-    signal = 140;
-    act(() => animationCallback?.(2000));
+    act(() => animationCallback?.(3100));
+    await waitFor(() => expect(callbacks.onAudioEnd).toHaveBeenCalledOnce());
 
+    signal = 140;
+    act(() => animationCallback?.(5000));
     expect(result.current.countdown).toBeUndefined();
-    expect(callbacks.onAudioEnd).not.toHaveBeenCalled();
+    expect(result.current.recording).toBe(true);
+    expect(callbacks.onTurnEnd).not.toHaveBeenCalled();
   });
 
-  it('uses press and release when browser audio analysis is unavailable', async () => {
+  it('rotates a long segment without handing off the turn', async () => {
+    const callbacks = options();
+    const { result } = renderHook(() => useVoiceCapture(callbacks));
+
+    act(() => result.current.toggle());
+    await waitFor(() => expect(result.current.enabled).toBe(true));
+    signal = 140;
+    act(() => animationCallback?.(0));
+    act(() => animationCallback?.(45_001));
+    await waitFor(() => expect(callbacks.onAudioEnd).toHaveBeenCalledOnce());
+    act(() => animationCallback?.(45_100));
+
+    expect(callbacks.onAudioStart).toHaveBeenCalledTimes(2);
+    expect(callbacks.onTurnEnd).not.toHaveBeenCalled();
+    expect(result.current.countdown).toBeUndefined();
+  });
+
+  it('does not capture while the interviewer owns the turn', async () => {
+    const callbacks = options();
+    const { result, rerender } = renderHook(
+      ({ ready }) => useVoiceCapture({ ...callbacks, ready }),
+      { initialProps: { ready: false } },
+    );
+
+    act(() => result.current.toggle());
+    await waitFor(() => expect(result.current.enabled).toBe(true));
+    signal = 140;
+    act(() => animationCallback?.(0));
+    expect(callbacks.onAudioStart).not.toHaveBeenCalled();
+
+    rerender({ ready: true });
+    act(() => animationCallback?.(100));
+    expect(callbacks.onAudioStart).toHaveBeenCalledOnce();
+  });
+
+  it('uses press and release as a segment fallback', async () => {
     vi.stubGlobal('AudioContext', undefined);
     const callbacks = options();
     const { result } = renderHook(() => useVoiceCapture(callbacks));
@@ -123,9 +163,27 @@ describe('useVoiceCapture', () => {
     act(() => result.current.toggle());
     await waitFor(() => expect(result.current.manualFallback).toBe(true));
     act(() => result.current.startManual());
-    expect(result.current.recording).toBe(true);
     act(() => result.current.stopManual());
 
     await waitFor(() => expect(callbacks.onAudioEnd).toHaveBeenCalledOnce());
+    expect(result.current.countdown).toBe(5);
+    expect(callbacks.onTurnEnd).not.toHaveBeenCalled();
+  });
+
+  it('discards a pending segment before running a pause action', async () => {
+    const callbacks = options();
+    const afterCancel = vi.fn();
+    const { result } = renderHook(() => useVoiceCapture(callbacks));
+
+    act(() => result.current.toggle());
+    await waitFor(() => expect(result.current.enabled).toBe(true));
+    signal = 140;
+    act(() => animationCallback?.(0));
+    act(() => result.current.cancelTurn(afterCancel));
+
+    await waitFor(() => expect(callbacks.onTurnCancel).toHaveBeenCalledOnce());
+    expect(callbacks.onAudioEnd).not.toHaveBeenCalled();
+    expect(afterCancel).toHaveBeenCalledOnce();
+    expect(result.current.hasPendingTurn).toBe(false);
   });
 });

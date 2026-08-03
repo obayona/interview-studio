@@ -107,6 +107,18 @@ def build_turn_instruction(state: InterviewState, *, topic: str, is_follow_up: b
     ).strip()
 
 
+def build_system_design_turn_instruction() -> str:
+    return dedent(
+        """
+        The candidate has handed back the floor after a potentially long system-design
+        explanation. Respond naturally and concisely. Choose the single most useful next move:
+        ask one clarification, probe one design trade-off or failure mode, invite the candidate
+        to continue an incomplete explanation, or transition to the next planned topic. Use at
+        most one brief neutral acknowledgment and do not provide coaching or evaluation.
+        """
+    ).strip()
+
+
 def build_closing_instruction(reason: str) -> str:
     return dedent(
         f"""

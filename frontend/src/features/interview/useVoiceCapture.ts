@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-const SILENCE_MS = 3000;
-const MAX_SEGMENT_MS = 60_000;
+const SEGMENT_SILENCE_MS = 3000;
+const HANDOFF_COUNTDOWN_MS = 5000;
+const MAX_SEGMENT_MS = 45_000;
 const AUDIO_LEVEL_THRESHOLD = 0.025;
 
 type VoiceCaptureOptions = {
@@ -10,7 +11,8 @@ type VoiceCaptureOptions = {
   onAudioStart: (mediaType: string) => void;
   onAudioChunk: (buffer: ArrayBuffer) => Promise<void>;
   onAudioEnd: () => void;
-  onInterrupt: () => void;
+  onTurnEnd: () => void;
+  onTurnCancel: () => void;
   onError: (message: string) => void;
 };
 
@@ -20,7 +22,8 @@ export function useVoiceCapture({
   onAudioStart,
   onAudioChunk,
   onAudioEnd,
-  onInterrupt,
+  onTurnEnd,
+  onTurnCancel,
   onError,
 }: VoiceCaptureOptions) {
   const stream = useRef<MediaStream | null>(null);
@@ -28,8 +31,14 @@ export function useVoiceCapture({
   const context = useRef<AudioContext | null>(null);
   const animationFrame = useRef<number | null>(null);
   const silenceStartedAt = useRef<number | null>(null);
+  const handoffStartedAt = useRef<number | null>(null);
   const segmentStartedAt = useRef<number | null>(null);
   const pendingChunks = useRef<Promise<void>[]>([]);
+  const segmentEnding = useRef(false);
+  const turnEndRequested = useRef(false);
+  const discardSegment = useRef(false);
+  const notifyTurnCancel = useRef(false);
+  const afterCancel = useRef<(() => void) | undefined>(undefined);
   const enabledRef = useRef(false);
   const readyRef = useRef(ready);
   const [enabled, setEnabled] = useState(false);
@@ -37,49 +46,91 @@ export function useVoiceCapture({
   const [recording, setRecording] = useState(false);
   const [countdown, setCountdown] = useState<number>();
   const [manualFallback, setManualFallback] = useState(false);
+  const [hasPendingTurn, setHasPendingTurn] = useState(false);
 
   readyRef.current = ready;
 
-  const stopSegment = useCallback(() => {
-    silenceStartedAt.current = null;
-    segmentStartedAt.current = null;
-    setCountdown(undefined);
-    if (recorder.current?.state === 'recording') recorder.current.stop();
-  }, []);
-
-  const startSegment = useCallback(() => {
-    if (
-      !stream.current ||
-      !readyRef.current ||
-      recorder.current?.state === 'recording'
-    ) {
+  const sendTurn = useCallback(() => {
+    if (segmentEnding.current) {
+      turnEndRequested.current = true;
       return;
     }
-    onInterrupt();
-    const mediaRecorder = new MediaRecorder(stream.current);
-    recorder.current = mediaRecorder;
-    pendingChunks.current = [];
-    onAudioStart(mediaRecorder.mimeType || 'audio/webm');
-    mediaRecorder.addEventListener('dataavailable', (event) => {
-      if (!event.data.size) return;
-      const pending = event.data
-        .arrayBuffer()
-        .then((buffer) => onAudioChunk(buffer));
-      pendingChunks.current.push(pending);
-    });
-    mediaRecorder.addEventListener(
-      'stop',
-      () => {
-        setRecording(false);
-        recorder.current = null;
-        void Promise.all(pendingChunks.current).then(onAudioEnd);
-      },
-      { once: true },
-    );
-    mediaRecorder.start(500);
-    segmentStartedAt.current = performance.now();
-    setRecording(true);
-  }, [onAudioChunk, onAudioEnd, onAudioStart, onInterrupt]);
+    turnEndRequested.current = false;
+    handoffStartedAt.current = null;
+    setCountdown(undefined);
+    setHasPendingTurn(false);
+    onTurnEnd();
+  }, [onTurnEnd]);
+
+  const stopSegment = useCallback(
+    (startHandoff: boolean, stoppedAt = performance.now()) => {
+      silenceStartedAt.current = null;
+      segmentStartedAt.current = null;
+      if (startHandoff) {
+        handoffStartedAt.current = stoppedAt;
+        setCountdown(Math.ceil(HANDOFF_COUNTDOWN_MS / 1000));
+      }
+      if (recorder.current?.state === 'recording') {
+        segmentEnding.current = true;
+        recorder.current.stop();
+      }
+    },
+    [],
+  );
+
+  const startSegment = useCallback(
+    (startedAt = performance.now()) => {
+      if (
+        !stream.current ||
+        !readyRef.current ||
+        segmentEnding.current ||
+        recorder.current?.state === 'recording'
+      ) {
+        return;
+      }
+      handoffStartedAt.current = null;
+      turnEndRequested.current = false;
+      setCountdown(undefined);
+      const mediaRecorder = new MediaRecorder(stream.current);
+      recorder.current = mediaRecorder;
+      pendingChunks.current = [];
+      onAudioStart(mediaRecorder.mimeType || 'audio/webm');
+      mediaRecorder.addEventListener('dataavailable', (event) => {
+        if (!event.data.size) return;
+        const pending = event.data
+          .arrayBuffer()
+          .then((buffer) => onAudioChunk(buffer));
+        pendingChunks.current.push(pending);
+      });
+      mediaRecorder.addEventListener(
+        'stop',
+        () => {
+          setRecording(false);
+          recorder.current = null;
+          void Promise.all(pendingChunks.current).then(() => {
+            if (discardSegment.current) {
+              segmentEnding.current = false;
+              discardSegment.current = false;
+              if (notifyTurnCancel.current) onTurnCancel();
+              notifyTurnCancel.current = false;
+              afterCancel.current?.();
+              afterCancel.current = undefined;
+              return;
+            }
+            onAudioEnd();
+            segmentEnding.current = false;
+            if (turnEndRequested.current) sendTurn();
+          });
+        },
+        { once: true },
+      );
+      mediaRecorder.start(500);
+      segmentStartedAt.current = startedAt;
+      setRecording(true);
+      setHasPendingTurn(true);
+    },
+    [onAudioChunk, onAudioEnd, onAudioStart, onTurnCancel, sendTurn],
+  );
 
   const disable = useCallback(() => {
     enabledRef.current = false;
@@ -87,22 +138,50 @@ export function useVoiceCapture({
     setManualFallback(false);
     window.cancelAnimationFrame(animationFrame.current ?? 0);
     animationFrame.current = null;
-    if (recorder.current?.state === 'recording') recorder.current.stop();
+    if (recorder.current?.state === 'recording') {
+      discardSegment.current = true;
+      notifyTurnCancel.current = false;
+      recorder.current.stop();
+    }
     stream.current?.getTracks().forEach((track) => track.stop());
     stream.current = null;
     void context.current?.close();
     context.current = null;
     silenceStartedAt.current = null;
+    handoffStartedAt.current = null;
     segmentStartedAt.current = null;
+    turnEndRequested.current = false;
     setCountdown(undefined);
+    setHasPendingTurn(false);
   }, []);
+
+  const cancelTurn = useCallback(
+    (after?: () => void) => {
+      silenceStartedAt.current = null;
+      handoffStartedAt.current = null;
+      segmentStartedAt.current = null;
+      turnEndRequested.current = false;
+      setCountdown(undefined);
+      setHasPendingTurn(false);
+      if (recorder.current?.state === 'recording' || segmentEnding.current) {
+        discardSegment.current = true;
+        notifyTurnCancel.current = true;
+        afterCancel.current = after;
+        if (recorder.current?.state === 'recording') recorder.current.stop();
+        return;
+      }
+      onTurnCancel();
+      after?.();
+    },
+    [onTurnCancel],
+  );
 
   const enable = useCallback(async () => {
     if (!available || enabledRef.current) return;
     setRequesting(true);
     try {
       stream.current = await navigator.mediaDevices.getUserMedia({
-        audio: true,
+        audio: { echoCancellation: true, noiseSuppression: true },
       });
       enabledRef.current = true;
       setEnabled(true);
@@ -132,21 +211,30 @@ export function useVoiceCapture({
         const speaking =
           Math.sqrt(energy / samples.length) > AUDIO_LEVEL_THRESHOLD;
 
-        if (speaking) {
+        if (speaking && readyRef.current) {
           silenceStartedAt.current = null;
+          handoffStartedAt.current = null;
           setCountdown(undefined);
-          startSegment();
+          startSegment(timestamp);
         } else if (recorder.current?.state === 'recording') {
           silenceStartedAt.current ??= timestamp;
-          const elapsed = timestamp - silenceStartedAt.current;
-          setCountdown(Math.max(1, Math.ceil((SILENCE_MS - elapsed) / 1000)));
-          if (elapsed >= SILENCE_MS) stopSegment();
+          if (timestamp - silenceStartedAt.current >= SEGMENT_SILENCE_MS) {
+            stopSegment(true, timestamp);
+          }
         }
+
         if (
           segmentStartedAt.current !== null &&
           timestamp - segmentStartedAt.current >= MAX_SEGMENT_MS
         ) {
-          stopSegment();
+          stopSegment(false, timestamp);
+        }
+
+        if (handoffStartedAt.current !== null) {
+          const remaining =
+            HANDOFF_COUNTDOWN_MS - (timestamp - handoffStartedAt.current);
+          setCountdown(Math.max(1, Math.ceil(remaining / 1000)));
+          if (remaining <= 0) sendTurn();
         }
         animationFrame.current = window.requestAnimationFrame(detectSpeech);
       };
@@ -157,7 +245,7 @@ export function useVoiceCapture({
     } finally {
       setRequesting(false);
     }
-  }, [available, disable, onError, startSegment, stopSegment]);
+  }, [available, disable, onError, sendTurn, startSegment, stopSegment]);
 
   const toggle = useCallback(() => {
     if (!enabled) void enable();
@@ -169,7 +257,7 @@ export function useVoiceCapture({
   }, [enabled, manualFallback, startSegment]);
 
   const stopManual = useCallback(() => {
-    if (manualFallback && recording) stopSegment();
+    if (manualFallback && recording) stopSegment(true);
   }, [manualFallback, recording, stopSegment]);
 
   useEffect(() => disable, [disable]);
@@ -180,9 +268,12 @@ export function useVoiceCapture({
     recording,
     countdown,
     manualFallback,
+    hasPendingTurn,
     toggle,
     startManual,
     stopManual,
+    finishTurn: sendTurn,
+    cancelTurn,
     disable,
   };
 }

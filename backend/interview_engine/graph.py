@@ -9,11 +9,16 @@ from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
-from backend.interview_engine.models import InterviewConfiguration, TerminationReason
+from backend.interview_engine.models import (
+    InterviewConfiguration,
+    InterviewType,
+    TerminationReason,
+)
 from backend.interview_engine.prompts import (
     SYSTEM_PROMPT,
     build_closing_instruction,
     build_interview_context,
+    build_system_design_turn_instruction,
     build_turn_instruction,
 )
 from backend.interview_engine.state import InterviewState
@@ -153,6 +158,12 @@ class InterviewGraph:
                         topic=topic,
                         is_follow_up=is_follow_up,
                     )
+                ),
+                *(
+                    [SystemMessage(content=build_system_design_turn_instruction())]
+                    if self._configuration.interview_type == InterviewType.SYSTEM_DESIGN
+                    and state.get("question_count", 0) > 0
+                    else []
                 ),
             ]
         )

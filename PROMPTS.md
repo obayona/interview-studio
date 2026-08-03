@@ -65,3 +65,11 @@ standalone usage scripts for the report engine and profile parser.
 Continue Phase 10, but implement only the VAD and continuous voice-turn slice so
 it can be tested and corrected incrementally. Split the remaining system-design
 whiteboard work into later subphases.
+
+---
+
+Implement Phase 10A.1 natural long-form voice turns: transcribe bounded rolling
+segments without yielding the candidate's floor, start a five-second handoff
+countdown after three seconds of silence, show Finish answer only during that
+countdown, suspend capture while the interviewer responds, provide explicit turn
+feedback, and keep candidate interruption unsupported.

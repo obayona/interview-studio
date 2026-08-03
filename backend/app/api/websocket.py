@@ -14,12 +14,29 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from backend.app.application.interviews import InterviewService
 from backend.app.core.errors import ApplicationError
 
-PROTOCOL_VERSION = "1.0"
+PROTOCOL_VERSION = "1.1"
 MAX_AUDIO_CHUNK_BYTES = 256 * 1024
 MAX_AUDIO_SEGMENT_BYTES = 10 * 1024 * 1024
 OUTPUT_CHUNK_BYTES = 48 * 1024
 SENTENCE_BOUNDARY = re.compile(r"(?<=[.!?])\s+")
 router = APIRouter()
+
+
+class VoiceTurn:
+    def __init__(self) -> None:
+        self._segments: list[str] = []
+
+    def add(self, text: str) -> int:
+        self._segments.append(text)
+        return len(self._segments)
+
+    def finish(self) -> str:
+        text = " ".join(self._segments).strip()
+        self._segments.clear()
+        return text
+
+    def clear(self) -> None:
+        self._segments.clear()
 
 
 def _interaction_status(attempt_status: str) -> str:
@@ -47,6 +64,7 @@ async def interview_websocket(websocket: WebSocket, attempt_id: str) -> None:
     capabilities = await session.media_capabilities()
     audio_input = bytearray()
     input_media_type = "audio/webm"
+    voice_turn = VoiceTurn()
     output_sequence = 0
     tts_tasks: set[asyncio.Task[None]] = set()
     tts_tail: asyncio.Task[None] | None = None
@@ -135,6 +153,8 @@ async def interview_websocket(websocket: WebSocket, attempt_id: str) -> None:
             await send("assistant.text.completed", {"text": completed})
         if modes["text_to_speech"] and speech_buffer.strip():
             queue_speech(speech_buffer.strip())
+        if tts_tail is not None:
+            await tts_tail
         attempt_status = await session.status()
         await send(
             "interview.state",
@@ -183,6 +203,8 @@ async def interview_websocket(websocket: WebSocket, attempt_id: str) -> None:
                     await send("interview.state", {"status": "connecting"})
                     await start_turn(session.start())
                 elif event_type == "user.text":
+                    if turn_task and not turn_task.done():
+                        raise ValueError("Wait for the interviewer response to finish")
                     await cancel_audio()
                     text = str(payload.get("text", "")).strip()
                     if not text:
@@ -192,7 +214,8 @@ async def interview_websocket(websocket: WebSocket, attempt_id: str) -> None:
                     capabilities = await session.media_capabilities()
                     if not capabilities["speech_to_text"]:
                         raise ValueError("Speech-to-text is not available")
-                    await cancel_audio()
+                    if turn_task and not turn_task.done():
+                        raise ValueError("Wait for the interviewer response to finish")
                     audio_input.clear()
                     input_media_type = str(payload.get("media_type", "audio/webm"))
                     await send("interview.state", {"status": "listening"})
@@ -215,12 +238,28 @@ async def interview_websocket(websocket: WebSocket, attempt_id: str) -> None:
                         raise ValueError("No audio was received")
                     await send("interview.state", {"status": "transcribing"})
                     extension = "webm" if "webm" in input_media_type else "audio"
-                    text = await session.transcribe(bytes(audio_input), f"answer.{extension}")
+                    audio = bytes(audio_input)
                     audio_input.clear()
+                    text = await session.transcribe(audio, f"answer.{extension}")
                     if not text:
                         raise ValueError("No speech was detected")
+                    sequence = voice_turn.add(text)
+                    await send(
+                        "transcript.segment.final",
+                        {"text": text, "sequence": sequence},
+                    )
+                    await send("interview.state", {"status": "ready_for_answer"})
+                elif event_type == "user.turn.end":
+                    text = voice_turn.finish()
+                    if not text:
+                        raise ValueError("No transcribed speech is ready")
                     await send("transcript.final", {"text": text})
+                    await send("interview.state", {"status": "responding"})
                     await start_turn(session.respond(text))
+                elif event_type == "user.turn.cancel":
+                    audio_input.clear()
+                    voice_turn.clear()
+                    await send("interview.state", {"status": "ready_for_answer"})
                 elif event_type == "audio.output.cancel":
                     await cancel_audio()
                 elif event_type == "mode.update":
@@ -248,6 +287,8 @@ async def interview_websocket(websocket: WebSocket, attempt_id: str) -> None:
                     )
                 elif event_type == "session.pause":
                     await cancel_audio()
+                    audio_input.clear()
+                    voice_turn.clear()
                     await session.pause()
                     await send("interview.state", {"status": "paused"})
                 elif event_type == "session.resume":
@@ -260,6 +301,8 @@ async def interview_websocket(websocket: WebSocket, attempt_id: str) -> None:
                     await send("interview.state", {"status": "ready_for_answer"})
                 elif event_type == "session.end":
                     await cancel_audio()
+                    audio_input.clear()
+                    voice_turn.clear()
                     await start_turn(session.end())
                 elif event_type == "ping":
                     await send("pong", {})

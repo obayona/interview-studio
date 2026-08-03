@@ -211,6 +211,8 @@ Client events:
 - `user.audio.start`
 - `user.audio.chunk`
 - `user.audio.end`
+- `user.turn.end`
+- `user.turn.cancel`
 - `audio.output.cancel`
 - `mode.update`
 - `canvas.snapshot`
@@ -226,6 +228,7 @@ Server events:
 - `assistant.text.completed`
 - `assistant.audio.chunk`
 - `transcript.partial`
+- `transcript.segment.final`
 - `transcript.final`
 - `interview.state`
 - `mode.updated`
@@ -459,6 +462,24 @@ Acceptance:
 - Detected speech is sent after three seconds of silence without an additional click.
 - Resuming speech before the deadline keeps it in the same turn.
 - The UI clearly distinguishes permission, listening, countdown, transcription, and fallback states.
+
+#### Phase 10A.1 — Natural long-form voice turns ✅ Completed 2026-08-03
+
+This refinement supersedes Phase 10A's initial three-second direct-handoff behavior.
+
+- Rotate bounded audio segments after approximately 45 seconds or three seconds of silence without yielding the candidate's turn.
+- Transcribe and acknowledge each segment independently, then combine ordered segment text only when the conversational turn ends.
+- Begin a five-second interviewer-handoff countdown after a silence-ended segment; resumed speech cancels it.
+- Show **Finish answer now** only during the handoff countdown.
+- Suspend capture while the interviewer owns the floor; candidate barge-in is intentionally unsupported.
+- Clear unfinished voice-turn state on pause, termination, or explicit cancellation.
+- Give system-design interviewer turns concise clarification, trade-off, continuation, or topic-transition guidance.
+
+Acceptance:
+
+- Explanations longer than 60 seconds remain one candidate turn across multiple bounded transcriptions.
+- Automatic and explicit countdown handoff each invoke the interviewer exactly once.
+- Turn ownership, capture, transcription, acknowledgment, and countdown states remain visible.
 
 #### Phase 10B — Whiteboard persistence and API
 

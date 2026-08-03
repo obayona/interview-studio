@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from typing import Any, cast
 
-from backend.app.api.websocket import _interaction_status
+from backend.app.api.websocket import VoiceTurn, _interaction_status
 from backend.app.application.interviews import InterviewSession
 from backend.app.core.config import AISettings
 from backend.app.repositories.attempts import AttemptRepository
@@ -96,6 +96,19 @@ async def test_natural_graph_completion_updates_attempt_status() -> None:
 def test_persisted_attempt_status_maps_to_interaction_state() -> None:
     assert _interaction_status("in_progress") == "ready_for_answer"
     assert _interaction_status("completed") == "completed"
+
+
+def test_voice_turn_combines_ordered_segments_and_clears_after_finish() -> None:
+    voice_turn = VoiceTurn()
+
+    assert voice_turn.add("First part.") == 1
+    assert voice_turn.add("Second part.") == 2
+    assert voice_turn.finish() == "First part. Second part."
+    assert voice_turn.finish() == ""
+
+    voice_turn.add("Discard me.")
+    voice_turn.clear()
+    assert voice_turn.finish() == ""
 
 
 async def test_engine_delegates_media_operations_to_injected_ports() -> None:

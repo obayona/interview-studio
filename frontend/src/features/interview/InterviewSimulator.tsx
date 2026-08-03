@@ -26,6 +26,7 @@ type Status =
   | 'ready_for_answer'
   | 'listening'
   | 'transcribing'
+  | 'responding'
   | 'paused'
   | 'completed';
 
@@ -70,6 +71,8 @@ function InterviewSimulatorContent() {
   const [error, setError] = useState<string>();
   const [connected, setConnected] = useState(false);
   const [playingAudio, setPlayingAudio] = useState(false);
+  const [capturedSegment, setCapturedSegment] = useState(false);
+  const capturedTimer = useRef<number | undefined>(undefined);
 
   const playNext = useCallback(() => {
     if (currentAudio.current || playbackQueue.current.length === 0) return;
@@ -145,9 +148,18 @@ function InterviewSimulatorContent() {
             ? `Listening… ${Math.ceil(received / 1024)} KiB`
             : 'Listening…',
         );
+      } else if (event.type === 'transcript.segment.final') {
+        setPartialText('');
+        setCapturedSegment(true);
+        window.clearTimeout(capturedTimer.current);
+        capturedTimer.current = window.setTimeout(
+          () => setCapturedSegment(false),
+          1800,
+        );
       } else if (event.type === 'transcript.final') {
         const text = String(payload.text ?? '');
         setPartialText('');
+        setCapturedSegment(false);
         setMessages((current) => [
           ...current,
           {
@@ -244,6 +256,7 @@ function InterviewSimulatorContent() {
     return () => {
       intentionalClose.current = true;
       window.clearTimeout(reconnectTimer.current);
+      window.clearTimeout(capturedTimer.current);
       socket.current.close();
       stopPlayback();
     };
@@ -271,7 +284,13 @@ function InterviewSimulatorContent() {
 
   const submit = () => {
     const text = draft.trim();
-    if (!text || !connected || status !== 'ready_for_answer') return;
+    if (
+      !text ||
+      !connected ||
+      status !== 'ready_for_answer' ||
+      voice.hasPendingTurn
+    )
+      return;
     setMessages((current) => [
       ...current,
       {
@@ -291,10 +310,9 @@ function InterviewSimulatorContent() {
     available: capabilities.speech_to_text,
     ready:
       connected &&
-      status === 'ready_for_answer' &&
+      ['ready_for_answer', 'listening', 'transcribing'].includes(status) &&
       !streamingText &&
       !playingAudio,
-    onInterrupt: stopPlayback,
     onAudioStart: (mediaType) => {
       socket.current.send('user.audio.start', {
         media_type: mediaType,
@@ -306,6 +324,11 @@ function InterviewSimulatorContent() {
       });
     },
     onAudioEnd: () => socket.current.send('user.audio.end'),
+    onTurnEnd: () => {
+      setStatus('responding');
+      socket.current.send('user.turn.end');
+    },
+    onTurnCancel: () => socket.current.send('user.turn.cancel'),
     onError: (message) => showToast(message, 'error'),
   });
   const updateSpeechOutput = () => {
@@ -314,7 +337,8 @@ function InterviewSimulatorContent() {
       text_to_speech: !modes.text_to_speech,
     });
   };
-  const interviewerIsStreaming = Boolean(streamingText);
+  const interviewerIsStreaming =
+    status === 'responding' || Boolean(streamingText) || playingAudio;
   const openNavigation = () => {
     const shell = document.querySelector<HTMLElement>('.app-shell');
     const sidebar = document.querySelector<HTMLElement>('.app-shell__sidebar');
@@ -361,7 +385,19 @@ function InterviewSimulatorContent() {
           className={`interview__status-dot ${connected ? 'is-connected' : ''}`}
         />
         <strong>{connected ? 'Live interview' : 'Reconnecting…'}</strong>
-        <span>{status.replaceAll('_', ' ')}</span>
+        <span>
+          {interviewerIsStreaming
+            ? 'Interviewer is responding'
+            : voice.recording
+              ? 'Your turn — listening'
+              : voice.countdown
+                ? `Interviewer starts in ${voice.countdown}…`
+                : status === 'transcribing'
+                  ? 'Your turn — capturing notes'
+                  : status === 'ready_for_answer'
+                    ? 'Your turn'
+                    : status.replaceAll('_', ' ')}
+        </span>
         <span
           className="interview__candidate"
           title={candidate.name}
@@ -427,35 +463,48 @@ function InterviewSimulatorContent() {
                 <strong>
                   {voice.requesting
                     ? 'Waiting for permission'
-                    : voice.recording
-                      ? voice.countdown
-                        ? `Sending in ${voice.countdown}…`
-                        : 'Listening'
-                      : status === 'transcribing'
-                        ? 'Transcribing…'
-                        : voice.enabled
-                          ? voice.manualFallback
-                            ? 'Push to talk ready'
-                            : 'Voice input on'
-                          : 'Voice input ready'}
+                    : voice.countdown
+                      ? `Interviewer starts in ${voice.countdown}…`
+                      : voice.recording
+                        ? 'Your turn — listening'
+                        : status === 'transcribing'
+                          ? 'Your turn — capturing notes'
+                          : capturedSegment
+                            ? 'Captured'
+                            : voice.enabled
+                              ? voice.manualFallback
+                                ? 'Push to talk ready'
+                                : 'Voice input on'
+                              : 'Voice input ready'}
                 </strong>
                 <span>
                   {voice.requesting
                     ? 'Allow microphone access in your browser'
-                    : voice.recording
-                      ? voice.countdown
-                        ? 'Keep speaking to cancel automatic send'
-                        : voice.manualFallback
+                    : voice.countdown
+                      ? 'Continue speaking or finish your answer now'
+                      : voice.recording
+                        ? voice.manualFallback
                           ? 'Release the microphone to send'
-                          : 'Your answer sends after three seconds of silence'
-                      : status === 'transcribing'
-                        ? 'Preparing your voice answer'
-                        : voice.enabled
-                          ? voice.manualFallback
-                            ? 'Hold the microphone while you answer'
-                            : 'Start speaking when you are ready'
-                          : 'Click the microphone to enable voice answers'}
+                          : 'Keep explaining; longer answers are captured in parts'
+                        : status === 'transcribing'
+                          ? 'You can continue speaking while this part is transcribed'
+                          : capturedSegment
+                            ? 'Your latest answer segment was transcribed'
+                            : voice.enabled
+                              ? voice.manualFallback
+                                ? 'Hold the microphone while you answer'
+                                : 'Start speaking when you are ready'
+                              : 'Click the microphone to enable voice answers'}
                 </span>
+                {voice.countdown && (
+                  <Button
+                    className="interview__finish-answer"
+                    variant="primary"
+                    onClick={voice.finishTurn}
+                  >
+                    Finish answer now
+                  </Button>
+                )}
               </div>
             )}
         </section>
@@ -508,14 +557,22 @@ function InterviewSimulatorContent() {
                     }
                   }}
                   placeholder="Type your answer…"
-                  disabled={!connected || status !== 'ready_for_answer'}
+                  disabled={
+                    !connected ||
+                    status !== 'ready_for_answer' ||
+                    voice.hasPendingTurn
+                  }
                 />
                 <Button
                   className="ui-button--icon"
                   variant="primary"
                   aria-label="Send answer"
                   title="Send answer"
-                  disabled={!draft.trim() || status !== 'ready_for_answer'}
+                  disabled={
+                    !draft.trim() ||
+                    status !== 'ready_for_answer' ||
+                    voice.hasPendingTurn
+                  }
                   onClick={submit}
                 >
                   <Icon name="send" />
@@ -552,7 +609,9 @@ function InterviewSimulatorContent() {
                     : voice.manualFallback
                       ? 'Hold to record a voice answer'
                       : voice.enabled
-                        ? 'Turn off voice answers'
+                        ? voice.hasPendingTurn
+                          ? 'Finish the current voice answer first'
+                          : 'Turn off voice answers'
                         : status === 'transcribing'
                           ? 'Transcribing voice answer'
                           : 'Turn on voice answers'
@@ -561,9 +620,11 @@ function InterviewSimulatorContent() {
                   !capabilities.speech_to_text
                     ? 'Enable speech input in Settings'
                     : voice.manualFallback
-                      ? 'Hold to record; release to send'
+                      ? 'Hold to record; release to capture this part'
                       : voice.enabled
-                        ? 'Turn off voice answers'
+                        ? voice.hasPendingTurn
+                          ? 'Finish the current voice answer first'
+                          : 'Turn off voice answers'
                         : status === 'transcribing'
                           ? 'Transcribing voice answer'
                           : 'Turn on voice answers'
@@ -572,6 +633,7 @@ function InterviewSimulatorContent() {
                   voice.requesting ||
                   !capabilities.speech_to_text ||
                   !connected ||
+                  voice.hasPendingTurn ||
                   (!voice.enabled && status !== 'ready_for_answer')
                 }
                 onClick={voice.toggle}
@@ -611,7 +673,11 @@ function InterviewSimulatorContent() {
                 onClick={() => {
                   const next =
                     status === 'paused' ? 'session.resume' : 'session.pause';
-                  socket.current.send(next);
+                  if (next === 'session.pause' && voice.hasPendingTurn) {
+                    voice.cancelTurn(() => socket.current.send(next));
+                  } else {
+                    socket.current.send(next);
+                  }
                 }}
               >
                 <Icon name={status === 'paused' ? 'resume' : 'pause'} />
@@ -621,7 +687,13 @@ function InterviewSimulatorContent() {
                 variant="danger"
                 aria-label="End session"
                 title="End session"
-                onClick={() => socket.current.send('session.end')}
+                onClick={() => {
+                  if (voice.hasPendingTurn) {
+                    voice.cancelTurn(() => socket.current.send('session.end'));
+                  } else {
+                    socket.current.send('session.end');
+                  }
+                }}
               >
                 <Icon name="hangup" />
               </Button>

@@ -98,6 +98,14 @@
   font-size: 1.4rem;
 }
 
+.interview .interview__finish-answer {
+  min-height: 3.6rem;
+  margin-top: 1rem;
+  padding: 0.7rem 1.2rem;
+  border-radius: 999rem;
+  font-size: 1.2rem;
+}
+
 .interview__candidate-speaking-portrait {
   display: grid;
   width: 8rem;

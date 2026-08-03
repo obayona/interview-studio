@@ -199,3 +199,21 @@ Phase 9 completed and verified on 2026-07-30.
 - [x] Synchronize `MAP.md` with the implemented voice slice.
 
 Phase 10A completed and verified on 2026-08-03. Phase 10B whiteboard persistence and Phase 10C diagram-aware orchestration remain pending.
+
+The Phase 10A.1 refinement below supersedes the initial direct handoff after three seconds of silence.
+
+### Phase 10A.1 — Natural long-form voice turns
+
+- [x] Separate bounded audio-segment completion from conversational-turn completion.
+- [x] Accumulate ordered transient transcript segments and persist only the combined candidate turn.
+- [x] Rotate approximately 45-second segments without forcing interviewer handoff.
+- [x] Start a five-second handoff countdown after three seconds of silence and cancel it when speech resumes.
+- [x] Show **Finish answer now** only during the handoff countdown.
+- [x] Keep microphone capture suspended while the interviewer responds; do not implement barge-in.
+- [x] Add visible listening, capturing, captured, countdown, and interviewer-turn feedback.
+- [x] Clear unfinished voice state safely on pause, termination, and cancellation.
+- [x] Add system-design-specific concise follow-up guidance.
+- [x] Add backend protocol and frontend state-machine/UI coverage.
+- [x] Run backend and frontend verification and synchronize documentation.
+
+Phase 10A.1 completed and verified on 2026-08-03. Phase 10 remains in progress.

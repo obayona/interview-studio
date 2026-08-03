@@ -120,9 +120,12 @@ visible keyboard focus and reduced-motion behavior.
 
 The interview route requires `attempt` and `process` query parameters. It hydrates
 canonical history before connecting, supports typed answers in every mode, and
-uses explicit browser microphone permission for push-to-talk when STT is available.
-STT and TTS can be disabled live. Assistant audio is queued in sequence, while a
-new answer, recording, or mode change cancels stale playback.
+uses explicit browser microphone permission and local VAD when STT is available.
+Voice answers rotate bounded transcript segments without yielding the floor, then
+show a five-second interviewer-handoff countdown after silence. Resumed speech
+cancels the countdown, and **Finish answer now** appears only during that window.
+Candidate capture remains suspended while the interviewer responds. Browsers
+without Web Audio analysis fall back to press-and-release segment capture.
 New process stages inherit global voice preferences, and live attempt changes are
 persisted across reloads. Microphone denial or blocked autoplay displays feedback
 without changing the saved preference.

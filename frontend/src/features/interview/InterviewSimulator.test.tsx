@@ -5,7 +5,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { InterviewSimulator } from './InterviewSimulator';
 
 const history = vi.fn();
@@ -47,6 +47,10 @@ describe('InterviewSimulator', () => {
       status: 'ready',
       messages: [],
     });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('hydrates, starts, streams messages, and supports live modes', async () => {
@@ -140,5 +144,73 @@ describe('InterviewSimulator', () => {
       screen.queryByRole('button', { name: 'End session' }),
     ).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Your answer')).not.toBeInTheDocument();
+  });
+
+  it('offers immediate handoff only during the voice countdown', async () => {
+    class MediaRecorderMock extends EventTarget {
+      mimeType = 'audio/webm';
+      state: RecordingState = 'inactive';
+
+      start() {
+        this.state = 'recording';
+      }
+
+      stop() {
+        const chunk = new Event('dataavailable');
+        Object.defineProperty(chunk, 'data', {
+          value: new Blob(['voice']),
+        });
+        this.dispatchEvent(chunk);
+        this.state = 'inactive';
+        this.dispatchEvent(new Event('stop'));
+      }
+    }
+
+    vi.stubGlobal('MediaRecorder', MediaRecorderMock);
+    vi.stubGlobal('AudioContext', undefined);
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: {
+        getUserMedia: vi.fn().mockResolvedValue({
+          getTracks: () => [{ stop: vi.fn() }],
+        }),
+      },
+    });
+    render(<InterviewSimulator />);
+    await waitFor(() => expect(connect).toHaveBeenCalled());
+    act(() => {
+      emit?.({
+        type: 'session.ready',
+        payload: {
+          modes: { text_to_speech: false },
+          capabilities: { speech_to_text: true },
+        },
+      });
+      emit?.({
+        type: 'interview.state',
+        payload: { status: 'ready_for_answer' },
+      });
+    });
+
+    expect(
+      screen.queryByRole('button', { name: 'Finish answer now' }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Turn on voice answers' }),
+    );
+    const microphone = await screen.findByRole('button', {
+      name: 'Hold to record a voice answer',
+    });
+    fireEvent.pointerDown(microphone);
+    fireEvent.pointerUp(microphone);
+
+    const finish = await screen.findByRole('button', {
+      name: 'Finish answer now',
+    });
+    fireEvent.click(finish);
+    await waitFor(() => expect(send).toHaveBeenCalledWith('user.turn.end'));
+    expect(
+      screen.queryByRole('button', { name: 'Finish answer now' }),
+    ).not.toBeInTheDocument();
   });
 });

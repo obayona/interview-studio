@@ -139,16 +139,18 @@ read-only in the frontend, while ready, active, and paused attempts can be opene
 from their parent process. Deleting an attempt cascades its transcript, graph
 state, and pending writes, then recalculates its stage status.
 
-The interview WebSocket also accepts `user.audio.start`, bounded base64
-`user.audio.chunk`, `user.audio.end`, `audio.output.cancel`, `mode.update`,
-`session.pause`, and `session.resume`. Push-to-talk is the reliable input baseline.
-Final transcriptions enter the same canonical text flow as typed answers; receive
-progress and partial transcript events are transient. Assistant text is buffered
+Interview WebSocket protocol version 1.1 accepts `user.audio.start`, bounded base64
+`user.audio.chunk`, and `user.audio.end` for each transient recording segment.
+The server returns `transcript.segment.final` without invoking the interview engine.
+`user.turn.end` combines the ordered segments into one canonical candidate answer,
+while `user.turn.cancel` discards the unfinished voice turn. Receive progress and
+segment transcripts are transient. Assistant text is buffered
 by sentence before OpenAI speech generation and MP3 output is sent in identified,
 sequenced chunks so clients can queue or cancel playback safely.
 The spoken-reply preference is stored on the attempt and survives reloads. Speech
-input is a direct push-to-talk action gated by the global STT setting, API key,
-and transcription model; it is not an attempt preference. Browser microphone
+input is a continuous browser-VAD action gated by the global STT setting, API key,
+and transcription model, with press-and-release as a compatibility fallback; it
+is not an attempt preference. Browser microphone
 permission and autoplay failures remain transient runtime conditions.
 
 The CLI alone may read `OPENAI_API_KEY` for development convenience. The backend module does not read
