@@ -6,7 +6,6 @@ import binascii
 import os
 import re
 import shutil
-import socket
 import stat
 import subprocess
 from pathlib import Path
@@ -102,7 +101,24 @@ def validate(values: dict[str, str]) -> list[str]:
     return errors
 
 
-def installation_errors(env_path: Path) -> list[str]:
+def host_port_in_use(port: int) -> bool:
+    for table in ("/proc/net/tcp", "/proc/net/tcp6"):
+        try:
+            content = Path(table).read_text(encoding="utf-8")
+        except OSError:
+            continue
+        for line in content.splitlines()[1:]:
+            fields = line.split()
+            if len(fields) < 4:
+                continue
+            if fields[3] != "0A":  # 0A is TCP_LISTEN
+                continue
+            if int(fields[1].rsplit(":", 1)[1], 16) == port:
+                return True
+    return False
+
+
+def installation_errors(env_path: Path, compose_file: Path | None = None) -> list[str]:
     errors: list[str] = []
     mode = stat.S_IMODE(env_path.stat().st_mode)
     if mode & 0o077:
@@ -118,20 +134,23 @@ def installation_errors(env_path: Path) -> list[str]:
         )
         if result.returncode != 0:
             errors.append("Docker Compose v2 is unavailable")
-    running_nginx = subprocess.run(
-        ["docker", "compose", "ps", "-q", "nginx"],
-        capture_output=True,
-        check=False,
-        text=True,
-    )
-    if not running_nginx.stdout.strip():
+    nginx_running = False
+    if shutil.which("docker") is not None:
+        cmd = ["docker", "compose"]
+        if compose_file is not None:
+            cmd += ["-f", str(compose_file)]
+        cmd += ["ps", "-q", "nginx"]
+        running_nginx = subprocess.run(
+            cmd,
+            capture_output=True,
+            check=False,
+            text=True,
+        )
+        nginx_running = bool(running_nginx.stdout.strip())
+    if not nginx_running:
         for port in (80, 443):
-            with socket.socket() as listener:
-                listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                try:
-                    listener.bind(("0.0.0.0", port))
-                except OSError:
-                    errors.append(f"Host port {port} is already in use")
+            if host_port_in_use(port):
+                errors.append(f"Host port {port} is already in use")
     backup_dir = Path(os.path.expanduser(read_env(env_path).get("BACKUP_DIR", "./backups")))
     backup_dir.mkdir(parents=True, exist_ok=True)
     if not os.access(backup_dir, os.W_OK):
@@ -143,6 +162,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Validate Interview Studio deployment settings")
     parser.add_argument("path", nargs="?", type=Path, default=Path(".env"))
     parser.add_argument("--installation", action="store_true")
+    parser.add_argument("--compose-file", type=Path, default=None)
     arguments = parser.parse_args()
     if not arguments.path.is_file():
         raise SystemExit(f"Environment file not found: {arguments.path}")
@@ -152,7 +172,7 @@ def main() -> None:
         raise SystemExit(str(error)) from error
     errors = validate(values)
     if arguments.installation:
-        errors.extend(installation_errors(arguments.path))
+        errors.extend(installation_errors(arguments.path, arguments.compose_file))
     if errors:
         raise SystemExit("Invalid deployment configuration:\n- " + "\n- ".join(errors))
     print("Deployment configuration is valid.")

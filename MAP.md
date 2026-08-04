@@ -119,7 +119,7 @@ Last synchronized: 2026-08-03
 - `frontend/README.md`: pnpm-based setup, development, verification, deployment configuration, routes, and source-structure guide.
 - `deployment/docker/backend.Dockerfile`: Non-root Python 3.12 FastAPI runtime image with runtime-only dependencies and no schema mutation during startup.
 - `deployment/docker/nginx.Dockerfile`: Multi-stage pnpm/Astro static build copied into an unprivileged Nginx runtime without Node.js or source files.
-- `docker-compose.yml`: Single-instance backend, static/proxy Nginx, Certbot renewal, explicit migration/fixture jobs, persistent data/secrets/certificate volumes, health checks, graceful restart policy, and bounded JSON logs.
+- `deployment/docker-compose.yml`: Single-instance backend, static/proxy Nginx, Certbot renewal, explicit migration/fixture jobs, persistent data/secrets/certificate volumes, health checks, graceful restart policy, and bounded JSON logs.
 - `deployment/nginx/default.conf.template`: Same-origin static/API/WebSocket routing, auth subrequests for application documents, ACME HTTP access, HTTPS redirects, upload/streaming limits, and browser security headers.
 - `deployment/scripts/nginx-entrypoint.sh` and `renew-certificates.sh`: Short-lived bootstrap TLS, atomic promoted-certificate reloads, and periodic webroot renewal without interrupting interviews.
 - `.env.example` and `deployment/scripts/validate_env.py`: Documented deployment contract plus strict hostname, email, issuer, password, encryption-key, session, file-permission, Docker, port, and backup-path validation.
