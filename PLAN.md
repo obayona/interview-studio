@@ -556,23 +556,38 @@ Acceptance:
 
 **Status: Completed and verified on 2026-08-03.**
 
-### Phase 12 — Desktop Packaging
+### Phase 12 — Local Docker Distribution
 
-- Prebuild the frontend and serve it through the packaged backend.
-- Use pywebview for the desktop shell.
-- On launch, select application data, load/create the secret, migrate SQLite, start FastAPI on loopback, await readiness, and open the window.
-- On close, stop requests, WebSockets, FastAPI, and SQLite cleanly.
-- Package Python, dependencies, backend, and frontend assets together.
-- Produce a Windows x64 installer and Debian x64 `.deb`.
-- Add icons, menu entries, install-path selection, and uninstall integration.
-- Preserve user data on ordinary uninstall; make data deletion an explicit confirmed option.
-- Add loopback-only binding, single-instance protection, and a startup-error window.
+- Add a localhost-only Compose runtime using immutable GHCR backend/web image versions.
+- Bind Nginx strictly to `127.0.0.1` on a validated configurable port.
+- Disable server authentication and TLS while retaining same-origin HTTP/WebSocket behavior.
+- Persist SQLite and the generated settings key in named volumes.
+- Provide POSIX and PowerShell start, stop, update, backup, restore, and explicit uninstall operations.
+- Retain a source-build Compose override for development and diagnostics.
+- Publish linux/amd64 images and a version-pinned release bundle from semantic Git tags.
+- Document release creation, immutable tags, package visibility, workflow retry, upgrade, backup, and rollback.
 
 Acceptance:
 
-- Clean Windows and Debian systems install, launch, migrate, run, close, and uninstall.
-- No external Python installation is required.
-- User data is not silently removed.
+- A clean Docker host installs from the release bundle and opens on its configured localhost port.
+- The application is inaccessible through non-loopback interfaces and local browser media remains available.
+- Restart, update, backup, restore, retained-data uninstall, and confirmed data deletion behave safely.
+- Tagged releases publish matching immutable images and a version-pinned bundle.
+
+**Status: Completed and verified on 2026-08-03.**
+
+### Phase 13 — Native Desktop Packaging (Optional)
+
+- Prebuild the frontend and serve it through the packaged backend.
+- Use pywebview for the desktop shell.
+- Supervise loopback FastAPI startup and shutdown from the native window lifecycle.
+- Package self-contained Windows x64 and Debian x64 installers with OS integration.
+- Preserve data on ordinary uninstall and make deletion explicitly confirmed.
+
+Acceptance:
+
+- Clean Windows and Debian systems install, launch, run browser media flows, close, and uninstall.
+- No external Python installation is required and user data is never silently removed.
 
 ## 6. Testing Strategy
 
@@ -648,8 +663,8 @@ For every phase:
 - API credentials are encrypted with a local installation secret.
 - LangGraph persistence uses the custom shallow `InterviewSQLiteCheckpointer`: one JSON-text state row per thread/namespace, canonical messages stored once in `interview_messages`, and temporary JSON pending writes. Historical checkpoints and binary serialization are out of scope.
 - Reports are request-bound and retryable; no external job queue is introduced.
-- Desktop builds are self-contained.
-- Development and desktop modes default to unauthenticated loopback access.
+- Local Docker distribution is the supported desktop-like delivery and uses immutable GHCR versions.
+- Development, local Docker, and optional native desktop modes default to unauthenticated loopback access.
 - Server mode defaults to mandatory FastAPI session authentication.
 - System-design sessions persist editable scene JSON and PNG snapshots.
 - Continuous local VAD is the primary voice-turn interaction; press-and-release capture is the compatibility fallback when browser audio analysis is unavailable.

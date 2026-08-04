@@ -1,0 +1,24 @@
+x-local-backend: &local-backend
+  image: interview-studio-backend:local
+
+services:
+  backend:
+    <<: *local-backend
+    build:
+      context: ../..
+      dockerfile: deployment/docker/backend.Dockerfile
+  migrate:
+    <<: *local-backend
+  fixtures:
+    <<: *local-backend
+  port-check:
+    <<: *local-backend
+  backup:
+    <<: *local-backend
+  restore:
+    <<: *local-backend
+  web:
+    image: interview-studio-web:local
+    build:
+      context: ../..
+      dockerfile: deployment/docker/local-nginx.Dockerfile

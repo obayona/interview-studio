@@ -16,7 +16,8 @@ Last synchronized: 2026-08-03
 - Phase 9: Complete and verified on 2026-07-30.
 - Phase 10: Complete and verified on 2026-08-03.
 - Phase 11: Complete and verified on 2026-08-03.
-- Phase 12: Not started.
+- Phase 12: Complete and verified on 2026-08-03.
+- Phase 13: Optional native desktop packaging, not started.
 
 ## Repository baseline
 
@@ -26,6 +27,7 @@ Last synchronized: 2026-08-03
 - `PROMPTS.md`: Append-only user prompt record.
 - `prototypes/`: Reference HTML and screenshots used as visual direction for implemented frontend features.
 - `backend/`: FastAPI application, domain services, persistence, AI packages, migrations, and tests.
+- Native pywebview, Windows installer, and Debian package work moved from Phase 12 to optional Phase 13; no native packaging code exists yet.
 
 ## Implemented modules
 
@@ -122,6 +124,18 @@ Last synchronized: 2026-08-03
 - `deployment/scripts/nginx-entrypoint.sh` and `renew-certificates.sh`: Short-lived bootstrap TLS, atomic promoted-certificate reloads, and periodic webroot renewal without interrupting interviews.
 - `.env.example` and `deployment/scripts/validate_env.py`: Documented deployment contract plus strict hostname, email, issuer, password, encryption-key, session, file-permission, Docker, port, and backup-path validation.
 - `backend/cli/deployment_data.py` and deployment operation scripts: Consistent SQLite online backups with checksummed settings keys, verified offline restore, migration-first upgrades, TLS bootstrap, and post-operation readiness checks.
+- `deployment/local/compose.yml`: Version-pinned, loopback-only local backend/web runtime with explicit migration, fixture, port-check, backup, and restore tools; named volumes retain SQLite and the generated encryption key.
+- `deployment/local/compose.build.yml` and `deployment/docker/local-nginx.Dockerfile`: Source-build override and HTTP-only static Astro/Nginx image for development and release smoke testing without changing the public-server image.
+- `deployment/local/nginx.conf`: Unauthenticated localhost static/API/WebSocket proxy with streaming limits and browser security headers; it has no TLS, Certbot, domain, or server-authentication behavior.
+- `deployment/local/scripts/`: Equivalent POSIX and PowerShell start, stop, update, backup, restore, and uninstall operations with Docker/semantic-version/port validation, readiness waits, browser launch, retained data by default, and explicit `DELETE` confirmation before volume removal.
+- Local launchers resolve and create `BACKUP_DIR` with the invoking user's permissions before mounting it into the non-root backend container, preventing Docker-created root-owned backup directories.
+- One-shot local backup/restore tools use elevated container volume access without changing the non-root web runtime; completed checksummed backups are reassigned to the invoking POSIX UID/GID for portable host-side retention.
+- Atomic restore preserves the existing database and settings-key UID/GID, so subsequent non-root migration and web processes retain write access after privileged backup-file verification.
+- `backend/app/core/version.py` and frontend package metadata: One synchronized `1.0.0` release version is exposed by FastAPI and checked by tagged-release automation.
+- `.github/workflows/release.yml` and `deployment/scripts/prepare_local_release.py`: Semantic tags verify both applications, build and smoke-test linux/amd64 images, preserve immutable version/SHA tags across retries, publish to GHCR, and attach a version-pinned local bundle to the GitHub Release.
+- `deployment/local/README.md`: Cross-platform installation/operation, backup-aware update and rollback, and explicit retained-data versus confirmed data-removing uninstall instructions.
+- Root, backend, and frontend guides distinguish localhost distribution from authenticated HTTPS deployment and document public GHCR setup, annotated tags, workflow retry, immutable corrections, source diagnostics, and database-aware rollback.
+- The root README is also a self-contained local-distribution entry point: it lists Docker prerequisites, default public configuration, POSIX and PowerShell lifecycle operations, loopback behavior, and default data retention.
 
 ## Technical decisions
 
@@ -129,6 +143,9 @@ Last synchronized: 2026-08-03
 - Backend-only Python tooling configuration lives under `backend/`; the backend and frontend remain sibling applications, and production Astro output is static, same-origin content served by Nginx.
 - Server mode is opt-in and reconciles its single authoritative environment username/password into an Argon2 hash. HTTP mutations require per-session CSRF, opaque session cookies are stored only as SHA-256 digests, and interview WebSockets require both the session cookie and an exact trusted origin.
 - The production Compose topology exposes only Nginx on host ports 80/443. FastAPI remains internal, migration and fixtures are explicit one-shot operations, SQLite/settings secrets/certificates use named volumes, and Nginx starts with a one-day bootstrap certificate before atomically adopting Certbot material.
+- Phase 12 adds a separate local distribution rather than weakening the Phase 11 server topology; local mode is loopback-only, HTTP, unauthenticated, and version-pinned.
+- Local upgrades take a checksummed backup, stop web writes before migration, and restore the previous image selection on failure; schema rollback remains a deliberate backup-restore operation rather than an automatic reverse migration.
+- Local container acceptance verified strict `127.0.0.1` publication on a configurable high port, static routes and API proxying, non-root backend health, restart persistence, occupied-port rejection, checksummed host-owned backup, offline restore, preserved runtime ownership, migration, and recovered application state.
 - `APP_ENCRYPTION_KEY` is base64 for exactly 32 bytes. It initializes the mounted settings-key file once and must match that persisted key thereafter, preventing an environment typo from making encrypted API credentials unreadable.
 - Interview lifecycle routing is deterministic from typed state: elapsed time, question limit, topic coverage, explicit end, and configured follow-up depth.
 - The chat model generates the greeting, questions, transitions, follow-ups, and closing language.

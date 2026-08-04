@@ -67,14 +67,16 @@ PUBLIC_WS_BASE_URL=wss://api.example.com
 Omit trailing slashes because the client appends route paths beginning with
 `/api`.
 
-The supported Docker deployment omits both variables. Its multi-stage Nginx
+Both supported Docker deployments omit both variables. Their multi-stage Nginx
 image compiles Astro to static assets and forwards same-origin `/api` and
 WebSocket requests to FastAPI. Node and Astro are not present at runtime.
 
 Server deployments expose `/login` before the authenticated application. The
 shared API client bootstraps its CSRF token from the session endpoint, attaches
 it to mutations, and returns expired sessions to login while retaining the
-requested local route. Local development remains unauthenticated.
+requested local route. Local development and the loopback-only Docker release
+remain unauthenticated. The local release uses ordinary HTTP on `localhost`,
+which retains browser secure-context treatment for microphone access.
 
 ## Structure
 

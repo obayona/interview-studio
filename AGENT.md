@@ -255,6 +255,14 @@ steps = [
 - In this case, there should be a way to add basic authentication so only the user can access the app, propose how to do it, maybe at nginx level or app level
 
 ### PHASE 12:
+- Distribute the application as a localhost-only Docker Compose bundle.
+- Publish immutable versioned backend and frontend images to GitHub Container Registry.
+- Bind only to loopback with a configurable local port and no TLS or authentication.
+- Provide POSIX and PowerShell start, stop, update, backup, restore, and uninstall operations.
+- Preserve user data unless its removal is explicitly confirmed.
+- Document and automate semantic image releases and release-bundle creation.
+
+### PHASE 13 (OPTIONAL):
 - Wrap the webapp on a desktop app.
 - You can use pywebview to show the frontend on a web-view
 - A python build tool to create an installer

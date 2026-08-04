@@ -33,6 +33,7 @@ from backend.app.core.config import AppConfig, SettingsService
 from backend.app.core.database import SQLiteManager
 from backend.app.core.errors import ApplicationError
 from backend.app.core.secrets import SecretBox
+from backend.app.core.version import APP_VERSION
 from backend.app.infrastructure.checkpointer import InterviewSQLiteCheckpointer
 from backend.app.repositories.attempts import AttemptRepository
 from backend.app.repositories.auth import AuthRepository
@@ -86,7 +87,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
         yield
         await database.close()
 
-    app = FastAPI(title="Interview Studio", version="0.2.0", lifespan=lifespan)
+    app = FastAPI(title="Interview Studio", version=APP_VERSION, lifespan=lifespan)
     app.include_router(auth_router)
     app.include_router(interviews_router)
     app.include_router(dashboard_router)

@@ -49,7 +49,9 @@ In web server mode, Docker Compose injects deployment variables rather than the
 application reading an `.env` file directly. `APP_SERVER_MODE=true` requires an
 authoritative username/password, trusted HTTPS origin, mounted database/key
 paths, and a base64 32-byte `APP_ENCRYPTION_KEY`. Local development and the
-future desktop build keep authentication disabled.
+localhost Docker distribution keep authentication disabled. The local Compose
+runtime persists `/data` and `/secrets` in named volumes and exposes FastAPI only
+through a loopback-bound static Nginx proxy.
 
 The migration history is currently development-only and intentionally consolidated.
 Databases created from an earlier migration layout must be recreated before applying
@@ -202,6 +204,11 @@ python -m ruff format --config backend/pyproject.toml --check backend
 python -m mypy --config-file backend/pyproject.toml
 python -m pytest -c backend/pyproject.toml
 ```
+
+Release verification also includes `deployment/` in both Ruff commands. The
+FastAPI version comes from `backend/app/core/version.py` and must match the
+frontend package and local release environment metadata before a semantic tag
+can publish images.
 
 ## Interview graph
 

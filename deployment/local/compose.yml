@@ -1,0 +1,109 @@
+name: interview-studio-local
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-backend: &backend-service
+  image: ghcr.io/obayona/interview-studio-backend:${APP_VERSION:?Set APP_VERSION in .env.local}
+  environment:
+    APP_SERVER_MODE: "false"
+    APP_DATABASE_PATH: /data/interview_studio.sqlite3
+    APP_SECRET_PATH: /secrets/settings.key
+  volumes:
+    - app_data:/data
+    - app_secrets:/secrets
+  logging: *default-logging
+
+services:
+  backend:
+    <<: *backend-service
+    restart: unless-stopped
+    expose:
+      - "8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3)"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    stop_grace_period: 30s
+
+  web:
+    image: ghcr.io/obayona/interview-studio-web:${APP_VERSION:?Set APP_VERSION in .env.local}
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${LOCAL_PORT:-8080}:8080"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "wget -q -O /dev/null http://127.0.0.1:8080/health/live || exit 1"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging: *default-logging
+
+  migrate:
+    <<: *backend-service
+    profiles: ["tools"]
+    command:
+      - python
+      - -m
+      - backend.cli.migrate
+      - /data/interview_studio.sqlite3
+
+  fixtures:
+    <<: *backend-service
+    profiles: ["tools"]
+    command:
+      - python
+      - -m
+      - backend.cli.load_fixtures
+      - /data/interview_studio.sqlite3
+
+  port-check:
+    image: ghcr.io/obayona/interview-studio-backend:${APP_VERSION:?Set APP_VERSION in .env.local}
+    profiles: ["tools"]
+    ports:
+      - "127.0.0.1:${LOCAL_PORT:-8080}:8000"
+    command: ["true"]
+
+  backup:
+    <<: *backend-service
+    profiles: ["tools"]
+    user: "0:0"
+    volumes:
+      - app_data:/data
+      - app_secrets:/secrets
+      - ${BACKUP_DIR:-./backups}:/backups
+    command:
+      - python
+      - -m
+      - backend.cli.deployment_data
+      - backup
+      - --owner
+      - ${LOCAL_BACKUP_UID:-1000}:${LOCAL_BACKUP_GID:-1000}
+
+  restore:
+    <<: *backend-service
+    profiles: ["tools"]
+    user: "0:0"
+    volumes:
+      - app_data:/data
+      - app_secrets:/secrets
+      - ${BACKUP_DIR:-./backups}:/backups
+    command: ["python", "-m", "backend.cli.deployment_data", "restore"]
+
+volumes:
+  app_data:
+  app_secrets:

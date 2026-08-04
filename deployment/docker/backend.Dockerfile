@@ -1,5 +1,12 @@
 FROM python:3.12-slim AS runtime
 
+ARG APP_VERSION=development
+ARG SOURCE_REVISION=unknown
+LABEL org.opencontainers.image.title="Interview Studio backend" \
+    org.opencontainers.image.version="$APP_VERSION" \
+    org.opencontainers.image.revision="$SOURCE_REVISION" \
+    org.opencontainers.image.source="https://github.com/obayona/interview-studio"
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH="/opt/venv/bin:$PATH"

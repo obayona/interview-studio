@@ -1,0 +1,161 @@
+name: Release local Docker distribution
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+  packages: write
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    env:
+      BACKEND_IMAGE: ghcr.io/obayona/interview-studio-backend
+      WEB_IMAGE: ghcr.io/obayona/interview-studio-web
+      LOCAL_PORT: "18080"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Normalize and validate version
+        id: version
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          python deployment/scripts/prepare_local_release.py "$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "sha_tag=sha-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements-dev.txt
+
+      - name: Install backend verification dependencies
+        run: python -m pip install --requirement backend/requirements-dev.txt
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.12.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify backend
+        run: |
+          python -m ruff check --config backend/pyproject.toml backend deployment
+          python -m ruff format --config backend/pyproject.toml --check backend deployment
+          python -m mypy --config-file backend/pyproject.toml
+          python -m pytest -c backend/pyproject.toml
+
+      - name: Verify frontend
+        working-directory: frontend
+        run: |
+          pnpm format:check
+          pnpm lint
+          pnpm check
+          pnpm test
+          pnpm build
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Detect immutable retry
+        id: registry
+        shell: bash
+        run: |
+          backend_version=false
+          web_version=false
+          backend_sha=false
+          web_sha=false
+          docker manifest inspect "$BACKEND_IMAGE:${{ steps.version.outputs.version }}" >/dev/null 2>&1 && backend_version=true || true
+          docker manifest inspect "$WEB_IMAGE:${{ steps.version.outputs.version }}" >/dev/null 2>&1 && web_version=true || true
+          docker manifest inspect "$BACKEND_IMAGE:${{ steps.version.outputs.sha_tag }}" >/dev/null 2>&1 && backend_sha=true || true
+          docker manifest inspect "$WEB_IMAGE:${{ steps.version.outputs.sha_tag }}" >/dev/null 2>&1 && web_sha=true || true
+          states="$backend_version $web_version $backend_sha $web_sha"
+          if [ "$states" = "true true true true" ]; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          elif [ "$states" = "false false false false" ]; then
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Only part of this immutable release exists; refusing to overwrite it: $states" >&2
+            exit 1
+          fi
+
+      - name: Build immutable linux/amd64 images
+        if: steps.registry.outputs.published != 'true'
+        shell: bash
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          revision="${GITHUB_SHA}"
+          docker build --platform linux/amd64 --build-arg APP_VERSION="$version" --build-arg SOURCE_REVISION="$revision" -f deployment/docker/backend.Dockerfile -t "$BACKEND_IMAGE:$version" -t "$BACKEND_IMAGE:${{ steps.version.outputs.sha_tag }}" .
+          docker build --platform linux/amd64 --build-arg APP_VERSION="$version" --build-arg SOURCE_REVISION="$revision" -f deployment/docker/local-nginx.Dockerfile -t "$WEB_IMAGE:$version" -t "$WEB_IMAGE:${{ steps.version.outputs.sha_tag }}" .
+
+      - name: Pull immutable images for workflow retry
+        if: steps.registry.outputs.published == 'true'
+        run: |
+          docker pull "$BACKEND_IMAGE:${{ steps.version.outputs.version }}"
+          docker pull "$WEB_IMAGE:${{ steps.version.outputs.version }}"
+
+      - name: Smoke-test local topology
+        shell: bash
+        run: |
+          cp deployment/local/.env.example deployment/local/.env.local
+          sed -i "s/^APP_VERSION=.*/APP_VERSION=${{ steps.version.outputs.version }}/" deployment/local/.env.local
+          sed -i "s/^LOCAL_PORT=.*/LOCAL_PORT=${LOCAL_PORT}/" deployment/local/.env.local
+          docker compose --env-file deployment/local/.env.local -f deployment/local/compose.yml --profile tools run --rm migrate
+          docker compose --env-file deployment/local/.env.local -f deployment/local/compose.yml --profile tools run --rm fixtures
+          docker compose --env-file deployment/local/.env.local -f deployment/local/compose.yml up -d backend web
+          for attempt in $(seq 1 60); do
+            curl --fail --silent "http://127.0.0.1:${LOCAL_PORT}/health/ready" && break
+            sleep 1
+          done
+          curl --fail --silent "http://127.0.0.1:${LOCAL_PORT}/health/ready"
+          test "$(docker inspect -f '{{(index (index .NetworkSettings.Ports "8080/tcp") 0).HostIp}}' interview-studio-local-web-1)" = "127.0.0.1"
+
+      - name: Stop smoke-test topology
+        if: always()
+        run: docker compose --env-file deployment/local/.env.local -f deployment/local/compose.yml down --volumes --remove-orphans || true
+
+      - name: Publish immutable image tags
+        if: steps.registry.outputs.published != 'true'
+        run: |
+          docker push "$BACKEND_IMAGE:${{ steps.version.outputs.version }}"
+          docker push "$BACKEND_IMAGE:${{ steps.version.outputs.sha_tag }}"
+          docker push "$WEB_IMAGE:${{ steps.version.outputs.version }}"
+          docker push "$WEB_IMAGE:${{ steps.version.outputs.sha_tag }}"
+
+      - name: Build version-pinned release bundle
+        run: python deployment/scripts/prepare_local_release.py "${{ steps.version.outputs.version }}" --output dist/release
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          archive="dist/release/interview-studio-local-${{ steps.version.outputs.version }}.tar.gz"
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "$archive" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "$archive" --verify-tag --generate-notes --title "Interview Studio $GITHUB_REF_NAME"
+          fi

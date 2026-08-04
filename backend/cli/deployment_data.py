@@ -43,6 +43,18 @@ def backup(database: Path, secret: Path, destination: Path) -> Path:
     return target
 
 
+def transfer_ownership(target: Path, owner: str | None) -> None:
+    if owner is None:
+        return
+    user_text, separator, group_text = owner.partition(":")
+    if not separator or not user_text.isdigit() or not group_text.isdigit():
+        raise ValueError("Backup owner must use numeric UID:GID form")
+    user_id = int(user_text)
+    group_id = int(group_text)
+    for path in (*target.rglob("*"), target):
+        os.chown(path, user_id, group_id)
+
+
 def restore(database: Path, secret: Path, source: Path) -> None:
     manifest = json.loads((source / "manifest.json").read_text(encoding="utf-8"))
     database_source = source / "interview_studio.sqlite3"
@@ -54,13 +66,27 @@ def restore(database: Path, secret: Path, source: Path) -> None:
         raise ValueError("Backup settings key checksum does not match its manifest")
     database.parent.mkdir(parents=True, exist_ok=True)
     secret.parent.mkdir(parents=True, exist_ok=True)
+    database_owner = _owner(database)
+    secret_owner = _owner(secret)
     database_temp = database.with_suffix(".restore.tmp")
     secret_temp = secret.with_suffix(".restore.tmp")
     shutil.copy2(database_source, database_temp)
     shutil.copy2(secret_source, secret_temp)
+    if database_owner is not None:
+        os.chown(database_temp, *database_owner)
+    if secret_owner is not None:
+        os.chown(secret_temp, *secret_owner)
     secret_temp.chmod(0o600)
     os.replace(database_temp, database)
     os.replace(secret_temp, secret)
+
+
+def _owner(path: Path) -> tuple[int, int] | None:
+    try:
+        status = path.stat()
+    except FileNotFoundError:
+        return None
+    return status.st_uid, status.st_gid
 
 
 def main() -> None:
@@ -70,9 +96,12 @@ def main() -> None:
     parser.add_argument("--secret", type=Path, default=Path("/secrets/settings.key"))
     parser.add_argument("--backup-dir", type=Path, default=Path("/backups"))
     parser.add_argument("--source", type=Path)
+    parser.add_argument("--owner", help="Transfer a completed backup to numeric UID:GID")
     arguments = parser.parse_args()
     if arguments.action == "backup":
-        print(backup(arguments.database, arguments.secret, arguments.backup_dir))
+        target = backup(arguments.database, arguments.secret, arguments.backup_dir)
+        transfer_ownership(target, arguments.owner)
+        print(target)
     else:
         if arguments.source is None:
             parser.error("--source is required when restoring")

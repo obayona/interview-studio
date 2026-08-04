@@ -295,3 +295,19 @@ Phase 10C and Phase 10 completed and verified on 2026-08-03.
 - [x] Mark Phase 11 complete in `PLAN.md`, `TASK.md`, and `MAP.md`.
 
 Phase 11 completed and verified on 2026-08-03.
+
+## Phase 12 — Local Docker Distribution
+
+- [x] Query `MAP.md` and reconcile the approved Phase 12 scope.
+- [x] Replace native packaging governance with local Docker distribution and defer pywebview to optional Phase 13.
+- [x] Add the loopback-only local Compose runtime and source-build override.
+- [x] Add local configuration validation with a configurable collision-safe port.
+- [x] Add POSIX and PowerShell start, stop, update, backup, restore, and uninstall operations.
+- [x] Preserve named-volume data by default and require confirmation for deletion.
+- [x] Add semantic-tag GHCR publishing and the version-pinned release bundle workflow.
+- [x] Document local installation, operation, image releases, workflow retry, upgrade, and rollback.
+- [x] Test configuration, release metadata, runtime isolation, persistence, backup/restore, and uninstall behavior.
+- [x] Run complete backend/frontend verification and synchronize `MAP.md`.
+- [x] Append the Phase 12 implementation prompt and mark the phase complete.
+
+Phase 12 completed and verified on 2026-08-03.

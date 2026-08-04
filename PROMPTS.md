@@ -96,3 +96,12 @@ and authenticated WebSockets, add Docker Compose for FastAPI/Nginx/Certbot and
 explicit schema jobs, validate a documented `.env.example`, bootstrap and renew
 Let's Encrypt TLS, add persistent volumes and safe backup/restore/upgrade tooling,
 verify the full deployment, and synchronize all SDD governance documents.
+
+---
+
+Implement Phase 12 as a localhost-only Docker distribution using immutable
+versioned GHCR backend/web images, a configurable loopback port, persistent local
+volumes, POSIX and PowerShell lifecycle/update/backup/restore/uninstall commands,
+a source-build override, semantic-tag release automation and pinned release
+bundles, comprehensive maintainer image-release instructions, and full verification.
+Move pywebview and native Windows/Debian installers to optional Phase 13.

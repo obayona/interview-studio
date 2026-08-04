@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from backend.app.core.secrets import SecretBox
-from backend.cli.deployment_data import backup, restore
+from backend.cli.deployment_data import backup, restore, transfer_ownership
 from deployment.scripts.validate_env import validate
 
 
@@ -75,3 +75,27 @@ def test_persisted_encryption_key_must_match_environment(tmp_path: Path) -> None
     SecretBox(key_path, b"a" * 32)
     with pytest.raises(ValueError, match="does not match"):
         SecretBox(key_path, b"b" * 32)
+
+
+def test_backup_owner_requires_numeric_user_and_group(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="UID:GID"):
+        transfer_ownership(tmp_path, "current-user")
+
+
+def test_restore_preserves_existing_runtime_ownership(tmp_path: Path) -> None:
+    database = tmp_path / "app.sqlite3"
+    secret = tmp_path / "settings.key"
+    connection = sqlite3.connect(database)
+    connection.execute("CREATE TABLE example (value TEXT NOT NULL)")
+    connection.execute("INSERT INTO example VALUES ('before')")
+    connection.commit()
+    connection.close()
+    secret.write_bytes(b"s" * 32)
+    database_owner = (database.stat().st_uid, database.stat().st_gid)
+    secret_owner = (secret.stat().st_uid, secret.stat().st_gid)
+    backup_path = backup(database, secret, tmp_path / "backups")
+
+    restore(database, secret, backup_path)
+
+    assert (database.stat().st_uid, database.stat().st_gid) == database_owner
+    assert (secret.stat().st_uid, secret.stat().st_gid) == secret_owner
