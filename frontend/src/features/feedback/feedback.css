@@ -12,8 +12,7 @@
   margin: 0;
 }
 
-.feedback__score > span,
-.feedback header span {
+.feedback__score > span {
   color: var(--color-text-muted);
   font-size: 0.78rem;
   font-weight: 700;

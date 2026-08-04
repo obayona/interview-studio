@@ -246,17 +246,18 @@ export function FeedbackPage() {
   const [processReport, setProcessReport] = useState<ProcessReport>();
   const [messages, setMessages] = useState<TranscriptMessage[]>([]);
   const [error, setError] = useState('The feedback could not be loaded.');
-  const params = useMemo(
-    () =>
-      new URLSearchParams(
-        typeof window === 'undefined' ? '' : window.location.search,
-      ),
-    [],
-  );
-  const attemptId = params.get('attempt');
-  const processId = params.get('process');
-  const [parentProcessId, setParentProcessId] = useState(processId);
-  const shouldEvaluate = params.get('evaluate') === '1';
+  const [attemptId, setAttemptId] = useState<string | null>(null);
+  const [processId, setProcessId] = useState<string | null>(null);
+  const [shouldEvaluate, setShouldEvaluate] = useState(false);
+  const [parentProcessId, setParentProcessId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    setAttemptId(p.get('attempt'));
+    setProcessId(p.get('process'));
+    setShouldEvaluate(p.get('evaluate') === '1');
+    setParentProcessId(p.get('process'));
+  }, []);
 
   const load = useCallback(
     async (forceEvaluation = false) => {
@@ -339,8 +340,9 @@ export function FeedbackPage() {
     [attemptId, processId, shouldEvaluate],
   );
 
-  useEffect(() => void load(), [load]);
-
+  useEffect(() => {
+    if (attemptId !== null || processId !== null) void load();
+  }, [load, attemptId, processId]);
   const backHref = parentProcessId
     ? `/processes/details?id=${encodeURIComponent(parentProcessId)}`
     : '/processes';
@@ -351,7 +353,6 @@ export function FeedbackPage() {
       </a>
       <header>
         <div>
-          <span>Performance feedback</span>
           <h1>{processReport?.process_title ?? 'Interview report'}</h1>
         </div>
       </header>
