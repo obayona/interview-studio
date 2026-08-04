@@ -214,20 +214,24 @@ function ProfileForm() {
 
   return (
     <>
-      <div className="profile__toolbar">
-        <SaveStatus status={saveStatus} />
-        <Button onClick={() => setImportOpen(true)}>
-          <Icon name="upload" />
-          Import profile
-        </Button>
-        <Button
-          variant="primary"
-          onClick={() => void save(draftRef.current, true)}
-          disabled={saveStatus === 'saving'}
-          data-profile-save
-        >
-          {saveStatus === 'saving' ? 'Saving…' : 'Save profile'}
-        </Button>
+      <div className="profile__subheader">
+        <p className="page__intro">Manage your professional identity and interview readiness.</p>
+
+        <span className="profile__toolbar">
+          <SaveStatus status={saveStatus} />
+          <Button onClick={() => setImportOpen(true)}>
+            <Icon name="upload" />
+            Import profile
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => void save(draftRef.current, true)}
+            disabled={saveStatus === 'saving'}
+            data-profile-save
+          >
+            {saveStatus === 'saving' ? 'Saving…' : 'Save profile'}
+          </Button>
+        </span>
       </div>
 
       <div

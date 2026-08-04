@@ -28,9 +28,17 @@ const {
     <title>{title} · Interview Studio</title>
     <ClientRouter />
     <script is:inline>
-      const savedTheme = localStorage.getItem('interview-studio-theme');
-      if (savedTheme && savedTheme !== 'system')
-        document.documentElement.dataset.theme = savedTheme;
+      const applySavedTheme = (root) => {
+        const savedTheme = localStorage.getItem('interview-studio-theme');
+        if (savedTheme && savedTheme !== 'system')
+          root.dataset.theme = savedTheme;
+        else delete root.dataset.theme;
+      };
+
+      applySavedTheme(document.documentElement);
+      document.addEventListener('astro:before-swap', (event) => {
+        applySavedTheme(event.newDocument.documentElement);
+      });
     </script>
   </head>
   <body data-active-section={activeSection}>

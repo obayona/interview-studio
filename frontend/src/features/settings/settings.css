@@ -10,7 +10,7 @@
 
 .settings__grid {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(28rem, 1fr);
+  grid-template-columns: minmax(0, 2fr) minmax(35rem, 1fr);
   gap: 2rem;
 }
 
@@ -131,7 +131,7 @@
   font-size: 1.3rem;
 }
 
-@media (width <= 900px) {
+@media (width <= 1150px) {
   .settings__grid,
   .settings__loading {
     grid-template-columns: 1fr;

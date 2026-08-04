@@ -328,12 +328,6 @@ a {
   }
 }
 
-@media (width <= 480px) {
-  .app-shell__start-interview {
-    display: none;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
