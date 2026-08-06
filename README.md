@@ -146,10 +146,8 @@ Edit `.env` and replace every value:
 
 | Variable | Description |
 |---|---|
-| `DEPLOYMENT_ENV` | `staging` for testing, `production` for live |
 | `DOMAIN` | Your public DNS hostname (e.g. `interviews.example.com`) |
 | `LETSENCRYPT_EMAIL` | Email for Let's Encrypt notifications |
-| `LETSENCRYPT_STAGING` | `true` for testing, `false` for production |
 | `APP_USERNAME` | Login username (1-128 characters) |
 | `APP_PASSWORD` | Login password (at least 16 characters) |
 | `APP_ENCRYPTION_KEY` | Base64-encoded 32-byte key from `openssl rand -base64 32` |
@@ -159,29 +157,27 @@ Edit `.env` and replace every value:
 Keep the OpenAI API key out of `.env`; configure it from the application
 Settings page after signing in.
 
-#### Step 2: Install (two phases)
-
-**Phase 1 — Staging:** avoid Let's Encrypt rate limits by testing with the
-staging issuer first. Set `DEPLOYMENT_ENV=staging` and
-`LETSENCRYPT_STAGING=true` in `.env`, then run:
+#### Step 2: Install
 
 ```bash
 ./deployment/scripts/install.sh
 ```
 
-The installer validates configuration and ports, builds images, runs migrations
-and fixtures, starts HTTP challenge handling, obtains a staging certificate,
-activates HTTPS, and verifies readiness.
+The installer validates the environment, builds images, runs migrations and
+fixtures, and starts the app. nginx serves HTTPS immediately with a temporary
+self-signed certificate so you can verify the app end-to-end. Re-running the
+installer is safe: port checks are skipped when the app's own nginx container is
+already running.
 
-**Phase 2 — Production:** once staging works, switch to production. Change
-`DEPLOYMENT_ENV=production` and `LETSENCRYPT_STAGING=false` in `.env`, then run
-the installer again:
+#### Step 3: Issue TLS certificates
 
 ```bash
-./deployment/scripts/install.sh
+./deployment/scripts/setup-certificates.sh
 ```
 
-This obtains a real certificate and activates auto-renewal.
+This obtains a certificate from the Let's Encrypt production issuer, starts
+auto-renewal, and loads it into nginx. It is idempotent and can be re-run at any
+time (for example to replace a certificate issued before a domain change).
 
 #### Operations
 
@@ -214,8 +210,11 @@ been stored is rejected; restore the matching key from backup instead.
 
 #### Certificate management
 
-Certbot checks renewal twice daily through the shared ACME webroot. nginx
-detects renewed files and reloads them without restarting active interviews.
+`./deployment/scripts/setup-certificates.sh` issues or refreshes the
+certificate and can be re-run at any time; it runs a one-shot `certbot
+certonly` inside the certbot container, then starts the renewal loop. Certbot
+checks renewal twice daily through the shared ACME webroot. nginx detects
+renewed files and reloads them without restarting active interviews.
 
 Inspect renewal manually:
 
@@ -237,7 +236,7 @@ To run full installation validation (checks ports, Docker, file permissions):
 
 ```bash
 python3 -m deployment.scripts.validate_env .env --installation \
-  --compose-file deployment/docker-compose.yml
+  --compose-file deployment/docker-compose.yml --project-directory .
 ```
 
 ## Image releases
@@ -329,13 +328,13 @@ docker compose --env-file deployment/local/.env.local \
 │   │   └── default.conf.template     # Server nginx config (envsubst)
 │   └── scripts/
 │       ├── install.sh                # Server first-time install
+│       ├── setup-certificates.sh     # Issue/replace Let's Encrypt certs
 │       ├── upgrade.sh                # Server upgrade
 │       ├── backup.sh                 # Server backup
 │       ├── restore.sh                # Server restore
 │       ├── validate_env.py           # Configuration validator
 │       ├── prepare_local_release.py  # Release bundle builder
 │       ├── nginx-entrypoint.sh       # Server nginx entrypoint
-│       ├── issue-certificate.sh      # Let's Encrypt initial cert
 │       └── renew-certificates.sh     # Certbot renewal loop
 ├── .env.example              # Server deployment template
 └── README.md                 # This file

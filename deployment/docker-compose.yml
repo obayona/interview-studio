@@ -77,12 +77,10 @@ services:
     environment:
       DOMAIN: ${DOMAIN:?Set DOMAIN in .env}
       LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:?Set LETSENCRYPT_EMAIL in .env}
-      LETSENCRYPT_STAGING: ${LETSENCRYPT_STAGING:-false}
     volumes:
       - letsencrypt:/etc/letsencrypt
       - acme_webroot:/var/www/certbot
       - ./deployment/scripts/renew-certificates.sh:/usr/local/bin/renew-certificates:ro
-      - ./deployment/scripts/issue-certificate.sh:/usr/local/bin/issue-certificate:ro
     entrypoint: ["/bin/sh", "/usr/local/bin/renew-certificates"]
     depends_on:
       nginx:

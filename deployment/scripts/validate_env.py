@@ -19,7 +19,9 @@ PLACEHOLDERS = ("example.com", "replace-with", "change-me", "changeme")
 
 def read_env(path: Path) -> dict[str, str]:
     values: dict[str, str] = {}
-    for line_number, raw_line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+    for line_number, raw_line in enumerate(
+        path.read_text(encoding="utf-8").splitlines(), 1
+    ):
         line = raw_line.strip()
         if not line or line.startswith("#"):
             continue
@@ -39,10 +41,8 @@ def read_env(path: Path) -> dict[str, str]:
 def validate(values: dict[str, str]) -> list[str]:
     errors: list[str] = []
     required = (
-        "DEPLOYMENT_ENV",
         "DOMAIN",
         "LETSENCRYPT_EMAIL",
-        "LETSENCRYPT_STAGING",
         "APP_USERNAME",
         "APP_PASSWORD",
         "APP_ENCRYPTION_KEY",
@@ -61,16 +61,9 @@ def validate(values: dict[str, str]) -> list[str]:
     if email and not EMAIL_PATTERN.fullmatch(email):
         errors.append("LETSENCRYPT_EMAIL is not a valid email address")
     if any(placeholder in email.lower() for placeholder in PLACEHOLDERS):
-        errors.append("LETSENCRYPT_EMAIL still contains an example or placeholder value")
-
-    environment = values.get("DEPLOYMENT_ENV", "")
-    if environment not in {"production", "staging"}:
-        errors.append("DEPLOYMENT_ENV must be production or staging")
-    staging = values.get("LETSENCRYPT_STAGING", "")
-    if staging not in {"true", "false"}:
-        errors.append("LETSENCRYPT_STAGING must be true or false")
-    if environment == "production" and staging == "true":
-        errors.append("Production deployments cannot use the Let's Encrypt staging issuer")
+        errors.append(
+            "LETSENCRYPT_EMAIL still contains an example or placeholder value"
+        )
 
     username = values.get("APP_USERNAME", "")
     if not 1 <= len(username) <= 128:
@@ -90,7 +83,9 @@ def validate(values: dict[str, str]) -> list[str]:
         except (binascii.Error, ValueError):
             key = b""
         if len(key) != 32:
-            errors.append("APP_ENCRYPTION_KEY must be base64 for exactly 32 random bytes")
+            errors.append(
+                "APP_ENCRYPTION_KEY must be base64 for exactly 32 random bytes"
+            )
 
     lifetime = values.get("APP_SESSION_LIFETIME_SECONDS", "86400")
     try:
@@ -118,11 +113,17 @@ def host_port_in_use(port: int) -> bool:
     return False
 
 
-def installation_errors(env_path: Path, compose_file: Path | None = None) -> list[str]:
+def installation_errors(
+    env_path: Path,
+    compose_file: Path | None = None,
+    project_directory: str | None = None,
+) -> list[str]:
     errors: list[str] = []
     mode = stat.S_IMODE(env_path.stat().st_mode)
     if mode & 0o077:
-        errors.append(".env must not be accessible by group or other users; run chmod 600 .env")
+        errors.append(
+            ".env must not be accessible by group or other users; run chmod 600 .env"
+        )
     if shutil.which("docker") is None:
         errors.append("Docker is not installed or not available on PATH")
     else:
@@ -137,6 +138,8 @@ def installation_errors(env_path: Path, compose_file: Path | None = None) -> lis
     nginx_running = False
     if shutil.which("docker") is not None:
         cmd = ["docker", "compose"]
+        if project_directory is not None:
+            cmd += ["--project-directory", project_directory]
         if compose_file is not None:
             cmd += ["-f", str(compose_file)]
         cmd += ["ps", "-q", "nginx"]
@@ -151,7 +154,9 @@ def installation_errors(env_path: Path, compose_file: Path | None = None) -> lis
         for port in (80, 443):
             if host_port_in_use(port):
                 errors.append(f"Host port {port} is already in use")
-    backup_dir = Path(os.path.expanduser(read_env(env_path).get("BACKUP_DIR", "./backups")))
+    backup_dir = Path(
+        os.path.expanduser(read_env(env_path).get("BACKUP_DIR", "./backups"))
+    )
     backup_dir.mkdir(parents=True, exist_ok=True)
     if not os.access(backup_dir, os.W_OK):
         errors.append(f"Backup directory is not writable: {backup_dir}")
@@ -159,10 +164,13 @@ def installation_errors(env_path: Path, compose_file: Path | None = None) -> lis
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Validate Interview Studio deployment settings")
+    parser = argparse.ArgumentParser(
+        description="Validate Interview Studio deployment settings"
+    )
     parser.add_argument("path", nargs="?", type=Path, default=Path(".env"))
     parser.add_argument("--installation", action="store_true")
     parser.add_argument("--compose-file", type=Path, default=None)
+    parser.add_argument("--project-directory", default=".")
     arguments = parser.parse_args()
     if not arguments.path.is_file():
         raise SystemExit(f"Environment file not found: {arguments.path}")
@@ -172,7 +180,13 @@ def main() -> None:
         raise SystemExit(str(error)) from error
     errors = validate(values)
     if arguments.installation:
-        errors.extend(installation_errors(arguments.path, arguments.compose_file))
+        errors.extend(
+            installation_errors(
+                arguments.path,
+                arguments.compose_file,
+                arguments.project_directory,
+            )
+        )
     if errors:
         raise SystemExit("Invalid deployment configuration:\n- " + "\n- ".join(errors))
     print("Deployment configuration is valid.")

@@ -13,10 +13,8 @@ from deployment.scripts.validate_env import validate
 
 def valid_environment() -> dict[str, str]:
     return {
-        "DEPLOYMENT_ENV": "production",
         "DOMAIN": "studio.interviews.dev",
         "LETSENCRYPT_EMAIL": "owner@interviews.dev",
-        "LETSENCRYPT_STAGING": "false",
         "APP_USERNAME": "owner",
         "APP_PASSWORD": "a-unique-password-longer-than-sixteen",
         "APP_ENCRYPTION_KEY": base64.b64encode(b"k" * 32).decode("ascii"),
@@ -30,14 +28,12 @@ def test_deployment_environment_validation() -> None:
     invalid.update(
         {
             "DOMAIN": "https://example.com/path",
-            "LETSENCRYPT_STAGING": "true",
             "APP_PASSWORD": "short",
             "APP_ENCRYPTION_KEY": "invalid",
         }
     )
     errors = validate(invalid)
     assert any("DOMAIN" in error for error in errors)
-    assert any("staging" in error for error in errors)
     assert any("PASSWORD" in error for error in errors)
     assert any("ENCRYPTION_KEY" in error for error in errors)
 
