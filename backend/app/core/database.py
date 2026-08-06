@@ -19,12 +19,14 @@ class SQLiteManager:
 
     async def start(self) -> None:
         self.database_path.parent.mkdir(parents=True, exist_ok=True)
-        connection = sqlite3.connect(self.database_path)
+        # Connect with autocommit=True to run PRAGMAs outside a transaction
+        connection = sqlite3.connect(self.database_path, autocommit=True)
         connection.row_factory = sqlite3.Row
-        connection.execute("PRAGMA foreign_keys = ON")
         connection.execute("PRAGMA journal_mode = WAL")
+        connection.execute("PRAGMA foreign_keys = ON")
         connection.execute("PRAGMA busy_timeout = 5000")
-        connection.commit()
+        # Switch to autocommit=False for implicit transaction management
+        connection.autocommit = False
         self._connection = connection
 
     async def close(self) -> None:
@@ -44,7 +46,6 @@ class SQLiteManager:
     ) -> AsyncGenerator[sqlite3.Connection, None]:
         async with self._transaction_lock:
             connection = self.connection
-            connection.execute("BEGIN IMMEDIATE")
             try:
                 yield connection
             except BaseException:
@@ -56,9 +57,13 @@ class SQLiteManager:
     async def fetchone(self, sql: str, parameters: tuple[Any, ...] = ()) -> sqlite3.Row | None:
         async with self._transaction_lock:
             cursor = self.connection.execute(sql, parameters)
-            return cast(sqlite3.Row | None, cursor.fetchone())
+            result = cursor.fetchone()
+            self.connection.commit()
+            return cast(sqlite3.Row | None, result)
 
     async def fetchall(self, sql: str, parameters: tuple[Any, ...] = ()) -> list[sqlite3.Row]:
         async with self._transaction_lock:
             cursor = self.connection.execute(sql, parameters)
-            return list(cursor.fetchall())
+            result = list(cursor.fetchall())
+            self.connection.commit()
+            return result
