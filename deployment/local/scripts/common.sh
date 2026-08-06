@@ -56,7 +56,7 @@ local_compose() {
 wait_until_ready() {
   count=0
   while [ "$count" -lt 60 ]; do
-    if local_compose exec -T web wget -q -O /dev/null http://127.0.0.1:8080/health/ready 2>/dev/null; then
+    if local_compose exec -T backend python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health/ready', timeout=3)" >/dev/null 2>&1; then
       return 0
     fi
     count=$((count + 1))

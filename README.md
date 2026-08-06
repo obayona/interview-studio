@@ -12,7 +12,7 @@ Interview Studio runs as Docker containers in two distinct modes:
 |---|---|---|
 | **Use case** | Personal practice on your machine | Public-facing deployment on a VPS |
 | **Compose file** | `deployment/local/compose.yml` | `deployment/docker-compose.yml` |
-| **Containers** | `backend` + `web` (Astro in nginx) | `backend` + `nginx` + `certbot` |
+| **Containers** | `backend` (serves Astro via bundled nginx) | `backend` + `nginx` + `certbot` |
 | **Images** | Pulled from GHCR (pre-built) | Built from source via Dockerfiles |
 | **Network** | `127.0.0.1` only | Public, TLS via Let's Encrypt |
 | **Auth** | None (single-user, loopback only) | Username/password via session cookie |
@@ -56,7 +56,7 @@ extract it. The bundle contains:
 ```
 interview-studio-local-VERSION/
   .env.example          # Default configuration
-  compose.yml           # Backend + web containers
+  compose.yml           # Single backend container (backend + Astro)
   README.md             # Bundle-specific guide
   scripts/              # Start, stop, backup, restore, update, uninstall
 ```
@@ -242,16 +242,15 @@ python3 -m deployment.scripts.validate_env .env --installation \
 ## Image releases
 
 The workflow in `.github/workflows/release.yml` is the authoritative release
-path. It publishes two immutable container images to GitHub Container Registry:
+path. It publishes a single immutable container image to GitHub Container
+Registry:
 
 - `ghcr.io/obayona/interview-studio-backend:{version}`
-- `ghcr.io/obayona/interview-studio-web:{version}`
 
-Both also receive `sha-{commit}` tags for traceability. The workflow never
+The image also receives `sha-{commit}` tags for traceability. The workflow never
 publishes `latest`.
 
-Before the first release, make both GHCR packages public in their package
-settings.
+Before the first release, make the GHCR package public in its package settings.
 
 ### Release process
 
@@ -271,7 +270,7 @@ settings.
    ```
 
 6. Monitor **Release local Docker distribution** in GitHub Actions.
-7. Confirm both GHCR packages expose the immutable version and SHA tags.
+7. Confirm the GHCR package exposes the immutable version and SHA tags.
 8. Download the generated bundle and perform a clean installation smoke test.
 9. Complete release notes with migrations, visible changes, backup requirements,
    and rollback instructions.
@@ -281,11 +280,10 @@ settings.
 1. **Validates** the version is synchronized across backend, frontend, and local
    environment metadata.
 2. **Verifies** the full backend and frontend test suites.
-3. **Builds** two `linux/amd64` images from source:
-   - Backend: `deployment/docker/backend.Dockerfile`
-   - Web: `deployment/docker/local-nginx.Dockerfile` (builds Astro, copies into
-     nginx)
-4. **Smoke-tests** the local topology with the built images.
+3. **Builds** a `linux/amd64` image from source:
+   - `deployment/docker/backend.Dockerfile` (compiles Astro, installs nginx-light,
+     runs FastAPI and nginx in one non-root container)
+4. **Smoke-tests** the local topology with the built image.
 5. **Pushes** to GHCR with both version and SHA tags.
 6. **Packages** a release bundle (`interview-studio-local-{version}.tar.gz`)
    containing the local compose file, scripts, and nginx config.
@@ -313,19 +311,19 @@ docker compose --env-file deployment/local/.env.local \
 ├── frontend/                 # Astro 7 + React 19 frontend
 ├── deployment/
 │   ├── docker/
-│   │   ├── backend.Dockerfile        # Server backend image
-│   │   ├── nginx.Dockerfile          # Server nginx (TLS, auth_request)
-│   │   └── local-nginx.Dockerfile    # Local nginx (no TLS)
+│   │   ├── backend.Dockerfile        # Backend image (FastAPI + nginx-light + Astro)
+│   │   └── nginx.Dockerfile          # Server nginx (TLS, auth_request)
 │   ├── docker-compose.yml            # Server deployment compose
 │   ├── local/
 │   │   ├── compose.yml               # Local deployment compose
 │   │   ├── compose.build.yml         # Override for building from source
-│   │   ├── nginx.conf                # Local nginx config
 │   │   ├── .env.example              # Local defaults
 │   │   ├── README.md                 # Local bundle guide
 │   │   └── scripts/                  # POSIX + PowerShell operations
 │   ├── nginx/
-│   │   └── default.conf.template     # Server nginx config (envsubst)
+│   │   ├── default.conf.template     # Server nginx config (envsubst)
+│   │   ├── nginx.conf                # Non-root nginx master config
+│   │   └── local-default.conf        # Local nginx server config
 │   └── scripts/
 │       ├── install.sh                # Server first-time install
 │       ├── setup-certificates.sh     # Issue/replace Let's Encrypt certs

@@ -21,37 +21,20 @@ services:
   backend:
     <<: *backend-service
     restart: unless-stopped
-    expose:
-      - "8000"
+    command: ["/usr/local/bin/interview-studio-local"]
+    ports:
+      - "127.0.0.1:${LOCAL_PORT:-8080}:8080"
     healthcheck:
       test:
         - CMD
         - python
         - -c
-        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3)"
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health/ready', timeout=3)"
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 15s
     stop_grace_period: 30s
-
-  web:
-    image: ghcr.io/obayona/interview-studio-web:${APP_VERSION:?Set APP_VERSION in .env.local}
-    restart: unless-stopped
-    depends_on:
-      backend:
-        condition: service_healthy
-    ports:
-      - "127.0.0.1:${LOCAL_PORT:-8080}:8080"
-    healthcheck:
-      test:
-        - CMD-SHELL
-        - "wget -q -O /dev/null http://127.0.0.1:8080/health/live || exit 1"
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-    logging: *default-logging
 
   migrate:
     <<: *backend-service
@@ -72,10 +55,10 @@ services:
       - /data/interview_studio.sqlite3
 
   port-check:
-    image: ghcr.io/obayona/interview-studio-backend:${APP_VERSION:?Set APP_VERSION in .env.local}
+    <<: *backend-service
     profiles: ["tools"]
     ports:
-      - "127.0.0.1:${LOCAL_PORT:-8080}:8000"
+      - "127.0.0.1:${LOCAL_PORT:-8080}:8080"
     command: ["true"]
 
   backup:

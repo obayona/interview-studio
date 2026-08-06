@@ -59,8 +59,8 @@ function Invoke-LocalCompose {
 
 function Wait-LocalReady {
     for ($attempt = 0; $attempt -lt 60; $attempt++) {
-        & docker compose --env-file $Script:EnvFile -f $Script:ComposeFile exec -T web `
-            wget -q -O /dev/null http://127.0.0.1:8080/health/ready 2>$null
+        & docker compose --env-file $Script:EnvFile -f $Script:ComposeFile exec -T backend `
+            python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health/ready', timeout=3)" 2>$null
         if ($LASTEXITCODE -eq 0) { return }
         Start-Sleep -Seconds 1
     }

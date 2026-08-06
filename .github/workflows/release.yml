@@ -18,7 +18,6 @@ jobs:
     runs-on: ubuntu-24.04
     env:
       BACKEND_IMAGE: ghcr.io/obayona/interview-studio-backend
-      WEB_IMAGE: ghcr.io/obayona/interview-studio-web
       LOCAL_PORT: "18080"
     steps:
       - uses: actions/checkout@v4
@@ -85,37 +84,31 @@ jobs:
         shell: bash
         run: |
           backend_version=false
-          web_version=false
           backend_sha=false
-          web_sha=false
           docker manifest inspect "$BACKEND_IMAGE:${{ steps.version.outputs.version }}" >/dev/null 2>&1 && backend_version=true || true
-          docker manifest inspect "$WEB_IMAGE:${{ steps.version.outputs.version }}" >/dev/null 2>&1 && web_version=true || true
           docker manifest inspect "$BACKEND_IMAGE:${{ steps.version.outputs.sha_tag }}" >/dev/null 2>&1 && backend_sha=true || true
-          docker manifest inspect "$WEB_IMAGE:${{ steps.version.outputs.sha_tag }}" >/dev/null 2>&1 && web_sha=true || true
-          states="$backend_version $web_version $backend_sha $web_sha"
-          if [ "$states" = "true true true true" ]; then
+          states="$backend_version $backend_sha"
+          if [ "$states" = "true true" ]; then
             echo "published=true" >> "$GITHUB_OUTPUT"
-          elif [ "$states" = "false false false false" ]; then
+          elif [ "$states" = "false false" ]; then
             echo "published=false" >> "$GITHUB_OUTPUT"
           else
             echo "Only part of this immutable release exists; refusing to overwrite it: $states" >&2
             exit 1
           fi
 
-      - name: Build immutable linux/amd64 images
+      - name: Build immutable linux/amd64 image
         if: steps.registry.outputs.published != 'true'
         shell: bash
         run: |
           version="${{ steps.version.outputs.version }}"
           revision="${GITHUB_SHA}"
-          docker build --platform linux/amd64 --build-arg APP_VERSION="$version" --build-arg SOURCE_REVISION="$revision" -f deployment/docker/backend.Dockerfile -t "$BACKEND_IMAGE:$version" -t "$BACKEND_IMAGE:${{ steps.version.outputs.sha_tag }}" .
-          docker build --platform linux/amd64 --build-arg APP_VERSION="$version" --build-arg SOURCE_REVISION="$revision" -f deployment/docker/local-nginx.Dockerfile -t "$WEB_IMAGE:$version" -t "$WEB_IMAGE:${{ steps.version.outputs.sha_tag }}" .
+          docker build --platform linux/amd64 --build-arg APP_VERSION="$version" --build-arg SOURCE_REVISION="$revision" --build-arg FRONTEND_STAGE=frontend-build -f deployment/docker/backend.Dockerfile -t "$BACKEND_IMAGE:$version" -t "$BACKEND_IMAGE:${{ steps.version.outputs.sha_tag }}" .
 
-      - name: Pull immutable images for workflow retry
+      - name: Pull immutable image for workflow retry
         if: steps.registry.outputs.published == 'true'
         run: |
           docker pull "$BACKEND_IMAGE:${{ steps.version.outputs.version }}"
-          docker pull "$WEB_IMAGE:${{ steps.version.outputs.version }}"
 
       - name: Smoke-test local topology
         shell: bash
@@ -125,13 +118,13 @@ jobs:
           sed -i "s/^LOCAL_PORT=.*/LOCAL_PORT=${LOCAL_PORT}/" deployment/local/.env.local
           docker compose --env-file deployment/local/.env.local -f deployment/local/compose.yml --profile tools run --rm migrate
           docker compose --env-file deployment/local/.env.local -f deployment/local/compose.yml --profile tools run --rm fixtures
-          docker compose --env-file deployment/local/.env.local -f deployment/local/compose.yml up -d backend web
+          docker compose --env-file deployment/local/.env.local -f deployment/local/compose.yml up -d backend
           for attempt in $(seq 1 60); do
             curl --fail --silent "http://127.0.0.1:${LOCAL_PORT}/health/ready" && break
             sleep 1
           done
           curl --fail --silent "http://127.0.0.1:${LOCAL_PORT}/health/ready"
-          test "$(docker inspect -f '{{(index (index .NetworkSettings.Ports "8080/tcp") 0).HostIp}}' interview-studio-local-web-1)" = "127.0.0.1"
+          test "$(docker inspect -f '{{(index (index .NetworkSettings.Ports "8080/tcp") 0).HostIp}}' interview-studio-local-backend-1)" = "127.0.0.1"
 
       - name: Stop smoke-test topology
         if: always()
@@ -142,8 +135,6 @@ jobs:
         run: |
           docker push "$BACKEND_IMAGE:${{ steps.version.outputs.version }}"
           docker push "$BACKEND_IMAGE:${{ steps.version.outputs.sha_tag }}"
-          docker push "$WEB_IMAGE:${{ steps.version.outputs.version }}"
-          docker push "$WEB_IMAGE:${{ steps.version.outputs.sha_tag }}"
 
       - name: Build version-pinned release bundle
         run: python deployment/scripts/prepare_local_release.py "${{ steps.version.outputs.version }}" --output dist/release

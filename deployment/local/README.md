@@ -31,7 +31,7 @@ On Windows PowerShell:
 ```
 
 The command validates Docker, the semantic image version, and port range; pulls
-the pinned images; checks for a port collision; runs migrations and fixtures;
+the pinned image; checks for a port collision; runs migrations and fixtures;
 creates the user-writable backup directory; waits for readiness; and opens the
 browser. Configure the OpenAI key afterward from Settings. It is encrypted in
 the persistent local data volume, never read from `.env.local`.
@@ -58,7 +58,7 @@ Backups contain a consistent SQLite copy, its matching encryption key, a
 manifest, and SHA-256 checksums. Restore stops writes and verifies those
 checksums before replacing either file. The one-shot tool receives the minimum
 volume access needed and returns completed backup ownership to the invoking user;
-the web backend remains non-root. Update creates a backup before pulling, stops
+the application remains non-root. Update creates a backup before pulling, stops
 writes before migration, and verifies readiness afterward.
 
 Stopping, restarting, updating, and ordinary uninstall retain the named data
@@ -73,7 +73,7 @@ irreversible. Keep a backup outside Docker before choosing it.
   `docker compose --env-file .env.local -f compose.yml ps` and logs with the
   same prefix followed by `logs --tail=200`.
 - A pull failure leaves the installed data unchanged. Confirm Internet access
-  and that both GHCR packages are public, then retry.
+  and that the GHCR package is public, then retry.
 - To select a previous application version, run the update command with that
   version. Database migrations are not reversed automatically. If the previous
   release is incompatible with the upgraded schema, restore the backup created

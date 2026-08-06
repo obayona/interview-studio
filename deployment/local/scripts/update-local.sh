@@ -12,18 +12,18 @@ local_compose --profile tools run --rm backup
 if [ "$#" -eq 1 ]; then
   set_app_version "$1"
 fi
-local_compose pull backend web
+local_compose pull backend
 recover() {
   if [ "$APP_VERSION" != "$previous_version" ]; then
     set_app_version "$previous_version"
   fi
-  local_compose up -d backend web >/dev/null 2>&1 || true
+  local_compose up -d backend >/dev/null 2>&1 || true
 }
 trap recover EXIT INT TERM
-local_compose stop backend web
+local_compose stop backend
 local_compose --profile tools run --rm migrate
 local_compose --profile tools run --rm fixtures
-local_compose up -d --force-recreate backend web
+local_compose up -d --force-recreate backend
 wait_until_ready
 trap - EXIT INT TERM
 printf 'Interview Studio %s is ready.\n' "$APP_VERSION"

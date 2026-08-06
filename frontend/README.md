@@ -67,9 +67,10 @@ PUBLIC_WS_BASE_URL=wss://api.example.com
 Omit trailing slashes because the client appends route paths beginning with
 `/api`.
 
-Both supported Docker deployments omit both variables. Their multi-stage Nginx
-image compiles Astro to static assets and forwards same-origin `/api` and
-WebSocket requests to FastAPI. Node and Astro are not present at runtime.
+Both supported Docker deployments omit both variables. The backend image
+compiles Astro to static assets and forwards same-origin `/api` and WebSocket
+requests to FastAPI with a bundled nginx. Node and Astro are not present at
+runtime.
 
 Server deployments expose `/login` before the authenticated application. The
 shared API client bootstraps its CSRF token from the session endpoint, attaches

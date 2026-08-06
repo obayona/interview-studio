@@ -13,14 +13,14 @@ fi
 
 ensure_environment
 restart() {
-  local_compose up -d backend web >/dev/null 2>&1 || true
+  local_compose up -d backend >/dev/null 2>&1 || true
 }
 trap restart EXIT INT TERM
-local_compose stop backend web
+local_compose stop backend
 local_compose --profile tools run --rm restore \
   python -m backend.cli.deployment_data restore --source "/backups/$1"
 local_compose --profile tools run --rm migrate
-local_compose up -d backend web
+local_compose up -d backend
 wait_until_ready
 trap - EXIT INT TERM
 printf 'Backup %s restored.\n' "$1"

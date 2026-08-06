@@ -19,9 +19,7 @@ PLACEHOLDERS = ("example.com", "replace-with", "change-me", "changeme")
 
 def read_env(path: Path) -> dict[str, str]:
     values: dict[str, str] = {}
-    for line_number, raw_line in enumerate(
-        path.read_text(encoding="utf-8").splitlines(), 1
-    ):
+    for line_number, raw_line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
         line = raw_line.strip()
         if not line or line.startswith("#"):
             continue
@@ -61,9 +59,7 @@ def validate(values: dict[str, str]) -> list[str]:
     if email and not EMAIL_PATTERN.fullmatch(email):
         errors.append("LETSENCRYPT_EMAIL is not a valid email address")
     if any(placeholder in email.lower() for placeholder in PLACEHOLDERS):
-        errors.append(
-            "LETSENCRYPT_EMAIL still contains an example or placeholder value"
-        )
+        errors.append("LETSENCRYPT_EMAIL still contains an example or placeholder value")
 
     username = values.get("APP_USERNAME", "")
     if not 1 <= len(username) <= 128:
@@ -83,9 +79,7 @@ def validate(values: dict[str, str]) -> list[str]:
         except (binascii.Error, ValueError):
             key = b""
         if len(key) != 32:
-            errors.append(
-                "APP_ENCRYPTION_KEY must be base64 for exactly 32 random bytes"
-            )
+            errors.append("APP_ENCRYPTION_KEY must be base64 for exactly 32 random bytes")
 
     lifetime = values.get("APP_SESSION_LIFETIME_SECONDS", "86400")
     try:
@@ -121,9 +115,7 @@ def installation_errors(
     errors: list[str] = []
     mode = stat.S_IMODE(env_path.stat().st_mode)
     if mode & 0o077:
-        errors.append(
-            ".env must not be accessible by group or other users; run chmod 600 .env"
-        )
+        errors.append(".env must not be accessible by group or other users; run chmod 600 .env")
     if shutil.which("docker") is None:
         errors.append("Docker is not installed or not available on PATH")
     else:
@@ -154,9 +146,7 @@ def installation_errors(
         for port in (80, 443):
             if host_port_in_use(port):
                 errors.append(f"Host port {port} is already in use")
-    backup_dir = Path(
-        os.path.expanduser(read_env(env_path).get("BACKUP_DIR", "./backups"))
-    )
+    backup_dir = Path(os.path.expanduser(read_env(env_path).get("BACKUP_DIR", "./backups")))
     backup_dir.mkdir(parents=True, exist_ok=True)
     if not os.access(backup_dir, os.W_OK):
         errors.append(f"Backup directory is not writable: {backup_dir}")
@@ -164,9 +154,7 @@ def installation_errors(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Validate Interview Studio deployment settings"
-    )
+    parser = argparse.ArgumentParser(description="Validate Interview Studio deployment settings")
     parser.add_argument("path", nargs="?", type=Path, default=Path(".env"))
     parser.add_argument("--installation", action="store_true")
     parser.add_argument("--compose-file", type=Path, default=None)

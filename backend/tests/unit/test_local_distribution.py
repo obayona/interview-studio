@@ -10,7 +10,8 @@ def test_local_compose_is_loopback_only_and_version_pinned() -> None:
 
     assert "127.0.0.1:${LOCAL_PORT:-8080}:8080" in compose
     assert "ghcr.io/obayona/interview-studio-backend:${APP_VERSION" in compose
-    assert "ghcr.io/obayona/interview-studio-web:${APP_VERSION" in compose
+    assert "interview-studio-web" not in compose
+    assert "web:" not in compose
     assert 'APP_SERVER_MODE: "false"' in compose
     assert "0.0.0.0:${LOCAL_PORT" not in compose
     assert "certbot" not in compose
@@ -34,8 +35,8 @@ def test_update_stops_writes_before_migration() -> None:
     posix = (scripts / "update-local.sh").read_text(encoding="utf-8")
     powershell = (scripts / "Update-Local.ps1").read_text(encoding="utf-8")
 
-    assert posix.index("stop backend web") < posix.index("run --rm migrate")
-    assert powershell.index("stop backend web") < powershell.index("run --rm migrate")
+    assert posix.index("stop backend") < posix.index("run --rm migrate")
+    assert powershell.index("stop backend") < powershell.index("run --rm migrate")
 
 
 def test_launchers_create_the_backup_bind_as_the_local_user() -> None:
