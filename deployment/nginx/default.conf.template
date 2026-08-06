@@ -63,7 +63,7 @@ server {
     }
 
     location @login_redirect {
-        return 302 /login?next=$request_uri;
+        return 302 $scheme://$host/login?next=$request_uri;
     }
 
     location = /login {
@@ -100,6 +100,6 @@ server {
     location / {
         auth_request /_auth;
         error_page 401 = @login_redirect;
-        try_files $uri $uri/ $uri/index.html /index.html;
+        try_files $uri $uri/index.html /index.html;
     }
 }
