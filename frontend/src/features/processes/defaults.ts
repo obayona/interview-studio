@@ -32,7 +32,7 @@ export const defaultStages = (): StageInput[] =>
       ['screening', true],
       ['behavioral', true],
       ['technical', true],
-      ['system_design', false],
+      ['system_design', true],
     ] as const
   ).map(([stage_type, enabled]) => ({
     id: crypto.randomUUID(),

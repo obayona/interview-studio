@@ -127,7 +127,7 @@ describe('process pages', () => {
     expect(screen.getByText('4. System design')).toBeVisible();
     expect(
       screen.getByRole('switch', { name: 'Include System design' }),
-    ).toHaveAttribute('aria-checked', 'false');
+    ).toHaveAttribute('aria-checked', 'true');
     expect(
       screen.queryByRole('switch', { name: 'Speech input' }),
     ).not.toBeInTheDocument();
